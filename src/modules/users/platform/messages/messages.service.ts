@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
@@ -9,33 +10,38 @@ import { Types } from 'mongoose';
 @Injectable()
 export class MessagesService {
   constructor(private readonly messagesRepository: MessagesRepository) {}
-
   public async getAll({ query, spaceId, authUser }) {
-    console.log(spaceId);
-
     return this.messagesRepository.findAll({
       query,
       options: {
         allowedSearchFields: ['text'],
         pipelines: [
           {
-            $match: { space: new Types.ObjectId(spaceId) },
+            $match: {
+              space: new Types.ObjectId(spaceId),
+            },
           },
+
+          {
+            $sort: { createdAt: -1 },
+          },
+
           {
             $project: {
               space: 1,
               sender: 1,
               text: 1,
-              type: 1,
-              mediaUrl: 1,
+              messageType: 1,
+              metadata: 1,
               replyTo: 1,
+              status: 1,
+              createdAt: 1,
             },
           },
         ],
       },
     });
   }
-
   public async getOne({ messageId, authUser }) {
     const message = await this.messagesRepository.findOne({
       query: { _id: messageId },
