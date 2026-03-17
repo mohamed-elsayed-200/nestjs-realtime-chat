@@ -1,0 +1,18 @@
+{
+  "welcome": "مرحبًا",
+  "thankYouForRegistering": "شكرًا لتسجيلك معنا",
+  "verificationCode": "رمز التحقق",
+  "enterCodeInApp": "أدخل الرمز في التطبيق",
+  "codeWillExpireIn": "ستنتهي صلاحية الرمز خلال {minutes} دقيقة",
+  "orClickVerifyAccount": "أو اضغط للتحقق من الحساب",
+  "verifyAccount": "تحقق من الحساب",
+  "note": "ملاحظة",
+  "ignoreEmailIfNotYou": "تجاهل هذا البريد إذا لم تكن أنت",
+  "needHelp": "هل تحتاج إلى مساعدة؟",
+  "contactSupport": "تواصل مع الدعم الفني",
+  "allRightsReserved": "جميع الحقوق محفوظة",
+  "resetRequest": "طلب إعادة تعيين كلمة المرور",
+  "requestReceived": "تم استلام طلبك",
+  "important": "مهم",
+  "ignoreRequest": "تجاهل الطلب إذا لم تكن أنت"
+}

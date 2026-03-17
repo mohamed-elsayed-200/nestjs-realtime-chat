@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json.schemastore.org/nest-cli",
+  "collection": "@nestjs/schematics",
+  "sourceRoot": "src",
+  "compilerOptions": {
+    "assets": [
+      "**/*.json",
+      "i18n/**/*",
+      "i18n/**/*.json",
+      {
+        "include": "/common/modules/mail/templates/**/*",
+        "outDir": "dist"
+      }
+    ],
+    "deleteOutDir": true
+  }
+}

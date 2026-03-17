@@ -1,0 +1,18 @@
+{
+  "welcome": "Welcome",
+  "thankYouForRegistering": "Thank you for registering with us",
+  "verificationCode": "Verification Code",
+  "enterCodeInApp": "Enter the code in the app",
+  "codeWillExpireIn": "The code will expire in {minutes} minutes",
+  "orClickVerifyAccount": "Or click to verify your account",
+  "verifyAccount": "Verify Account",
+  "note": "Note",
+  "ignoreEmailIfNotYou": "Ignore this email if it wasn’t you",
+  "needHelp": "Need help?",
+  "contactSupport": "Contact support",
+  "allRightsReserved": "All rights reserved",
+  "resetRequest": "Password reset request",
+  "requestReceived": "Your request has been received",
+  "important": "Important",
+  "ignoreRequest": "Ignore the request if it wasn’t you"
+}

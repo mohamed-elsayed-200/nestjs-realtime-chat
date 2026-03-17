@@ -1,0 +1,35 @@
+{
+  "foundAll": "All categories retrieved successfully",
+  "foundOne": "Category retrieved successfully",
+  "created": "Category created successfully",
+  "updated": "Category updated successfully",
+  "deleted": "Category deleted successfully",
+  "alreadyExist": "Category already exists",
+  "notFoundOne": "Category not found",
+  "notCreated": "Failed to create category",
+  "notUpdated": "Failed to update category",
+  "notDeleted": "Failed to delete category",
+  "validation": {
+    "name": {
+      "isString": "Name must be a string",
+      "isNotEmpty": "Name is required"
+    },
+    "description": {
+      "isString": "Description must be a string"
+    },
+    "icon": {
+      "isString": "Icon must be a string"
+    },
+    "isActive": {
+      "boolean": "Activation status must be true or false"
+    },
+    "order": {
+      "number": "Order must be a number",
+      "min": "Order must be at least 0"
+    },
+    "tags": {
+      "isString": "Tag must be a string",
+      "array": "Tags must be an array"
+    }
+  }
+}
