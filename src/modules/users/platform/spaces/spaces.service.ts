@@ -15,7 +15,9 @@ export class SpacesService {
     private readonly membersRepository: MembersRepository,
   ) {}
 
-  public async getAll({ query }) {
+  public async getAll({ query, authUser }) {
+    const userId = new Types.ObjectId(authUser._id);
+
     return this.spacesRepository.findAll({
       query,
       options: {
@@ -24,21 +26,87 @@ export class SpacesService {
         pipelines: [
           {
             $lookup: {
-              from: 'products',
-              localField: '_id',
-              foreignField: 'space',
-              as: 'getProducts',
+              from: 'members',
+              let: { spaceId: '$_id' },
+              pipeline: [
+                {
+                  $match: {
+                    $expr: {
+                      $and: [
+                        { $eq: ['$space', '$$spaceId'] },
+                        { $eq: ['$user', userId] },
+                      ],
+                    },
+                  },
+                },
+              ],
+              as: 'userMembership',
             },
           },
+
+          {
+            $match: {
+              userMembership: { $ne: [] },
+            },
+          },
+
+          {
+            $lookup: {
+              from: 'members',
+              let: { spaceId: '$_id' },
+              pipeline: [
+                {
+                  $match: {
+                    $expr: {
+                      $eq: ['$space', '$$spaceId'],
+                    },
+                  },
+                },
+                {
+                  $lookup: {
+                    from: 'users',
+                    localField: 'user',
+                    foreignField: '_id',
+                    as: 'user',
+                  },
+                },
+                {
+                  $unwind: {
+                    path: '$user',
+                    preserveNullAndEmptyArrays: true,
+                  },
+                },
+                {
+                  $project: {
+                    _id: 1,
+                    role: 1,
+                    joinedAt: 1,
+                    lastReadMessage: 1,
+                    user: {
+                      _id: 1,
+                      name: 1,
+                      email: 1,
+                      avatar: 1,
+                      profileColor: 1,
+                    },
+                  },
+                },
+              ],
+              as: 'members',
+            },
+          },
+
           {
             $project: {
               name: 1,
-              thumbnail: 1,
+              avatar: 1,
               description: 1,
               status: 1,
+              type: 1,
+              isPrivate: 1,
               createdAt: 1,
               updatedAt: 1,
-              products: { $size: '$getProducts' },
+              members: 1,
             },
           },
         ],
@@ -46,7 +114,7 @@ export class SpacesService {
     });
   }
 
-  public async getOne({ spaceId }) {
+  public async getOne({ spaceId, authUser }) {
     const space = await this.spacesRepository.findOne({
       query: { _id: spaceId },
     });
@@ -82,7 +150,7 @@ export class SpacesService {
     return space;
   }
 
-  public async update({ spaceId, dto }) {
+  public async update({ spaceId, dto, authUser }) {
     const space = await this.spacesRepository.updateOne({
       query: { _id: spaceId },
       dto,
@@ -92,7 +160,7 @@ export class SpacesService {
     return space;
   }
 
-  public async delete({ spaceId }) {
+  public async delete({ spaceId, authUser }) {
     const item = await this.spacesRepository.deleteOne({
       query: { _id: spaceId },
     });

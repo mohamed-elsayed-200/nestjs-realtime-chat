@@ -19,24 +19,21 @@ import { UserType } from '../../../../common/types/enums';
 import { UserTypes } from '../../../../common/decorators/user-type.decorator';
 import { QueryDto } from '../../../../common/modules/dto/query.dto';
 import { UpdateMessageDto } from './dto/update-message.dto';
+import { GetUser } from 'src/common/decorators/get-user.decorator';
 
 @Controller('/users/messages')
 @UseGuards(AuthGuard, UserTypeGuard)
 @UserTypes(UserType.USER)
 export class MessagesController {
   constructor(private readonly messagesService: MessagesService) {}
-  @Get()
+  @Get(':/chatId')
   @ResponseMeta({ message: 'messages.foundAll' })
-  public async getAll(@Query() query: QueryDto) {
-    return this.messagesService.getAll({ query });
-  }
-
-  @Get('/:messageId')
-  @ResponseMeta({ message: 'messages.foundOne' })
-  public async getOne(
-    @Param('messageId', ValidateObjectIdPipe) messageId: string,
+  public async getAll(
+    @Param('chatId', ValidateObjectIdPipe) chatId: string,
+    @GetUser() authUser: any,
+    @Query() query: QueryDto,
   ) {
-    return this.messagesService.getOne({ messageId });
+    return this.messagesService.getAll({ query, chatId, authUser });
   }
 
   @Post()

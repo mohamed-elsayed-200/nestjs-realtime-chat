@@ -9,7 +9,7 @@ import { MessagesRepository } from '../../../../common/modules/platform/messages
 export class MessagesService {
   constructor(private readonly messagesRepository: MessagesRepository) {}
 
-  public async getAll({ query }) {
+  public async getAll({ query, authUser, chatId }) {
     return this.messagesRepository.findAll({
       query,
       options: {

@@ -6,7 +6,6 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { SpacesService } from './spaces.service';
 import { OnModuleInit } from '@nestjs/common';
 
 @WebSocketGateway({
@@ -15,27 +14,37 @@ import { OnModuleInit } from '@nestjs/common';
   },
 })
 export class SpacesGateway implements OnModuleInit {
-  constructor(private spacesService: SpacesService) {}
-
   @WebSocketServer()
   server: Server;
 
   onModuleInit() {
-    return this.server.on('connection', (client) => {
-      console.log(client?.id);
+    this.server.on('connection', (client) => {
+      console.log('🟢 Connected:', client.id);
+
+      client.on('disconnect', () => {
+        console.log('🔴 Disconnected:', client.id);
+      });
     });
   }
 
-  @SubscribeMessage('space:join')
-  joinSpace(@MessageBody() spaceId: string, @ConnectedSocket() client: Socket) {
-    client.join(`space_${spaceId}`);
-  }
-
-  @SubscribeMessage('space:message')
-  async handleMessage(
-    @MessageBody() data: any,
+  @SubscribeMessage('join-room')
+  handleJoinRoom(
+    @MessageBody() roomId: string,
     @ConnectedSocket() client: Socket,
   ) {
-    this.server.to(`space_${data.spaceId}`).emit('space:new-message', 'Hello');
+    client.join(`space_${roomId}`);
+  }
+
+  @SubscribeMessage('leave-room')
+  handleLeaveRoom(
+    @MessageBody() roomId: string,
+    @ConnectedSocket() client: Socket,
+  ) {
+    client.leave(`space_${roomId}`);
+  }
+
+  @SubscribeMessage('typing')
+  handleTyping(@MessageBody() data: any) {
+    this.server.to(`space_${data.chatId}`).emit('typing', data);
   }
 }
