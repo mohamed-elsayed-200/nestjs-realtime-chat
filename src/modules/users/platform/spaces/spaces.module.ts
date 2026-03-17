@@ -4,9 +4,10 @@ import { SpacesController } from './spaces.controller';
 import { BaseAuthModule } from '../../../../common/modules/auth/auth.module';
 import { BaseSpaceModule } from '../../../../common/modules/platform/spaces/spaces.module';
 import { SpacesGateway } from './spaces.gateway';
+import { BaseMemberModule } from '../../../../common/modules/platform/members/members.module';
 
 @Module({
-  imports: [BaseSpaceModule, BaseAuthModule],
+  imports: [BaseSpaceModule, BaseMemberModule, BaseAuthModule],
   controllers: [SpacesController],
   providers: [SpacesService, SpacesGateway],
   exports: [SpacesService, SpacesGateway],
