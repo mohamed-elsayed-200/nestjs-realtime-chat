@@ -5,6 +5,7 @@ import { MessagesModule } from './platform/messages/messages.module';
 import { MembersModule } from './platform/members/members.module';
 import { ReactionsModule } from './platform/reactions/reactions.module';
 import { SpacesModule } from './platform/spaces/spaces.module';
+import { ContactsModule } from './platform/contacts/contacts.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { SpacesModule } from './platform/spaces/spaces.module';
     MembersModule,
     ReactionsModule,
     SpacesModule,
+    ContactsModule,
   ],
 })
 export class UsersModule {}

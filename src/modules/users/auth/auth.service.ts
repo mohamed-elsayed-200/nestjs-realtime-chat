@@ -74,7 +74,9 @@ export class AuthService {
       query: {
         email,
         userType: UserType.USER,
-        $ne: [{ status: UserStatus.BLOCKED }, { status: UserStatus.DELETED }],
+        status: {
+          $nin: [UserStatus.BLOCKED, UserStatus.DELETED],
+        },
       },
     });
 

@@ -11,7 +11,6 @@ import {
 } from '@nestjs/common';
 import { CreateSpaceDto } from './dto/create-space.dto';
 import { SpacesService } from './spaces.service';
-import { PermissionsGuard } from '../../../../common/guards/permissions-guard.guard';
 import { AuthGuard } from '../../../../common/guards/auth.guard';
 import { ResponseMeta } from '../../../../common/decorators/response.decorator';
 import { Permissions } from '../../../../common/decorators/permissions.decorator';
@@ -22,9 +21,9 @@ import { UserTypes } from '../../../../common/decorators/user-type.decorator';
 import { QueryDto } from '../../../../common/modules/dto/query.dto';
 import { UpdateSpaceDto } from './dto/update-space.dto';
 
-@Controller('/admin/spaces')
-@UseGuards(AuthGuard, PermissionsGuard, UserTypeGuard)
-@UserTypes(UserType.ADMIN, UserType.STAFF)
+@Controller('/users/spaces')
+@UseGuards(AuthGuard, UserTypeGuard)
+@UserTypes(UserType.USER)
 export class SpacesController {
   constructor(private readonly spacesService: SpacesService) {}
   @Get()

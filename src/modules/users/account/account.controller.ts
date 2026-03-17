@@ -11,7 +11,7 @@ import { ChangePasswordDto } from './dto/change-password.dto';
 
 @Controller('/users/account')
 @UseGuards(AuthGuard, UserTypeGuard)
-@UserTypes(UserType.ADMIN)
+@UserTypes(UserType.USER)
 export class AccountController {
   constructor(private readonly accountService: AccountService) {}
   @Get()
