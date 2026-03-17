@@ -1,13 +1,4 @@
-import {
-  IsNotEmpty,
-  IsOptional,
-  IsString,
-  IsNumber,
-  Min,
-  IsArray,
-  IsEnum,
-  IsMongoId,
-} from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, IsEnum } from 'class-validator';
 import { ActivationStatus } from '../../../../../common/types/enums';
 
 export class CreateSpaceDto {

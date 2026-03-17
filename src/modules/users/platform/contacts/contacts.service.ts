@@ -1,10 +1,11 @@
 import { UsersRepository } from './../../../../common/modules/iam/users/users.repository';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { UserType } from './../../../../common/types/enums';
+import { Types } from 'mongoose';
 @Injectable()
 export class ContactsService {
   constructor(private readonly contactsRepository: UsersRepository) {}
-  public async getAll({ query }) {
+  public async getAll({ query, authUser }) {
     return this.contactsRepository.findAll({
       query,
       options: {
@@ -13,6 +14,7 @@ export class ContactsService {
           {
             $match: {
               userType: UserType.USER,
+              _id: { $ne: new Types.ObjectId(authUser?._id) },
             },
           },
           {
@@ -22,7 +24,7 @@ export class ContactsService {
               username: 1,
               avatar: 1,
               status: 1,
-              roles: 1,
+              profileColor: 1,
             },
           },
         ],

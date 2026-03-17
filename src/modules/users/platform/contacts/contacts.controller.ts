@@ -8,6 +8,7 @@ import { ContactsService } from './contacts.service';
 import { QueryDto } from '../../../../common/modules/dto/query.dto';
 import { UserTypes } from '../../../../common/decorators/user-type.decorator';
 import { UserTypeGuard } from '../../../../common/guards/user-type.guard';
+import { GetUser } from 'src/common/decorators/get-user.decorator';
 
 @Controller('/users/contacts')
 @UseGuards(AuthGuard, PermissionsGuard, UserTypeGuard)
@@ -16,8 +17,8 @@ export class ContactsController {
   constructor(private readonly contactsService: ContactsService) {}
   @Get()
   @ResponseMeta({ message: 'contacts.foundAll' })
-  public async getAll(@Query() query: QueryDto) {
-    return this.contactsService.getAll({ query });
+  public async getAll(@Query() query: QueryDto, @GetUser() authUser: any) {
+    return this.contactsService.getAll({ query, authUser });
   }
 
   @Get('/:contactId')
