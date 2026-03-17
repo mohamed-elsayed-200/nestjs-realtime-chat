@@ -4,35 +4,31 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { MessagesRepository } from '../../../../common/modules/platform/messages/messages.repository';
+import { Types } from 'mongoose';
 
 @Injectable()
 export class MessagesService {
   constructor(private readonly messagesRepository: MessagesRepository) {}
 
-  public async getAll({ query, authUser, chatId }) {
+  public async getAll({ query, spaceId, authUser }) {
+    console.log(spaceId);
+
     return this.messagesRepository.findAll({
       query,
       options: {
-        allowedSearchFields: ['name', 'description'],
-        allowedFilterFields: ['status'],
+        allowedSearchFields: ['text'],
         pipelines: [
           {
-            $lookup: {
-              from: 'products',
-              localField: '_id',
-              foreignField: 'message',
-              as: 'getProducts',
-            },
+            $match: { space: new Types.ObjectId(spaceId) },
           },
           {
             $project: {
-              name: 1,
-              thumbnail: 1,
-              description: 1,
-              status: 1,
-              createdAt: 1,
-              updatedAt: 1,
-              products: { $size: '$getProducts' },
+              space: 1,
+              sender: 1,
+              text: 1,
+              type: 1,
+              mediaUrl: 1,
+              replyTo: 1,
             },
           },
         ],
@@ -40,7 +36,7 @@ export class MessagesService {
     });
   }
 
-  public async getOne({ messageId }) {
+  public async getOne({ messageId, authUser }) {
     const message = await this.messagesRepository.findOne({
       query: { _id: messageId },
     });
@@ -50,17 +46,19 @@ export class MessagesService {
     return message;
   }
 
-  public async create({ dto }) {
-    const message = await this.messagesRepository.createOne({ dto });
+  public async create({ dto, authUser }) {
+    const message = await this.messagesRepository.createOne({
+      dto: { ...dto, sender: new Types.ObjectId(authUser?._id) },
+    });
 
     if (!message) throw new InternalServerErrorException('messages.notCreated');
 
     return message;
   }
 
-  public async update({ messageId, dto }) {
+  public async update({ messageId, dto, authUser }) {
     const message = await this.messagesRepository.updateOne({
-      query: { _id: messageId },
+      query: { _id: messageId, sender: authUser?._id },
       dto,
     });
     if (!message) throw new NotFoundException('messages.notUpdated');
@@ -68,9 +66,9 @@ export class MessagesService {
     return message;
   }
 
-  public async delete({ messageId }) {
+  public async delete({ messageId, authUser }) {
     const item = await this.messagesRepository.deleteOne({
-      query: { _id: messageId },
+      query: { _id: messageId, sender: authUser?._id },
     });
 
     if (!item) throw new NotFoundException('messages.notDeleted');

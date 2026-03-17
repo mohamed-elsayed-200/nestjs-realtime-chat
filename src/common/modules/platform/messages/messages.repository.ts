@@ -1,7 +1,7 @@
 import { InjectModel } from '@nestjs/mongoose';
 import { Message } from './message.schema';
 import { Injectable } from '@nestjs/common';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { aggregateQuery } from '../../data-access/aggregate-query';
 import { FindOneProps } from '../../../types/interfaces';
 
@@ -29,10 +29,16 @@ export class MessagesRepository {
   }
 
   public async createOne({ dto }) {
+    if (dto.space) dto.space = new Types.ObjectId(dto.space);
+    if (dto.sender) dto.sender = new Types.ObjectId(dto.sender);
+    if (dto.replyTo) dto.replyTo = new Types.ObjectId(dto.replyTo);
     return this.chatModel.create(dto);
   }
 
   public async updateOne({ query, dto }) {
+    if (dto.space) dto.space = new Types.ObjectId(dto.space);
+    if (dto.sender) dto.sender = new Types.ObjectId(dto.sender);
+    if (dto.replyTo) dto.replyTo = new Types.ObjectId(dto.replyTo);
     return this.chatModel.findOneAndUpdate(query, dto, { new: true });
   }
 

@@ -78,17 +78,14 @@ export class SpacesService {
                 },
                 {
                   $project: {
-                    _id: 1,
                     role: 1,
                     joinedAt: 1,
                     lastReadMessage: 1,
-                    user: {
-                      _id: 1,
-                      name: 1,
-                      email: 1,
-                      avatar: 1,
-                      profileColor: 1,
-                    },
+                    _id: '$user._id',
+                    name: '$user.name',
+                    email: '$user.email',
+                    avatar: '$user.avatar',
+                    profileColor: '$user.profileColor',
                   },
                 },
               ],

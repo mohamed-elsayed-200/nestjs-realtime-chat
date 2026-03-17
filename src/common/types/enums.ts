@@ -19,7 +19,7 @@ export enum ActivationStatus {
   INACTIVE = 'inactive',
 }
 export enum SpaceTypes {
-  DIRECT = 'direct',
+  PRIVATE = 'private',
   GROUP = 'group',
   CHANNEL = 'channel',
   COMMUNITY = 'community',
@@ -34,7 +34,13 @@ export enum MessageType {
   TEXT = 'text',
   IMAGE = 'image',
   VIDEO = 'video',
-  FILE = 'file',
   AUDIO = 'audio',
+  FILE = 'file',
+  STICKER = 'sticker',
   SYSTEM = 'system',
+}
+export enum MessageStatus {
+  SENT = 'sent',
+  DELIVERED = 'delivered',
+  SEEN = 'seen',
 }

@@ -26,20 +26,20 @@ import { GetUser } from 'src/common/decorators/get-user.decorator';
 @UserTypes(UserType.USER)
 export class MessagesController {
   constructor(private readonly messagesService: MessagesService) {}
-  @Get(':/chatId')
+  @Get(':spaceId')
   @ResponseMeta({ message: 'messages.foundAll' })
   public async getAll(
-    @Param('chatId', ValidateObjectIdPipe) chatId: string,
+    @Param('spaceId', ValidateObjectIdPipe) spaceId: string,
     @GetUser() authUser: any,
     @Query() query: QueryDto,
   ) {
-    return this.messagesService.getAll({ query, chatId, authUser });
+    return this.messagesService.getAll({ query, spaceId, authUser });
   }
 
   @Post()
   @ResponseMeta({ message: 'messages.created', statusCode: 201 })
-  public async create(@Body() dto: CreateMessageDto) {
-    return this.messagesService.create({ dto });
+  public async create(@Body() dto: CreateMessageDto, @GetUser() authUser: any) {
+    return this.messagesService.create({ dto, authUser });
   }
 
   @Put(':messageId')
@@ -47,15 +47,17 @@ export class MessagesController {
   public async update(
     @Param('messageId', ValidateObjectIdPipe) messageId: string,
     @Body() dto: UpdateMessageDto,
+    @GetUser() authUser: any,
   ) {
-    return this.messagesService.update({ messageId, dto });
+    return this.messagesService.update({ messageId, dto, authUser });
   }
 
   @Delete(':messageId')
   @ResponseMeta({ message: 'messages.deleted' })
   public async delete(
+    @GetUser() authUser: any,
     @Param('messageId', ValidateObjectIdPipe) messageId: string,
   ) {
-    return this.messagesService.delete({ messageId });
+    return this.messagesService.delete({ messageId, authUser });
   }
 }

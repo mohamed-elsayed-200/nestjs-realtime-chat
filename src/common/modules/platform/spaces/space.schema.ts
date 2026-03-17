@@ -30,7 +30,7 @@ export class Space {
 
   @Prop({
     enum: SpaceTypes,
-    default: SpaceTypes.DIRECT,
+    default: SpaceTypes.PRIVATE,
   })
   type: SpaceTypes;
 

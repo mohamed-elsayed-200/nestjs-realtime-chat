@@ -4,6 +4,7 @@ import { Injectable } from '@nestjs/common';
 import { Model } from 'mongoose';
 import { aggregateQuery } from '../../data-access/aggregate-query';
 import { FindOneProps } from '../../../types/interfaces';
+import { Types } from 'mongoose';
 
 @Injectable()
 export class ReactionsRepository {
@@ -29,10 +30,14 @@ export class ReactionsRepository {
   }
 
   public async createOne({ dto }) {
+    if (dto.message) dto.message = new Types.ObjectId(dto.message);
+    if (dto.user) dto.user = new Types.ObjectId(dto.user);
     return this.chatModel.create(dto);
   }
 
   public async updateOne({ query, dto }) {
+    if (dto.message) dto.message = new Types.ObjectId(dto.message);
+    if (dto.user) dto.user = new Types.ObjectId(dto.user);
     return this.chatModel.findOneAndUpdate(query, dto, { new: true });
   }
 

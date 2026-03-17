@@ -1,31 +1,50 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument, Types } from 'mongoose';
-import { MessageType } from '../../../types/enums';
+import { MessageStatus, MessageType } from '../../../types/enums';
 
 export type MessageDocument = HydratedDocument<Message>;
 
 @Schema({ timestamps: true })
 export class Message {
-  @Prop({ type: Types.ObjectId, ref: 'Space', index: true })
+  @Prop({ type: Types.ObjectId, ref: 'Space', index: true, required: true })
   space: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: 'User' })
+  @Prop({ type: Types.ObjectId, ref: 'User', required: true })
   sender: Types.ObjectId;
 
-  @Prop()
+  @Prop({ default: null })
   text: string;
 
   @Prop({
     enum: MessageType,
     default: MessageType.TEXT,
   })
-  type: MessageType;
+  messageType: MessageType;
 
-  @Prop()
+  @Prop({ default: null })
   mediaUrl: string;
 
-  @Prop({ type: Types.ObjectId, ref: 'Message' })
+  @Prop({ type: Types.ObjectId, ref: 'Message', default: null })
   replyTo: Types.ObjectId;
+
+  @Prop({
+    type: Object,
+    default: {},
+  })
+  metadata: {
+    fileName?: string;
+    size?: number;
+    duration?: number;
+    width?: number;
+    height?: number;
+  };
+
+  @Prop({
+    type: String,
+    enum: MessageStatus,
+    default: MessageStatus.SENT,
+  })
+  status: MessageStatus;
 }
 
 export const MessageSchema = SchemaFactory.createForClass(Message);
