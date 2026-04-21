@@ -7,9 +7,11 @@ import { ResInterceptor } from './common/interceptors/response.interceptor';
 import { Response } from 'express';
 import helmet from 'helmet';
 const cookieParser = require('cookie-parser');
+import { IoAdapter } from '@nestjs/platform-socket.io';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  app.useWebSocketAdapter(new IoAdapter(app));
 
   app.use(helmet());
   app.setGlobalPrefix('api');
