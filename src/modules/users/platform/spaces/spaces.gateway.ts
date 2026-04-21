@@ -46,7 +46,7 @@ export class SpacesGateway implements OnModuleInit {
 
   @SubscribeMessage('send-message')
   handleSendMessage(@MessageBody() data: any) {
-    const room = `space_${data.roomId || data.chatId}`;
+    const room = `space_${data.roomId || data.chat}`;
     this.server.to(room).emit('sended-message', data);
     console.log('📨 Message sent to', room);
   }
@@ -54,7 +54,7 @@ export class SpacesGateway implements OnModuleInit {
   @SubscribeMessage('delete-message')
   handleDeleteMessage(
     @MessageBody()
-    payload: string | { messageId: string; roomId?: string; chatId?: string },
+    payload: string | { messageId: string; roomId?: string; chat?: string },
     @ConnectedSocket() client: Socket,
   ) {
     if (typeof payload === 'string') {
@@ -65,7 +65,7 @@ export class SpacesGateway implements OnModuleInit {
         }
       });
     } else {
-      const room = `space_${payload.roomId || payload.chatId}`;
+      const room = `space_${payload.roomId || payload.chat}`;
       this.server.to(room).emit('deleted-message', {
         messageId: payload.messageId,
       });
@@ -75,7 +75,7 @@ export class SpacesGateway implements OnModuleInit {
 
   @SubscribeMessage('react-message')
   handleReactMessage(@MessageBody() data: any) {
-    const room = `space_${data.roomId || data.chatId}`;
+    const room = `space_${data.roomId || data.chat}`;
     this.server.to(room).emit('reacted-message', data);
     console.log('😊 Reaction sent to', room);
   }
@@ -83,7 +83,7 @@ export class SpacesGateway implements OnModuleInit {
   @SubscribeMessage('seen-message')
   handleSeenMessage(
     @MessageBody()
-    payload: string | { messageId: string; roomId?: string; chatId?: string },
+    payload: string | { messageId: string; roomId?: string; chat?: string },
     @ConnectedSocket() client: Socket,
   ) {
     if (typeof payload === 'string') {
@@ -94,7 +94,7 @@ export class SpacesGateway implements OnModuleInit {
         }
       });
     } else {
-      const room = `space_${payload.roomId || payload.chatId}`;
+      const room = `space_${payload.roomId || payload.chat}`;
       this.server.to(room).emit('seened-message', {
         messageId: payload.messageId,
       });
@@ -104,7 +104,7 @@ export class SpacesGateway implements OnModuleInit {
 
   @SubscribeMessage('typing')
   handleTyping(@MessageBody() data: any) {
-    const room = `space_${data.chatId}`;
+    const room = `space_${data.chat}`;
     this.server.to(room).emit('typing', data);
     console.log('⌨️ Typing in', room);
   }
