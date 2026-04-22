@@ -8,21 +8,21 @@ import { FindOneProps } from '../../../types/interfaces';
 @Injectable()
 export class MembersRepository {
   constructor(
-    @InjectModel(Member.name) private readonly chatModel: Model<Member>,
+    @InjectModel(Member.name) private readonly memberModel: Model<Member>,
   ) {}
 
   public async findAll({ query, options }) {
     return aggregateQuery({
       query,
       options: {
-        model: this.chatModel,
+        model: this.memberModel,
         ...options,
       },
     });
   }
 
   public async findOne({ query, populate, select }: FindOneProps) {
-    const base = this.chatModel.findOne(query);
+    const base = this.memberModel.findOne(query);
     if (select) base.select(select);
     if (populate) base.populate(populate);
     return await base.lean().exec();
@@ -31,16 +31,16 @@ export class MembersRepository {
   public async createOne({ dto }) {
     if (dto?.space) dto.space = new Types.ObjectId(dto?.space);
     if (dto?.user) dto.user = new Types.ObjectId(dto?.user);
-    return this.chatModel.create(dto);
+    return this.memberModel.create(dto);
   }
 
   public async updateOne({ query, dto }) {
     if (dto?.space) dto.space = new Types.ObjectId(dto?.space);
     if (dto?.user) dto.user = new Types.ObjectId(dto?.user);
-    return this.chatModel.findOneAndUpdate(query, dto, { new: true });
+    return this.memberModel.findOneAndUpdate(query, dto, { new: true });
   }
 
   public async deleteOne({ query }) {
-    return this.chatModel.findOneAndDelete(query);
+    return this.memberModel.findOneAndDelete(query);
   }
 }

@@ -8,21 +8,21 @@ import { FindOneProps } from '../../../types/interfaces';
 @Injectable()
 export class SpacesRepository {
   constructor(
-    @InjectModel(Space.name) private readonly chatModel: Model<Space>,
+    @InjectModel(Space.name) private readonly spaceModel: Model<Space>,
   ) {}
 
   public async findAll({ query, options }) {
     return aggregateQuery({
       query,
       options: {
-        model: this.chatModel,
+        model: this.spaceModel,
         ...options,
       },
     });
   }
 
   public async findOne({ query, populate, select }: FindOneProps) {
-    const base = this.chatModel.findOne(query);
+    const base = this.spaceModel.findOne(query);
     if (select) base.select(select);
     if (populate) base.populate(populate);
     return await base.lean().exec();
@@ -32,17 +32,17 @@ export class SpacesRepository {
     if (dto?.createdBy) dto.createdBy = new Types.ObjectId(dto?.createdBy);
     if (dto?.lastMessage)
       dto.lastMessage = new Types.ObjectId(dto?.lastMessage);
-    return this.chatModel.create(dto);
+    return this.spaceModel.create(dto);
   }
 
   public async updateOne({ query, dto }) {
     if (dto?.createdBy) dto.createdBy = new Types.ObjectId(dto?.createdBy);
     if (dto?.lastMessage)
       dto.lastMessage = new Types.ObjectId(dto?.lastMessage);
-    return this.chatModel.findOneAndUpdate(query, dto, { new: true });
+    return this.spaceModel.findOneAndUpdate(query, dto, { new: true });
   }
 
   public async deleteOne({ query }) {
-    return this.chatModel.findOneAndDelete(query);
+    return this.spaceModel.findOneAndDelete(query);
   }
 }
