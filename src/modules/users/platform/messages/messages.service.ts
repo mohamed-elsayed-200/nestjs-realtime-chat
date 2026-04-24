@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
@@ -21,11 +20,9 @@ export class MessagesService {
               space: new Types.ObjectId(spaceId),
             },
           },
-
           {
             $sort: { createdAt: -1 },
           },
-
           {
             $project: {
               space: 1,
@@ -33,6 +30,7 @@ export class MessagesService {
               text: 1,
               messageType: 1,
               metadata: 1,
+              mediaUrl: 1,
               replyTo: 1,
               status: 1,
               createdAt: 1,
