@@ -23,6 +23,52 @@ export class MessagesService {
           {
             $sort: { createdAt: -1 },
           },
+
+          {
+            $lookup: {
+              from: 'users',
+              localField: 'sender',
+              foreignField: '_id',
+              as: 'sender',
+            },
+          },
+          {
+            $unwind: {
+              path: '$sender',
+              preserveNullAndEmptyArrays: true,
+            },
+          },
+
+          {
+            $lookup: {
+              from: 'messages',
+              localField: 'replyTo',
+              foreignField: '_id',
+              as: 'replyTo',
+            },
+          },
+          {
+            $unwind: {
+              path: '$replyTo',
+              preserveNullAndEmptyArrays: true,
+            },
+          },
+
+          {
+            $lookup: {
+              from: 'users',
+              localField: 'replyTo.sender',
+              foreignField: '_id',
+              as: 'replyTo.sender',
+            },
+          },
+          {
+            $unwind: {
+              path: '$replyTo.sender',
+              preserveNullAndEmptyArrays: true,
+            },
+          },
+
           {
             $project: {
               space: 1,

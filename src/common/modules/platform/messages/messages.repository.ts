@@ -32,7 +32,19 @@ export class MessagesRepository {
     if (dto.space) dto.space = new Types.ObjectId(dto.space);
     if (dto.sender) dto.sender = new Types.ObjectId(dto.sender);
     if (dto.replyTo) dto.replyTo = new Types.ObjectId(dto.replyTo);
-    return this.messageModel.create(dto);
+    const newMsg = (await this.messageModel.create(dto)).populate([
+      {
+        path: 'replyTo',
+        model: 'Message',
+        populate: [
+          {
+            path: 'sender',
+            select: 'name profileColor',
+          },
+        ],
+      },
+    ]);
+    return newMsg;
   }
 
   public async updateOne({ query, dto }) {
