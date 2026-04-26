@@ -45,6 +45,11 @@ export class Message {
     default: MessageStatus.SENT,
   })
   status: MessageStatus;
+
+  @Prop({
+    type: Boolean,
+  })
+  isEdited: boolean;
 }
 
 export const MessageSchema = SchemaFactory.createForClass(Message);

@@ -6,6 +6,7 @@ import {
   IsMongoId,
   ValidateIf,
   IsObject,
+  IsBoolean,
 } from 'class-validator';
 import { MessageType, MessageStatus } from '../../../../../common/types/enums';
 

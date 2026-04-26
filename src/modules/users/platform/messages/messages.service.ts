@@ -109,7 +109,7 @@ export class MessagesService {
   public async update({ messageId, dto, authUser }) {
     const message = await this.messagesRepository.updateOne({
       query: { _id: messageId, sender: authUser?._id },
-      dto,
+      dto: { ...dto, isEdited: true },
     });
     if (!message) throw new NotFoundException('messages.notUpdated');
 

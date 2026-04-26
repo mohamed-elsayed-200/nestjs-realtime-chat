@@ -28,78 +28,55 @@ export class SpacesGateway implements OnModuleInit {
 
   @SubscribeMessage('join-room')
   handleJoinRoom(
-    @MessageBody() roomId: string,
+    @MessageBody() spaceId: string,
     @ConnectedSocket() client: Socket,
   ) {
-    console.log(`👤 Client ${client.id} joined space_${roomId}`);
-    client.join(`space_${roomId}`);
+    console.log(`👤 Client ${client.id} joined space_${spaceId}`);
+    client.join(`space_${spaceId}`);
   }
 
   @SubscribeMessage('leave-room')
   handleLeaveRoom(
-    @MessageBody() roomId: string,
+    @MessageBody() spaceId: string,
     @ConnectedSocket() client: Socket,
   ) {
-    client.leave(`space_${roomId}`);
-    console.log(`👤 Client ${client.id} left space_${roomId}`);
+    client.leave(`space_${spaceId}`);
+    console.log(`👤 Client ${client.id} left space_${spaceId}`);
   }
 
   @SubscribeMessage('send-message')
   handleSendMessage(@MessageBody() data: any) {
-    const room = `space_${data.roomId || data.space}`;
+    const room = `space_${data.space}`;
     this.server.to(room).emit('sended-message', data);
     console.log('📨 Message sent to', room);
   }
 
+  @SubscribeMessage('edit-message')
+  handleEditMessage(@MessageBody() data: any) {
+    const room = `space_${data.space}`;
+    this.server.to(room).emit('edited-message', data);
+    console.log('📨 Message edited', room);
+  }
+
   @SubscribeMessage('delete-message')
-  handleDeleteMessage(
-    @MessageBody()
-    payload: string | { messageId: string; roomId?: string; space?: string },
-    @ConnectedSocket() client: Socket,
-  ) {
-    if (typeof payload === 'string') {
-      const data = { messageId: payload };
-      client.rooms.forEach((room) => {
-        if (room !== client.id) {
-          this.server.to(room).emit('deleted-message', data);
-        }
-      });
-    } else {
-      const room = `space_${payload.roomId || payload.space}`;
-      this.server.to(room).emit('deleted-message', {
-        messageId: payload.messageId,
-      });
-    }
-    console.log('🗑️ Message deleted');
+  handleDeleteMsg(@MessageBody() data: any) {
+    const room = `space_${data.space}`;
+    this.server.to(room).emit('deleted-message', data);
+    console.log('📨 Message delete', room);
   }
 
   @SubscribeMessage('react-message')
   handleReactMessage(@MessageBody() data: any) {
-    const room = `space_${data.roomId || data.space}`;
+    const room = `space_${data.space}`;
     this.server.to(room).emit('reacted-message', data);
     console.log('😊 Reaction sent to', room);
   }
 
   @SubscribeMessage('seen-message')
-  handleSeenMessage(
-    @MessageBody()
-    payload: string | { messageId: string; roomId?: string; space?: string },
-    @ConnectedSocket() client: Socket,
-  ) {
-    if (typeof payload === 'string') {
-      const data = { messageId: payload };
-      client.rooms.forEach((room) => {
-        if (room !== client.id) {
-          this.server.to(room).emit('seened-message', data);
-        }
-      });
-    } else {
-      const room = `space_${payload.roomId || payload.space}`;
-      this.server.to(room).emit('seened-message', {
-        messageId: payload.messageId,
-      });
-    }
-    console.log('👁️ Message seen');
+  handleSeenMessage(@MessageBody() data: any) {
+    const room = `space_${data.space}`;
+    this.server.to(room).emit('seened-message', data);
+    console.log('👁️ Message seen', room);
   }
 
   @SubscribeMessage('typing')
