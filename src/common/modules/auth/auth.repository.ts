@@ -5,7 +5,6 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { Response } from 'express';
 import { OtpService } from '../otp/otp.service';
 import { SessionsRepository } from '../iam/sessions/sessions.repository';
 import { UsersRepository } from '../iam/users/users.repository';
@@ -31,13 +30,11 @@ export class AuthRepository {
 
     if (findAccount) throw new BadRequestException('auth.emailAlreadyInUse');
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-
     await this.usersRepository.createOne({
       dto: {
         email,
         name,
-        password: hashedPassword,
+        password,
         ...otherFields,
       },
     });
@@ -91,14 +88,14 @@ export class AuthRepository {
 
     res.cookie('token', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      secure: true,
+      sameSite: 'none',
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
     res.cookie('sessionId', session?._id, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      secure: true,
+      sameSite: 'none',
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
@@ -113,13 +110,13 @@ export class AuthRepository {
 
     res.clearCookie('token', {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      secure: true,
+      sameSite: 'none',
     });
     res.clearCookie('sessionId', {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      secure: true,
+      sameSite: 'none',
     });
 
     return true;
@@ -160,19 +157,64 @@ export class AuthRepository {
 
     res.cookie('token', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      secure: true,
+      sameSite: 'none',
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
     res.cookie('sessionId', session?._id, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      secure: true,
+      sameSite: 'none',
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
     return user;
   }
+  public async verifyToken({ ip, token, res }) {
+    const decoded = await this.tokenService.verifyToken(token);
 
+    if (!decoded || !decoded.userId) {
+      throw new UnauthorizedException('auth.invalidToken');
+    }
+
+    const session = await this.sessionsRepository.findOne({
+      query: {
+        user: decoded.userId,
+        ip,
+        status: 'active',
+      },
+    });
+
+    if (!session) {
+      throw new UnauthorizedException('auth.sessionExpired');
+    }
+
+    const user = await this.usersRepository.findOne({
+      query: { _id: decoded.userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('auth.userNotFound');
+    }
+
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+    res.cookie('sessionId', session?._id, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    return {
+      user,
+      token,
+      sessionId: session?._id,
+    };
+  }
   public async sendOtp({ email, typeSend }) {
     const otpRecord = await this.otpService.generate({ email });
 

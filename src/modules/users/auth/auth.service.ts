@@ -3,6 +3,7 @@ import {
   Injectable,
   InternalServerErrorException,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { AuthRepository } from '../../../common/modules/auth/auth.repository';
 import { UsersRepository } from '../../../common/modules/iam/users/users.repository';
@@ -101,6 +102,16 @@ export class AuthService {
       throw new BadRequestException('auth.failedOtpVerification');
 
     return null;
+  }
+
+  public async verifyToken({ ip, token, res }) {
+    const isVerified = await this.authRepository.verifyToken({
+      ip,
+      token,
+      res,
+    });
+    if (!isVerified) throw new UnauthorizedException('auth.invalidToken');
+    return isVerified.user;
   }
 
   public async resetPassword({ newPassword, email }) {

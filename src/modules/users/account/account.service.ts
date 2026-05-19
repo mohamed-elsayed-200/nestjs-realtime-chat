@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
+import { UserStatus } from 'src/common/types/enums';
 
 @Injectable()
 export class AccountService {
@@ -12,7 +13,7 @@ export class AccountService {
 
   public async findMyAccount({ authAdminId }) {
     const account = await this.usersRepository.findOne({
-      query: { _id: authAdminId },
+      query: { _id: authAdminId, status: UserStatus.ACTIVE },
       select: '+email +phone',
     });
     return account;

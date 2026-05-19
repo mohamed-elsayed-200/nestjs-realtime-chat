@@ -1,4 +1,4 @@
-import { Body, Controller, Post, Req, Res } from '@nestjs/common';
+import { Body, Controller, Get, Post, Req, Res } from '@nestjs/common';
 import { Request } from 'express';
 import { LoginDto } from './dto/login.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
@@ -81,6 +81,17 @@ export class AuthController {
     const ip = getClientIp(req);
     const userAgent = getClientUserAgent(req);
     return this.authService.verifyAccount({ ip, res, userAgent, ...dto });
+  }
+
+  @Get('/verify-token')
+  @ResponseMeta({
+    message: 'auth.tokenVerified',
+    statusCode: 200,
+  })
+  async verifyToken(@Res({ passthrough: true }) res: any, @Req() req: Request) {
+    const ip = getClientIp(req);
+    const token = req.cookies?.token;
+    return this.authService.verifyToken({ ip, res, token });
   }
 
   @Post('/reset-password')

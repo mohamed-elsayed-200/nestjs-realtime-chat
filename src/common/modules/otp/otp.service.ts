@@ -25,7 +25,7 @@ export class OtpService {
   public async generate({ email }: { email: string }) {
     const user = await this.usersRepository.findOne({ query: { email } });
     if (!user) {
-      throw new UnauthorizedException(this.i18n.t('otp.emailNotRegistered'));
+      throw new UnauthorizedException(this.i18n.t('auth.emailNotRegistered'));
     }
 
     const userId = user._id.toString();
@@ -37,7 +37,7 @@ export class OtpService {
       createdAt: { $gte: new Date(Date.now() - cooldownTime) },
     });
     if (recentOtps.length >= otpLimit) {
-      throw new BadRequestException(this.i18n.t('otp.waitBeforeResend'));
+      throw new BadRequestException(this.i18n.t('auth.waitBeforeResend'));
     }
 
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
@@ -46,7 +46,7 @@ export class OtpService {
       createdAt: { $gte: oneHourAgo },
     });
     if (otpCount >= 5) {
-      throw new ForbiddenException(this.i18n.t('otp.tooManyRequests'));
+      throw new ForbiddenException(this.i18n.t('auth.tooManyRequests'));
     }
 
     const code = this.generateCode();
@@ -83,18 +83,18 @@ export class OtpService {
     const otp = await this.otpModel.findById(otpId);
 
     if (!otp || otp.expiresAt < new Date()) {
-      throw new BadRequestException(this.i18n.t('otp.expired'));
+      throw new BadRequestException(this.i18n.t('auth.expired'));
     }
 
     if (otp.attempts >= 3) {
-      throw new ForbiddenException(this.i18n.t('otp.tooManyAttempts'));
+      throw new ForbiddenException(this.i18n.t('auth.tooManyAttempts'));
     }
 
     const isMatch = await bcrypt.compare(otpCode, otp.code);
 
     if (!isMatch) {
       await this.otpModel.findByIdAndUpdate(otpId, { $inc: { attempts: 1 } });
-      throw new BadRequestException(this.i18n.t('otp.invalid'));
+      throw new BadRequestException(this.i18n.t('auth.invalidOtpCode'));
     }
 
     const otpObj = await this.otpModel.findByIdAndDelete(otpId);

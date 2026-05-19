@@ -9,9 +9,6 @@ export class User {
   @Prop({ required: true })
   name: string;
 
-  @Prop({ select: false })
-  phone: string;
-
   @Prop({ select: false, required: true, unique: true, index: true })
   email: string;
 
@@ -66,74 +63,11 @@ export class User {
 
   @Prop()
   bio: string;
-
-  @Prop()
-  headline: string;
-
-  @Prop()
-  country: string;
-
-  @Prop({ type: Number, default: 0 })
-  accountBalance: 0;
-
-  @Prop({
-    _id: false,
-    type: {
-      city: String,
-      state: String,
-      lat: Number,
-      lng: Number,
-    },
-  })
-  location: {
-    city?: string;
-    state?: string;
-    lat?: number;
-    lng?: number;
-  };
-
-  @Prop({
-    _id: false,
-    type: {
-      website: String,
-      linkedin: String,
-      github: String,
-      twitter: String,
-      facebook: String,
-    },
-    default: {
-      website: '',
-      linkedin: '',
-      github: '',
-      twitter: '',
-      facebook: '',
-    },
-  })
-  socialLinks?: {
-    website?: string;
-    linkedin?: string;
-    github?: string;
-    twitter?: string;
-    facebook?: string;
-  };
-
-  @Prop({ type: String })
-  lastPasswordChangedAt: Date;
-
-  @Prop({ type: String })
-  lastIp: string;
-
-  @Prop({
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-  })
-  createdBy?: mongoose.Types.ObjectId;
 }
 export const UserSchema = SchemaFactory.createForClass(User);
 UserSchema.index({ email: 1 });
 UserSchema.index({ username: 1 });
-UserSchema.index({ type: 1 });
-UserSchema.index({ 'country.code': 1 });
+UserSchema.index({ userType: 1 });
 
 UserSchema.set('toJSON', {
   virtuals: true,
