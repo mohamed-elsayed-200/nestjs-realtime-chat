@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
-import { UserStatus } from 'src/common/types/enums';
+import { UserStatus } from '../../../common/types/enums';
 
 @Injectable()
 export class AccountService {

@@ -8,7 +8,7 @@ import { ContactsService } from './contacts.service';
 import { QueryDto } from '../../../../common/modules/dto/query.dto';
 import { UserTypes } from '../../../../common/decorators/user-type.decorator';
 import { UserTypeGuard } from '../../../../common/guards/user-type.guard';
-import { GetUser } from 'src/common/decorators/get-user.decorator';
+import { GetUser } from '../../../../common/decorators/get-user.decorator';
 
 @Controller('/users/contacts')
 @UseGuards(AuthGuard, PermissionsGuard, UserTypeGuard)

@@ -20,7 +20,7 @@ import { UserType } from '../../../../common/types/enums';
 import { UserTypes } from '../../../../common/decorators/user-type.decorator';
 import { QueryDto } from '../../../../common/modules/dto/query.dto';
 import { UpdateSpaceDto } from './dto/update-space.dto';
-import { GetUser } from 'src/common/decorators/get-user.decorator';
+import { GetUser } from '../../../../common/decorators/get-user.decorator';
 
 @Controller('/users/spaces')
 @UseGuards(AuthGuard, UserTypeGuard)

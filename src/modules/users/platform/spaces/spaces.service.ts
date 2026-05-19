@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { SpacesRepository } from '../../../../common/modules/platform/spaces/spaces.repository';
 import { MembersRepository } from '../../../../common/modules/platform/members/members.repository';
-import { SpaceMemberRole, UserType } from 'src/common/types/enums';
+import { SpaceMemberRole } from '../../../../common/types/enums';
 import { Types } from 'mongoose';
 
 @Injectable()

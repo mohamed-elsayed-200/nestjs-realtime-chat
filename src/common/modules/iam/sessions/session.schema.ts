@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import mongoose, { HydratedDocument } from 'mongoose';
-import { ActivationStatus } from 'src/common/types/enums';
+import { ActivationStatus } from '../../../../common/types/enums';
 
 export type SessionDocument = HydratedDocument<Session>;
 
