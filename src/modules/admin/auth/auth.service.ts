@@ -7,7 +7,6 @@ import { AuthRepository } from '../../../common/modules/auth/auth.repository';
 import { UsersRepository } from '../../../common/modules/iam/users/users.repository';
 import { OtpService } from '../../../common/modules/otp/otp.service';
 import { OtpTypes, UserStatus, UserType } from '../../../common/types/enums';
-import { error } from 'console';
 
 @Injectable()
 export class AuthService {

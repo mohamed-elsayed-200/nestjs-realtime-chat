@@ -11,9 +11,43 @@ export class MailService {
     private readonly configService: ConfigService,
   ) {}
 
-  private async sendMailAsync(mailOptions: any) {
-    this.mailerService.sendMail(mailOptions).catch((err) => {
-      console.error('Error sending email:', err);
+  private readonly MAX_RETRIES = 3;
+  private readonly BASE_DELAY_MS = 2000;
+
+  private async sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  private async sendMailWithRetry(
+    mailOptions: any,
+    attempt = 1,
+  ): Promise<void> {
+    try {
+      await this.mailerService.sendMail(mailOptions);
+    } catch (err) {
+      console.error(
+        `Email send failed (attempt ${attempt}/${this.MAX_RETRIES}):`,
+        err,
+      );
+
+      if (attempt >= this.MAX_RETRIES) {
+        console.error('Max retries reached. Email failed permanently.');
+        return;
+      }
+
+      // Exponential backoff: 1s, 2s, 4s
+      const delay = this.BASE_DELAY_MS * Math.pow(2, attempt - 1);
+      console.log(`Retrying email in ${delay}ms...`);
+
+      await this.sleep(delay);
+      return this.sendMailWithRetry(mailOptions, attempt + 1);
+    }
+  }
+
+  private sendMailAsync(mailOptions: any) {
+    // Fire-and-forget with retry in background
+    this.sendMailWithRetry(mailOptions).catch(() => {
+      // Already logged inside sendMailWithRetry
     });
   }
 
@@ -95,7 +129,6 @@ export class MailService {
       allRightsReserved: this.i18n.t('ejs.allRightsReserved'),
     };
 
-    // fire-and-forget
     this.sendMailAsync({
       to: email,
       from: `"${appName}" <${appEmail}>`,
