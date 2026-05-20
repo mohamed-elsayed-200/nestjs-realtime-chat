@@ -23,8 +23,8 @@ import { MailService } from './mail.service';
             tls: {
               rejectUnauthorized: false, // لو فيه certificate issue في dev
             },
-            // debug: true,         // شغلها لو عايز تشوف اللوج
-            // logger: true,
+            debug: true, // شغلها لو عايز تشوف اللوج
+            logger: true,
           },
           template: {
             dir: join(__dirname, 'templates'),
