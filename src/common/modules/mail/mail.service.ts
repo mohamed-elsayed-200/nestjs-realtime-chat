@@ -11,27 +11,12 @@ export class MailService {
     private readonly configService: ConfigService,
   ) {}
 
-  private async sendMailAsync(
-    mailOptions: any,
-    retries = 3,
-    delay = 1000,
-  ): Promise<void> {
-    try {
-      await this.mailerService.sendMail(mailOptions);
-    } catch (err) {
-      console.error(`Email send failed. Retries left: ${retries}`, err);
-
-      if (retries <= 0) {
-        throw err;
-      }
-
-      // wait before retry
-      await new Promise((resolve) => setTimeout(resolve, delay));
-
-      // retry with bigger delay
-      return this.sendMailAsync(mailOptions, retries - 1, delay * 2);
-    }
+  private async sendMailAsync(mailOptions: any) {
+    this.mailerService.sendMail(mailOptions).catch((err) => {
+      console.error('Error sending email:', err);
+    });
   }
+
   public async sendAccountVerificationEmail({
     username,
     email,
