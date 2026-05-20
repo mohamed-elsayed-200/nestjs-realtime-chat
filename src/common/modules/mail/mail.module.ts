@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { join } from 'path';
 import { EjsAdapter } from '@nestjs-modules/mailer/dist/adapters/ejs.adapter';
 import { MailService } from './mail.service';
+
 @Module({
   imports: [
     MailerModule.forRootAsync({
@@ -11,12 +12,19 @@ import { MailService } from './mail.service';
       useFactory: (config: ConfigService) => {
         return {
           transport: {
-            service: 'gmail',
-            secure: false,
+            host: 'smtp.gmail.com',
+            port: 587, // ✅ STARTTLS (أستقر من 465)
+            secure: false, // ✅ false للـ 587
+            requireTLS: true, // ✅ يفرض TLS upgrade
             auth: {
               user: config.get<string>('GMAIL'),
               pass: config.get<string>('GMAIL_APP_PASSWORD'),
             },
+            tls: {
+              rejectUnauthorized: false, // لو فيه certificate issue في dev
+            },
+            // debug: true,         // شغلها لو عايز تشوف اللوج
+            // logger: true,
           },
           template: {
             dir: join(__dirname, 'templates'),

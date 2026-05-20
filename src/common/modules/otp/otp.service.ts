@@ -54,7 +54,7 @@ export class OtpService {
     const hashedCode = await bcrypt.hash(code, 10);
     const expiresAt = new Date(
       Date.now() +
-        Number(this.configService.get<string>('OTP_EXPIRATION_MINUTES', '5')) *
+        Number(this.configService.get<string>('OTP_EXPIRATION_MINUTES', '10')) *
           60 *
           1000,
     );
