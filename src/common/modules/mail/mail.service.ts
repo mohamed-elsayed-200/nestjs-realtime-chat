@@ -11,8 +11,8 @@ export class MailService {
     private readonly configService: ConfigService,
   ) {}
 
-  private readonly MAX_RETRIES = 3;
-  private readonly BASE_DELAY_MS = 2000;
+  private readonly MAX_RETRIES = 5;
+  private readonly BASE_DELAY_MS = 1000;
 
   private async sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
