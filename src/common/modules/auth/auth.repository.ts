@@ -10,7 +10,7 @@ import { SessionsRepository } from '../iam/sessions/sessions.repository';
 import { UsersRepository } from '../iam/users/users.repository';
 import { TokenService } from '../token/token.service';
 import { MailService } from '../mail/mail.service';
-import { OtpTypes, UserType } from '../../types/enums';
+import { OtpTypes, UserStatus, UserType } from '../../types/enums';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
@@ -141,7 +141,7 @@ export class AuthRepository {
 
     await this.usersRepository.updateOne({
       query: { _id: user._id },
-      dto: { isVerified: true },
+      dto: { status: UserStatus.ACTIVE },
     });
 
     const token = await this.tokenService.generateToken({ userId });
