@@ -39,7 +39,7 @@ async function bootstrap() {
   app.useGlobalInterceptors(new ResInterceptor(reflector));
 
   app.enableCors({
-    origin: '*',
+    origin: true,
     credentials: true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     allowedHeaders: ['Content-Type', 'Authorization', 'x-lang'],

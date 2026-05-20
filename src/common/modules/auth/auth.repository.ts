@@ -83,7 +83,7 @@ export class AuthRepository {
     });
 
     if (user.status === UserStatus.ACTIVE) {
-      const session = await this.sessionsRepository.createOne({
+      await this.sessionsRepository.createOne({
         dto: {
           user: user._id,
           token,
@@ -91,22 +91,9 @@ export class AuthRepository {
           ip,
         },
       });
-      res.cookie('sessionId', session?._id, {
-        httpOnly: true,
-        secure: true,
-        sameSite: 'none',
-        maxAge: 7 * 24 * 60 * 60 * 1000,
-      });
     }
 
-    res.cookie('token', token, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'none',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
-    // user.token = token;
-    return user;
+    return { ...user?.toObject(), token };
   }
 
   public async logout({ userId, token, res }) {
@@ -151,32 +138,24 @@ export class AuthRepository {
       dto: { status: UserStatus.ACTIVE },
     });
 
-    const token = await this.tokenService.generateToken({ userId });
-
     const session = await this.sessionsRepository.createOne({
       dto: {
-        token,
         user: user._id,
         ip,
         userAgent,
       },
     });
+    if (!session)
+      throw new InternalServerErrorException('auth.failedOtpVerification');
+    const token = await this.tokenService.generateToken({
+      userId,
+      sessionId: session?._id,
+    });
 
-    res.cookie('token', token, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'none',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
-    res.cookie('sessionId', session?._id, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'none',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
-    return user;
+    return { ...user?.toObject(), token };
   }
-  public async verifyToken({ ip, token, res }) {
+
+  public async verifyToken({ ip, token }) {
     const decoded = await this.tokenService.verifyToken(token);
 
     if (!decoded || !decoded.userId) {
@@ -203,25 +182,17 @@ export class AuthRepository {
       throw new NotFoundException('auth.invalidToken');
     }
 
-    res.cookie('token', token, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'none',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
-    res.cookie('sessionId', session?._id, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'none',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+    const newToken = await this.tokenService.generateToken({
+      userId: user?._id,
+      sessionId: session?._id,
     });
 
     return {
-      user,
-      token,
-      sessionId: session?._id,
+      ...user?.toObject(),
+      token: newToken,
     };
   }
+
   public async sendOtp({ email, typeSend }) {
     const otpRecord = await this.otpService.generate({ email });
 

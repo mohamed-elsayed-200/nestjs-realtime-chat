@@ -47,6 +47,7 @@ export class AuthService {
       });
     } else {
       return {
+        token: userData?.token,
         name: userData?.name,
         email: userData?.email,
         userType: userData?.userType,
@@ -104,14 +105,19 @@ export class AuthService {
     return null;
   }
 
-  public async verifyToken({ ip, token, res }) {
-    const isVerified = await this.authRepository.verifyToken({
+  public async verifyToken({ ip, token }) {
+    const user = await this.authRepository.verifyToken({
       ip,
       token,
-      res,
     });
-    if (!isVerified) throw new UnauthorizedException('auth.invalidToken');
-    return isVerified.user;
+    if (!user) throw new UnauthorizedException('auth.invalidToken');
+    return {
+      token: user?.token,
+      name: user?.name,
+      email: user?.email,
+      userType: user?.userType,
+      status: user?.status,
+    };
   }
 
   public async resetPassword({ newPassword, email }) {

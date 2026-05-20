@@ -9,6 +9,7 @@ import { ConfigService } from '@nestjs/config';
 import { Request } from 'express';
 import { SessionsRepository } from '../modules/iam/sessions/sessions.repository';
 import { UsersRepository } from '../modules/iam/users/users.repository';
+import { extractToken } from '../utils/extract-token';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
@@ -21,8 +22,8 @@ export class AuthGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<Request>();
-    const token = request.cookies?.['token'];
-    const sessionId = request.cookies?.['sessionId'];
+
+    const token = extractToken(request);
 
     if (!token) {
       throw new UnauthorizedException('auth.invalidToken');
@@ -34,7 +35,7 @@ export class AuthGuard implements CanActivate {
       });
 
       const session = await this.sessionsRepository.validateSession({
-        sessionId,
+        sessionId: payload.sessionId,
         userId: payload.userId,
       });
 

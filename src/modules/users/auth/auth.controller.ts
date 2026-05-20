@@ -10,6 +10,7 @@ import { SendOtpDto } from './dto/send-otp.dto';
 import { RegisterDto } from './dto/register.dto';
 import getClientIp from '../../../common/utils/get-client-ip';
 import getClientUserAgent from '../../../common/utils/get-client-user-agent';
+import { extractToken } from 'src/common/utils/extract-token';
 
 @Controller('/users/auth')
 export class AuthController {
@@ -82,16 +83,15 @@ export class AuthController {
     const userAgent = getClientUserAgent(req);
     return this.authService.verifyAccount({ ip, res, userAgent, ...dto });
   }
-
   @Get('/verify-token')
   @ResponseMeta({
     message: 'auth.tokenVerified',
     statusCode: 200,
   })
-  async verifyToken(@Res({ passthrough: true }) res: any, @Req() req: Request) {
+  async verifyToken(@Req() req: Request) {
     const ip = getClientIp(req);
-    const token = req.cookies?.token;
-    return this.authService.verifyToken({ ip, res, token });
+    const token = extractToken(req);
+    return this.authService.verifyToken({ ip, token });
   }
 
   @Post('/reset-password')
