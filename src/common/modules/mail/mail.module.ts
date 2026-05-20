@@ -12,7 +12,8 @@ import { MailService } from './mail.service';
         return {
           transport: {
             service: 'gmail',
-            secure: false,
+            port: 465,
+            secure: true,
             auth: {
               user: config.get<string>('GMAIL'),
               pass: config.get<string>('GMAIL_APP_PASSWORD'),
