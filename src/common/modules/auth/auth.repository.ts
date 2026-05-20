@@ -10,7 +10,12 @@ import { SessionsRepository } from '../iam/sessions/sessions.repository';
 import { UsersRepository } from '../iam/users/users.repository';
 import { TokenService } from '../token/token.service';
 import { MailService } from '../mail/mail.service';
-import { OtpTypes, UserStatus, UserType } from '../../types/enums';
+import {
+  ActivationStatus,
+  OtpTypes,
+  UserStatus,
+  UserType,
+} from '../../types/enums';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
@@ -77,22 +82,24 @@ export class AuthRepository {
       userId: user._id,
     });
 
-    const session = await this.sessionsRepository.createOne({
-      dto: {
-        user: user._id,
-        token,
-        userAgent,
-        ip,
-      },
-    });
+    if (user.status === UserStatus.ACTIVE) {
+      const session = await this.sessionsRepository.createOne({
+        dto: {
+          user: user._id,
+          token,
+          userAgent,
+          ip,
+        },
+      });
+      res.cookie('sessionId', session?._id, {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'none',
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      });
+    }
 
     res.cookie('token', token, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'none',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
-    res.cookie('sessionId', session?._id, {
       httpOnly: true,
       secure: true,
       sameSite: 'none',
@@ -180,7 +187,7 @@ export class AuthRepository {
       query: {
         user: decoded.userId,
         ip,
-        status: 'active',
+        status: ActivationStatus.ACTIVE,
       },
     });
 
@@ -189,11 +196,11 @@ export class AuthRepository {
     }
 
     const user = await this.usersRepository.findOne({
-      query: { _id: decoded.userId },
+      query: { _id: decoded.userId, status: UserStatus.ACTIVE },
     });
 
     if (!user) {
-      throw new NotFoundException('auth.userNotFound');
+      throw new NotFoundException('auth.invalidToken');
     }
 
     res.cookie('token', token, {
