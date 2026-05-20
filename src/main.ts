@@ -39,7 +39,7 @@ async function bootstrap() {
   app.useGlobalInterceptors(new ResInterceptor(reflector));
 
   app.enableCors({
-    origin: ['https://mohamed-elsayed-pinggo-site.vercel.app'],
+    origin: '*',
     credentials: true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     allowedHeaders: ['Content-Type', 'Authorization', 'x-lang'],
