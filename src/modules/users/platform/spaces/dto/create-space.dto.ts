@@ -4,12 +4,19 @@ import {
   IsArray,
   ArrayNotEmpty,
   IsMongoId,
+  IsNotEmpty,
+  IsEnum,
 } from 'class-validator';
+import { SpaceTypes } from 'src/common/types/enums';
 
 export class CreateSpaceDto {
   @IsOptional()
   @IsString({ message: 'spaces.validation.name.isString' })
   name: string;
+
+  @IsNotEmpty({ message: 'spaces.validation.type.isEnum' })
+  @IsEnum(SpaceTypes, { message: 'spaces.validation.type.isEnum' })
+  type: string;
 
   @IsOptional()
   @IsString({ message: 'spaces.validation.description.isString' })

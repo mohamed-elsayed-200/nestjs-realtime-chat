@@ -189,6 +189,7 @@ export class AuthRepository {
 
     return {
       ...user?.toObject(),
+      id: user?._id,
       token: newToken,
     };
   }

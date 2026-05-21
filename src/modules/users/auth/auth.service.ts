@@ -113,10 +113,19 @@ export class AuthService {
     if (!user) throw new UnauthorizedException('auth.invalidToken');
     return {
       token: user?.token,
-      name: user?.name,
-      email: user?.email,
-      userType: user?.userType,
-      status: user?.status,
+      user: {
+        id: user?.id,
+        name: user?.name,
+        email: user?.email,
+        userType: user?.userType,
+        status: user?.status,
+        bio: user?.bio,
+        profileColor: user?.profileColor,
+        is2FA: user?.is2FA,
+        username: user?.username,
+        avatar: user?.avatar,
+        lastLoginAt: user?.lastLoginAt,
+      },
     };
   }
 

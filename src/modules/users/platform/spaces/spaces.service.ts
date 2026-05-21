@@ -124,9 +124,7 @@ export class SpacesService {
   public async create({ dto, authUser }) {
     const space = await this.spacesRepository.createOne({ dto });
 
-    if (!space) {
-      throw new InternalServerErrorException('spaces.notCreated');
-    }
+    if (!space) throw new InternalServerErrorException('spaces.notCreated');
 
     await Promise.all(
       dto.members?.map((id) =>
