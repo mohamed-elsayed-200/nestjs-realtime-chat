@@ -5,7 +5,11 @@ import {
 } from '@nestjs/common';
 import { SpacesRepository } from '../../../../common/modules/platform/spaces/spaces.repository';
 import { MembersRepository } from '../../../../common/modules/platform/members/members.repository';
-import { SpaceMemberRole } from '../../../../common/types/enums';
+import {
+  ActivationStatus,
+  SpaceMemberRole,
+  SpaceTypes,
+} from '../../../../common/types/enums';
 import { Types } from 'mongoose';
 
 @Injectable()
@@ -121,13 +125,21 @@ export class SpacesService {
     return space;
   }
 
-  public async create({ dto, authUser }) {
-    const space = await this.spacesRepository.createOne({ dto });
+  public async createPrivate({ dto, authUser }) {
+    const newSpace = {
+      archived: false,
+      status: ActivationStatus.ACTIVE,
+      type: SpaceTypes.PRIVATE,
+      createdBy: authUser._id,
+    };
 
+    const space = await this.spacesRepository.createOne({ dto: newSpace });
     if (!space) throw new InternalServerErrorException('spaces.notCreated');
 
+    const members = [dto.memberId, authUser._id];
+
     await Promise.all(
-      dto.members?.map((id) =>
+      members?.map((id) =>
         this.membersRepository.createOne({
           dto: {
             user: new Types.ObjectId(id),

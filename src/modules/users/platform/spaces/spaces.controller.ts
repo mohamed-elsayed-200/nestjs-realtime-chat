@@ -5,11 +5,9 @@ import {
   Get,
   Param,
   Post,
-  Put,
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { CreateSpaceDto } from './dto/create-space.dto';
 import { SpacesService } from './spaces.service';
 import { AuthGuard } from '../../../../common/guards/auth.guard';
 import { ResponseMeta } from '../../../../common/decorators/response.decorator';
@@ -19,8 +17,8 @@ import { UserTypeGuard } from '../../../../common/guards/user-type.guard';
 import { UserType } from '../../../../common/types/enums';
 import { UserTypes } from '../../../../common/decorators/user-type.decorator';
 import { QueryDto } from '../../../../common/modules/dto/query.dto';
-import { UpdateSpaceDto } from './dto/update-space.dto';
 import { GetUser } from '../../../../common/decorators/get-user.decorator';
+import { CreatePrivateSpaceDto } from './dto/create-private-space.dto';
 
 @Controller('/users/spaces')
 @UseGuards(AuthGuard, UserTypeGuard)
@@ -42,22 +40,14 @@ export class SpacesController {
     return this.spacesService.getOne({ spaceId, authUser });
   }
 
-  @Post()
+  @Post('/private')
   @Permissions('spaces:create')
   @ResponseMeta({ message: 'spaces.created', statusCode: 201 })
-  public async create(@Body() dto: CreateSpaceDto, @GetUser() authUser: any) {
-    return this.spacesService.create({ dto, authUser });
-  }
-
-  @Put(':spaceId')
-  @Permissions('spaces:update')
-  @ResponseMeta({ message: 'spaces.updated' })
-  public async update(
-    @Param('spaceId', ValidateObjectIdPipe) spaceId: string,
-    @Body() dto: UpdateSpaceDto,
+  public async create(
+    @Body() dto: CreatePrivateSpaceDto,
     @GetUser() authUser: any,
   ) {
-    return this.spacesService.update({ spaceId, dto, authUser });
+    return this.spacesService.createPrivate({ dto, authUser });
   }
 
   @Delete(':spaceId')
