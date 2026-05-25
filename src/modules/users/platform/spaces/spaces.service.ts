@@ -134,18 +134,21 @@ export class SpacesService {
     };
 
     const space = await this.spacesRepository.createOne({ dto: newSpace });
-    if (!space) throw new InternalServerErrorException('spaces.notCreated');
+
+    if (!space) {
+      throw new InternalServerErrorException('spaces.notCreated');
+    }
 
     const members = [dto.memberId, authUser._id];
 
-    await Promise.all(
-      members?.map((id) =>
+    const createdMembers = await Promise.all(
+      members.map((id) =>
         this.membersRepository.createOne({
           dto: {
             user: new Types.ObjectId(id),
             space: space._id,
             role:
-              authUser._id.toString() === id
+              authUser._id.toString() === id.toString()
                 ? SpaceMemberRole.ADMIN
                 : SpaceMemberRole.MEMBER,
             joinedAt: new Date(),
@@ -154,7 +157,10 @@ export class SpacesService {
       ),
     );
 
-    return space;
+    return {
+      ...space.toObject(),
+      members: createdMembers,
+    };
   }
 
   public async update({ spaceId, dto, authUser }) {
