@@ -144,13 +144,15 @@ export class SpacesService {
     const createdMembers = await Promise.all(
       members.map((id) =>
         this.membersRepository.createOne({
+          populate: [
+            { path: 'user', model: 'User', select: 'name profileColor' },
+          ],
           dto: {
             user: new Types.ObjectId(id),
             space: space._id,
-            role:
-              authUser._id.toString() === id.toString()
-                ? SpaceMemberRole.ADMIN
-                : SpaceMemberRole.MEMBER,
+            role: authUser._id.equals(id)
+              ? SpaceMemberRole.OWNER
+              : SpaceMemberRole.MEMBER,
             joinedAt: new Date(),
           },
         }),
@@ -159,7 +161,15 @@ export class SpacesService {
 
     return {
       ...space.toObject(),
-      members: createdMembers,
+      members: createdMembers?.map((m) => {
+        const member = m.toObject();
+
+        return {
+          ...member,
+          ...member.user,
+          user: undefined,
+        };
+      }),
     };
   }
 

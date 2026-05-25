@@ -3,7 +3,7 @@ import { Member } from './member.schema';
 import { Injectable } from '@nestjs/common';
 import { Model, Types } from 'mongoose';
 import { aggregateQuery } from '../../data-access/aggregate-query';
-import { FindOneProps } from '../../../types/interfaces';
+import { CreateOneProps, FindOneProps } from '../../../types/interfaces';
 
 @Injectable()
 export class MembersRepository {
@@ -28,10 +28,19 @@ export class MembersRepository {
     return await base.lean().exec();
   }
 
-  public async createOne({ dto }) {
-    if (dto?.space) dto.space = new Types.ObjectId(dto?.space);
-    if (dto?.user) dto.user = new Types.ObjectId(dto?.user);
-    return this.memberModel.create(dto);
+  public async createOne({ dto, populate }: CreateOneProps) {
+    if (dto?.space) dto.space = new Types.ObjectId(dto.space);
+    if (dto?.user) dto.user = new Types.ObjectId(dto.user);
+
+    let query = this.memberModel.create(dto);
+
+    const doc = await query;
+
+    if (populate?.length) {
+      await doc.populate(populate);
+    }
+
+    return doc;
   }
 
   public async updateOne({ query, dto }) {

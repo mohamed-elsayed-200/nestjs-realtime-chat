@@ -1,5 +1,3 @@
-import { ClientSession } from 'mongoose';
-
 export interface FindOneProps {
   query: any;
   select?: string;
@@ -13,11 +11,6 @@ export interface FindManyProps {
 }
 
 export interface CreateOneProps {
-  payload: any;
-  session?: ClientSession;
-}
-
-export interface InsertManyProps {
-  payload: any;
-  session?: ClientSession;
+  dto: any;
+  populate?: any[];
 }
