@@ -116,6 +116,16 @@ export class SpacesService {
   }
 
   public async getOne({ spaceId, authUser }) {
+    const findSpace = await this.spacesRepository.findOne({
+      query: { _id: spaceId },
+    });
+    if (!findSpace) throw new NotFoundException('spaces.notFound');
+
+    const findMember = await this.membersRepository.findOne({
+      query: { space: findSpace?._id, user: authUser?._id },
+    });
+    if (!findMember) throw new NotFoundException('spaces.notFound');
+
     const space = await this.spacesRepository.findOne({
       query: { _id: spaceId },
     });
@@ -173,19 +183,79 @@ export class SpacesService {
     };
   }
 
-  public async update({ spaceId, dto, authUser }) {
+  public async togglePin({ spaceId, authUser }) {
+    const findSpace = await this.spacesRepository.findOne({
+      query: { _id: spaceId },
+    });
+    if (!findSpace) throw new NotFoundException('spaces.notFound');
+
+    const findMember = await this.membersRepository.findOne({
+      query: { space: findSpace?._id, user: authUser?._id },
+    });
+    if (!findMember) throw new NotFoundException('spaces.notFound');
+
     const space = await this.spacesRepository.updateOne({
       query: { _id: spaceId },
-      dto,
+      dto: { pinned: !findSpace.pin },
     });
-    if (!space) throw new NotFoundException('spaces.notUpdated');
+    if (!space) throw new InternalServerErrorException('spaces.notUpdated');
+
+    return space;
+  }
+
+  public async toggleMute({ spaceId, authUser }) {
+    const findSpace = await this.spacesRepository.findOne({
+      query: { _id: spaceId },
+    });
+    if (!findSpace) throw new NotFoundException('spaces.notFound');
+
+    const findMember = await this.membersRepository.findOne({
+      query: { space: findSpace?._id, user: authUser?._id },
+    });
+    if (!findMember) throw new NotFoundException('spaces.notFound');
+
+    const space = await this.spacesRepository.updateOne({
+      query: { _id: spaceId },
+      dto: { pinned: !findSpace.mute },
+    });
+    if (!space) throw new InternalServerErrorException('spaces.notUpdated');
+
+    return space;
+  }
+
+  public async toggleArchive({ spaceId, authUser }) {
+    const findSpace = await this.spacesRepository.findOne({
+      query: { _id: spaceId },
+    });
+    if (!findSpace) throw new NotFoundException('spaces.notFound');
+
+    const findMember = await this.membersRepository.findOne({
+      query: { space: findSpace?._id, user: authUser?._id },
+    });
+    if (!findMember) throw new NotFoundException('spaces.notFound');
+
+    const space = await this.spacesRepository.updateOne({
+      query: { _id: spaceId },
+      dto: { pinned: !findSpace.archive },
+    });
+    if (!space) throw new InternalServerErrorException('spaces.notUpdated');
 
     return space;
   }
 
   public async delete({ spaceId, authUser }) {
-    const item = await this.spacesRepository.deleteOne({
+    const findSpace = await this.spacesRepository.findOne({
       query: { _id: spaceId },
+    });
+    if (!findSpace) throw new NotFoundException('spaces.notFound');
+
+    const findMember = await this.membersRepository.findOne({
+      query: { space: findSpace?._id, user: authUser?._id },
+    });
+    if (!findMember) throw new NotFoundException('spaces.notFound');
+
+    const item = await this.spacesRepository.deleteOne({
+      query: { _id: findSpace._id },
     });
 
     if (!item) throw new NotFoundException('spaces.notDeleted');

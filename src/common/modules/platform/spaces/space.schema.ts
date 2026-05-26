@@ -35,13 +35,13 @@ export class Space {
   type: SpaceTypes;
 
   @Prop({ default: false })
-  archived: boolean;
+  archive: boolean;
 
   @Prop({ default: false })
-  pinned: boolean;
+  pin: boolean;
 
   @Prop({ default: false })
-  muted: boolean;
+  mute: boolean;
 }
 
 export const SpaceSchema = SchemaFactory.createForClass(Space);
