@@ -1,59 +1,90 @@
 import {
-  IsNotEmpty,
-  IsOptional,
   IsString,
+  IsOptional,
   IsEnum,
-  IsMongoId,
-  ValidateIf,
-  IsObject,
   IsBoolean,
+  IsMongoId,
+  IsArray,
+  IsNumber,
+  Min,
 } from 'class-validator';
-import { MessageType, MessageStatus } from '../../../../../common/types/enums';
+import { Types } from 'mongoose';
+import { MessageStatus, MessageType } from 'src/common/types/enums';
 
 export class CreateMessageDto {
-  @IsMongoId({ message: 'messages.validation.space.isMongoId' })
-  @IsNotEmpty({ message: 'messages.validation.space.isNotEmpty' })
+  @IsString()
   space: string;
 
   @IsOptional()
-  @IsEnum(MessageType, {
-    message: 'messages.validation.type.isEnum',
-  })
+  @IsMongoId()
+  sender?: Types.ObjectId;
+
+  @IsEnum(MessageType)
+  @IsOptional()
   messageType?: MessageType;
 
+  @IsBoolean()
   @IsOptional()
-  @IsString({ message: 'messages.validation.text.isString' })
-  text?: string;
+  isOutgoing?: boolean;
 
-  @ValidateIf((o) =>
-    [
-      MessageType.IMAGE,
-      MessageType.VIDEO,
-      MessageType.AUDIO,
-      MessageType.FILE,
-    ].includes(o.type),
-  )
-  @IsString({ message: 'messages.validation.mediaUrl.isString' })
-  @IsNotEmpty({ message: 'messages.validation.mediaUrl.isNotEmpty' })
-  mediaUrl?: string;
-
+  @IsEnum(MessageStatus)
   @IsOptional()
-  @IsMongoId({ message: 'messages.validation.replyTo.isMongoId' })
-  replyTo?: string;
-
-  @IsOptional()
-  @IsObject({ message: 'messages.validation.metadata.isObject' })
-  metadata?: {
-    fileName?: string;
-    size?: number;
-    duration?: number;
-    width?: number;
-    height?: number;
-  };
-
-  @IsOptional()
-  @IsEnum(MessageStatus, {
-    message: 'messages.validation.status.isEnum',
-  })
   status?: MessageStatus;
+
+  @IsString()
+  @IsOptional()
+  content?: string;
+
+  @IsString()
+  text: string;
+
+  @IsOptional()
+  @IsMongoId()
+  replyTo?: Types.ObjectId;
+
+  @IsOptional()
+  @IsMongoId()
+  forwardFrom?: Types.ObjectId;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  albumFiles?: string[];
+
+  @IsOptional()
+  @IsBoolean()
+  isPinned?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  isEdited?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  isDeleted?: boolean;
+
+  @IsOptional()
+  @IsString()
+  mimeType?: string;
+
+  @IsOptional()
+  @IsString()
+  stickerPack?: string;
+
+  @IsOptional()
+  @IsString()
+  stickerId?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isLottie?: boolean;
+
+  @IsOptional()
+  @IsString()
+  gifId?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  duration?: number;
 }

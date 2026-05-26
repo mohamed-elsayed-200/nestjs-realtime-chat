@@ -10,6 +10,8 @@ import { Types } from 'mongoose';
 export class MessagesService {
   constructor(private readonly messagesRepository: MessagesRepository) {}
   public async getAll({ query, spaceId, authUser }) {
+    console.log(spaceId);
+
     return this.messagesRepository.findAll({
       query,
       options: {
