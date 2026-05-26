@@ -99,6 +99,9 @@ export class SpacesService {
 
           {
             $project: {
+              pin: 1,
+              mute: 1,
+              archive: 1,
               name: 1,
               avatar: 1,
               description: 1,
@@ -196,7 +199,7 @@ export class SpacesService {
 
     const space = await this.spacesRepository.updateOne({
       query: { _id: spaceId },
-      dto: { pinned: !findSpace.pin },
+      dto: { pin: !findSpace.pin },
     });
     if (!space) throw new InternalServerErrorException('spaces.notUpdated');
 
@@ -216,7 +219,7 @@ export class SpacesService {
 
     const space = await this.spacesRepository.updateOne({
       query: { _id: spaceId },
-      dto: { pinned: !findSpace.mute },
+      dto: { mute: !findSpace.mute },
     });
     if (!space) throw new InternalServerErrorException('spaces.notUpdated');
 
@@ -236,7 +239,7 @@ export class SpacesService {
 
     const space = await this.spacesRepository.updateOne({
       query: { _id: spaceId },
-      dto: { pinned: !findSpace.archive },
+      dto: { archive: !findSpace.archive },
     });
     if (!space) throw new InternalServerErrorException('spaces.notUpdated');
 
