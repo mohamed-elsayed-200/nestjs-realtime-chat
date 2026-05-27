@@ -3,29 +3,28 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
-import { MessagesRepository } from '../../../../common/modules/platform/messages/messages.repository';
 import { Types } from 'mongoose';
+import { MessagesRepository } from '../../../../common/modules/platform/messages/messages.repository';
+import { SpacesRepository } from '../../../../common/modules/platform/spaces/spaces.repository';
 
 @Injectable()
 export class MessagesService {
-  constructor(private readonly messagesRepository: MessagesRepository) {}
+  constructor(
+    private readonly messagesRepository: MessagesRepository,
+    private readonly spacesRepository: SpacesRepository,
+  ) {}
   public async getAll({ query, spaceId, authUser }) {
-    console.log(spaceId);
-
     return this.messagesRepository.findAll({
       query,
       options: {
         allowedSearchFields: ['text'],
+        sort: { createdAt: 1 },
         pipelines: [
           {
             $match: {
               space: new Types.ObjectId(spaceId),
             },
           },
-          {
-            $sort: { createdAt: -1 },
-          },
-
           {
             $lookup: {
               from: 'users',
@@ -40,7 +39,6 @@ export class MessagesService {
               preserveNullAndEmptyArrays: true,
             },
           },
-
           {
             $lookup: {
               from: 'messages',
@@ -55,7 +53,6 @@ export class MessagesService {
               preserveNullAndEmptyArrays: true,
             },
           },
-
           {
             $lookup: {
               from: 'users',
@@ -70,12 +67,13 @@ export class MessagesService {
               preserveNullAndEmptyArrays: true,
             },
           },
-
           {
             $project: {
+              isOutgoing: 1,
               space: 1,
               sender: 1,
               text: 1,
+              content: 1,
               messageType: 1,
               metadata: 1,
               mediaUrl: 1,
@@ -88,6 +86,7 @@ export class MessagesService {
       },
     });
   }
+
   public async getOne({ messageId, authUser }) {
     const message = await this.messagesRepository.findOne({
       query: { _id: messageId },
@@ -105,6 +104,11 @@ export class MessagesService {
 
     if (!message) throw new InternalServerErrorException('messages.notCreated');
 
+    await this.spacesRepository.updateOne({
+      query: { _id: message.space },
+      dto: { lastMessage: message._id },
+    });
+
     return message;
   }
 
@@ -114,6 +118,11 @@ export class MessagesService {
       dto: { ...dto, isEdited: true },
     });
     if (!message) throw new NotFoundException('messages.notUpdated');
+
+    await this.spacesRepository.updateOne({
+      query: { _id: message.space },
+      dto: { lastMessage: message._id },
+    });
 
     return message;
   }

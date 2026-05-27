@@ -35,12 +35,15 @@ export enum MessageType {
   IMAGE = 'image',
   VIDEO = 'video',
   AUDIO = 'audio',
+  VOICE = 'voice',
   FILE = 'file',
+  GIF = 'gif',
   STICKER = 'sticker',
+  LOTTIE = 'lottie',
   SYSTEM = 'system',
 }
 export enum MessageStatus {
   SENT = 'sent',
   DELIVERED = 'delivered',
-  SEEN = 'seen',
+  READ = 'seen',
 }

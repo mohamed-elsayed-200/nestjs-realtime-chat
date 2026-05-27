@@ -21,13 +21,13 @@ export class Message {
   @Prop({ required: true, enum: MessageStatus, default: MessageStatus.SENT })
   status: MessageStatus;
 
-  @Prop({ type: String, default: '' })
+  @Prop({ type: String, trim: true })
   content: string;
 
-  @Prop({ required: true })
+  @Prop({ type: String, trim: true })
   text: string;
 
-  @Prop({ type: Types.ObjectId, ref: 'Message' })
+  @Prop({ type: Types.ObjectId, ref: 'Message', default: null })
   replyTo?: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'User' })

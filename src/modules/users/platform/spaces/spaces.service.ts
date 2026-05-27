@@ -53,7 +53,6 @@ export class SpacesService {
               userMembership: { $ne: [] },
             },
           },
-
           {
             $lookup: {
               from: 'members',
@@ -96,7 +95,20 @@ export class SpacesService {
               as: 'members',
             },
           },
-
+          {
+            $lookup: {
+              from: 'messages',
+              localField: 'lastMessage',
+              foreignField: '_id',
+              as: 'lastMessage',
+            },
+          },
+          {
+            $unwind: {
+              path: '$lastMessage',
+              preserveNullAndEmptyArrays: true,
+            },
+          },
           {
             $project: {
               pin: 1,
@@ -111,6 +123,7 @@ export class SpacesService {
               createdAt: 1,
               updatedAt: 1,
               members: 1,
+              lastMessage: 1,
             },
           },
         ],

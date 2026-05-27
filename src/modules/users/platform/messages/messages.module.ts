@@ -3,9 +3,10 @@ import { MessagesService } from './messages.service';
 import { MessagesController } from './messages.controller';
 import { BaseAuthModule } from '../../../../common/modules/auth/auth.module';
 import { BaseMessageModule } from '../../../../common/modules/platform/messages/messages.module';
+import { BaseSpaceModule } from '../../../../common/modules/platform/spaces/spaces.module';
 
 @Module({
-  imports: [BaseMessageModule, BaseAuthModule],
+  imports: [BaseMessageModule, BaseSpaceModule, BaseAuthModule],
   controllers: [MessagesController],
   providers: [MessagesService],
   exports: [MessagesService],
