@@ -25,12 +25,13 @@ export class ContactsRepository {
     const base = this.contactModel.findOne(query);
     if (select) base.select(select);
     if (populate) base.populate(populate);
-    return await base.lean().exec();
+    const contact = await base;
+    return contact;
   }
 
   public async createOne({ dto, populate }: CreateOneProps) {
     if (dto?.contact) dto.contact = new Types.ObjectId(dto.contact);
-    if (dto?.user) dto.user = new Types.ObjectId(dto.user);
+    if (dto?.me) dto.me = new Types.ObjectId(dto.me);
 
     let query = this.contactModel.create(dto);
 
@@ -45,7 +46,7 @@ export class ContactsRepository {
 
   public async updateOne({ query, dto }) {
     if (dto?.contact) dto.contact = new Types.ObjectId(dto?.contact);
-    if (dto?.user) dto.user = new Types.ObjectId(dto?.user);
+    if (dto?.me) dto.me = new Types.ObjectId(dto?.me);
     return this.contactModel.findOneAndUpdate(query, dto, { new: true });
   }
 

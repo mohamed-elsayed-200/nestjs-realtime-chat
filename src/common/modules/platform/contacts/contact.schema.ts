@@ -9,7 +9,7 @@ export class Contact {
   name: string;
 
   @Prop({ type: Types.ObjectId, ref: 'User', index: true })
-  user: Types.ObjectId;
+  me: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'User', index: true })
   contact: Types.ObjectId;

@@ -1,10 +1,11 @@
 import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
-export class CreateUserDto {
-  @IsString({ message: 'user.validation.name.isString' })
-  @IsNotEmpty({ message: 'user.validation.name.isNotEmpty' })
+
+export class CreateContactDto {
+  @IsString({ message: 'contacts.validation.name.isString' })
+  @IsNotEmpty({ message: 'contacts.validation.name.isNotEmpty' })
   name: string;
 
-  @IsEmail({}, { message: 'user.validation.email.invalid' })
-  @IsNotEmpty({ message: 'user.validation.email.isNotEmpty' })
+  @IsEmail({}, { message: 'contacts.validation.email.invalid' })
+  @IsNotEmpty({ message: 'contacts.validation.email.isNotEmpty' })
   email: string;
 }
