@@ -18,7 +18,6 @@ export class MessagesService {
       query,
       options: {
         allowedSearchFields: ['text'],
-        sort: { createdAt: 1 },
         pipelines: [
           {
             $match: {

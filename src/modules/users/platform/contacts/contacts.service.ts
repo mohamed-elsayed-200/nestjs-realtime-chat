@@ -5,6 +5,7 @@ import { Types } from 'mongoose';
 @Injectable()
 export class ContactsService {
   constructor(private readonly contactsRepository: UsersRepository) {}
+  // get all contacts
   public async getAll({ query, authUser }) {
     return this.contactsRepository.findAll({
       query,
@@ -32,6 +33,7 @@ export class ContactsService {
     });
   }
 
+  // get contact by id
   public async getOne({ contactId }) {
     const contact = await this.contactsRepository.findOne({
       query: { _id: contactId },
@@ -46,4 +48,7 @@ export class ContactsService {
       roles: contact?.roles,
     };
   }
+
+  // create contact
+  public async create({}) {}
 }

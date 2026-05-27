@@ -19,7 +19,9 @@ export interface AggregateQueryProps {
 
 const tryConvertToObjectId = (value: any) => {
   if (Array.isArray(value)) {
-    return value.map((v) => (Types.ObjectId.isValid(v) ? new Types.ObjectId(v) : v));
+    return value.map((v) =>
+      Types.ObjectId.isValid(v) ? new Types.ObjectId(v) : v,
+    );
   }
 
   if (Types.ObjectId.isValid(value)) {
@@ -40,12 +42,19 @@ export async function aggregateQuery({ options, query }: AggregateQueryProps) {
     includeFields = [],
   } = options;
 
-  const { filter = {}, page = 0, pageSize = 10, search, sort: querySort } = query;
+  const {
+    filter = {},
+    page = 0,
+    pageSize = 10,
+    search,
+    sort: querySort,
+  } = query;
   const safePage = Math.max(page, 0);
   const safeLimit = Math.max(pageSize, 1);
   const skip = safePage * safeLimit;
 
-  const finalSort = querySort && Object.keys(querySort).length ? querySort : sort;
+  const finalSort =
+    querySort && Object.keys(querySort).length ? querySort : sort;
 
   const matchStage: any = {};
 
@@ -62,7 +71,9 @@ export async function aggregateQuery({ options, query }: AggregateQueryProps) {
       if (!allowedFilterFields.includes(key)) continue;
       matchStage[key] = {
         ...(matchStage[key] || {}),
-        ...(Array.isArray(filter[key]) ? { $in: filter[key] } : { $eq: filter[key] }),
+        ...(Array.isArray(filter[key])
+          ? { $in: filter[key] }
+          : { $eq: filter[key] }),
       };
     }
   }
