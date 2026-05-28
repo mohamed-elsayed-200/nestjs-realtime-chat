@@ -9,7 +9,7 @@ import {
   Min,
 } from 'class-validator';
 import { Types } from 'mongoose';
-import { MessageStatus, MessageType } from 'src/common/types/enums';
+import { MessageStatus, MessageType } from '../../../../../common/types/enums';
 
 export class CreateMessageDto {
   @IsString()

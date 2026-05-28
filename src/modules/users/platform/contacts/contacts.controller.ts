@@ -1,4 +1,14 @@
-import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Delete,
+  Param,
+  Query,
+  Body,
+  UseGuards,
+  Put,
+} from '@nestjs/common';
 import { AuthGuard } from '../../../../common/guards/auth.guard';
 import { PermissionsGuard } from '../../../../common/guards/permissions-guard.guard';
 import { UserType } from '../../../../common/types/enums';
@@ -15,6 +25,7 @@ import { GetUser } from '../../../../common/decorators/get-user.decorator';
 @UserTypes(UserType.USER)
 export class ContactsController {
   constructor(private readonly contactsService: ContactsService) {}
+
   @Get()
   @ResponseMeta({ message: 'contacts.foundAll' })
   public async getAll(@Query() query: QueryDto, @GetUser() authUser: any) {
@@ -24,9 +35,34 @@ export class ContactsController {
   @Get('/:contactId')
   @ResponseMeta({ message: 'contacts.foundOne' })
   public async getOne(
-    @Param('contactId', ValidateObjectIdPipe)
-    contactId: ValidateObjectIdPipe,
+    @Param('contactId', ValidateObjectIdPipe) contactId: string,
+    @GetUser() authUser: any,
   ) {
-    return this.contactsService.getOne({ contactId });
+    return this.contactsService.getOne({ contactId, authUser });
+  }
+
+  @Post()
+  @ResponseMeta({ message: 'contacts.created' })
+  public async create(@Body() dto: any, @GetUser() authUser: any) {
+    return this.contactsService.create({ dto, authUser });
+  }
+
+  @Put('/:contactId')
+  @ResponseMeta({ message: 'contacts.updated' })
+  public async update(
+    @Param('contactId', ValidateObjectIdPipe) contactId: string,
+    @Body() dto: any,
+    @GetUser() authUser: any,
+  ) {
+    return this.contactsService.update({ contactId, dto, authUser });
+  }
+
+  @Delete('/:contactId')
+  @ResponseMeta({ message: 'contacts.deleted' })
+  public async delete(
+    @Param('contactId', ValidateObjectIdPipe) contactId: string,
+    @GetUser() authUser: any,
+  ) {
+    return this.contactsService.delete({ contactId, authUser });
   }
 }

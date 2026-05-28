@@ -10,7 +10,7 @@ import { SendOtpDto } from './dto/send-otp.dto';
 import { RegisterDto } from './dto/register.dto';
 import getClientIp from '../../../common/utils/get-client-ip';
 import getClientUserAgent from '../../../common/utils/get-client-user-agent';
-import { extractToken } from 'src/common/utils/extract-token';
+import { extractToken } from '../../../common/utils/extract-token';
 
 @Controller('/users/auth')
 export class AuthController {

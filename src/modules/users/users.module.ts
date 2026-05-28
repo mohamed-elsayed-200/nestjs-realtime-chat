@@ -6,6 +6,7 @@ import { MembersModule } from './platform/members/members.module';
 import { ReactionsModule } from './platform/reactions/reactions.module';
 import { SpacesModule } from './platform/spaces/spaces.module';
 import { ContactsModule } from './platform/contacts/contacts.module';
+import { PeoplesModule } from './platform/peoples/peoples.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { ContactsModule } from './platform/contacts/contacts.module';
     ReactionsModule,
     SpacesModule,
     ContactsModule,
+    PeoplesModule,
   ],
 })
 export class UsersModule {}
