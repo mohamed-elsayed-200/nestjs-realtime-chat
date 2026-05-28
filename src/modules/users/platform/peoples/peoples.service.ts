@@ -10,7 +10,7 @@ export class PeoplesService {
     return this.usersRepository.findAll({
       query,
       options: {
-        allowedSearchFields: ['name', 'email'],
+        allowedSearchFields: ['name', 'username'],
         pipelines: [
           {
             $match: {

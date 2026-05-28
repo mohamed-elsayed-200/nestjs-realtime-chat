@@ -73,22 +73,25 @@ export class ContactsService {
 
   // create contact
   public async create({ dto, authUser }) {
-    const { email, name } = dto;
-    const getUserByEmail = await this.usersRepository.findOne({
-      query: { email },
+    const { username, name } = dto;
+    const getUserByUsername = await this.usersRepository.findOne({
+      query: { username },
     });
-    if (!getUserByEmail || getUserByEmail?.email === authUser?.email)
+    if (
+      !getUserByUsername ||
+      getUserByUsername?.username === authUser?.username
+    )
       throw new NotFoundException('users.notFound');
 
     const alreadyExist = await this.contactsRepository.findOne({
-      query: { contact: getUserByEmail._id, me: authUser._id },
+      query: { contact: getUserByUsername._id, me: authUser._id },
     });
     if (alreadyExist) throw new ConflictException('contacts.alreadyExist');
 
     const newContact = await this.contactsRepository.createOne({
       dto: {
         name,
-        contact: getUserByEmail._id,
+        contact: getUserByUsername._id,
         me: authUser?._id,
       },
     });
