@@ -10,7 +10,7 @@ export class PeoplesService {
     return this.usersRepository.findAll({
       query,
       options: {
-        allowedSearchFields: ['name', 'username'],
+        allowedSearchFields: ['username'],
         pipelines: [
           {
             $match: {
@@ -32,12 +32,15 @@ export class PeoplesService {
       },
     });
   }
-
-  public async getOne({ peopleId }) {
+  public async getOne({ peopleIdOrUsername }) {
     const people = await this.usersRepository.findOne({
-      query: { _id: peopleId },
+      query: {
+        $or: [{ _id: peopleIdOrUsername }, { username: peopleIdOrUsername }],
+      },
     });
+
     if (!people) throw new NotFoundException('peoples.notFound');
+
     return {
       name: people?.name,
       email: people?.email,

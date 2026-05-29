@@ -8,6 +8,9 @@ export class Contact {
   @Prop({ required: true })
   name: string;
 
+  @Prop()
+  avatar: string;
+
   @Prop({ type: Types.ObjectId, ref: 'User', index: true })
   me: Types.ObjectId;
 

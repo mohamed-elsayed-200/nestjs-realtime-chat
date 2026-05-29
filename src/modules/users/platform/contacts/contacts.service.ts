@@ -35,6 +35,9 @@ export class ContactsService {
             },
           },
           {
+            $unwind: '$contactObj',
+          },
+          {
             $project: {
               name: 1,
               _id: '$contactObj._id',
@@ -73,25 +76,25 @@ export class ContactsService {
 
   // create contact
   public async create({ dto, authUser }) {
-    const { username, name } = dto;
-    const getUserByUsername = await this.usersRepository.findOne({
-      query: { username },
+    const { userId, name } = dto;
+
+    const getUser = await this.usersRepository.findOne({
+      query: { _id: userId },
     });
-    if (
-      !getUserByUsername ||
-      getUserByUsername?.username === authUser?.username
-    )
+
+    if (!getUser || getUser?._id?.toString() === authUser?._id?.toString()) {
       throw new NotFoundException('users.notFound');
+    }
 
     const alreadyExist = await this.contactsRepository.findOne({
-      query: { contact: getUserByUsername._id, me: authUser._id },
+      query: { contact: getUser._id, me: authUser._id },
     });
     if (alreadyExist) throw new ConflictException('contacts.alreadyExist');
 
     const newContact = await this.contactsRepository.createOne({
       dto: {
         name,
-        contact: getUserByUsername._id,
+        contact: getUser._id,
         me: authUser?._id,
       },
     });
@@ -101,17 +104,13 @@ export class ContactsService {
 
   // update contact
   public async update({ contactId, dto, authUser }) {
-    const { name } = dto;
-
-    const findContact = await this.contactsRepository.findOne({
-      query: { _id: contactId, me: authUser._id },
-    });
-    if (!findContact) throw new NotFoundException('contacts.notFound');
+    const { name, avatar } = dto;
 
     const updatedContact = await this.contactsRepository.updateOne({
-      query: { _id: contactId },
-      dto: { name },
+      query: { contact: contactId, me: authUser._id },
+      dto: { name, avatar },
     });
+    if (!updatedContact) throw new NotFoundException('contacts.notFound');
 
     return updatedContact;
   }

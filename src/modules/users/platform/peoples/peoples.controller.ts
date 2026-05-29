@@ -22,11 +22,12 @@ export class PeoplesController {
     return this.peoplesService.getAll({ query, authUser });
   }
 
-  @Get('/:peopleId')
+  @Get('/:peopleIdOrUsername')
   @ResponseMeta({ message: 'peoples.foundOne' })
   public async getOne(
-    @Param('peopleId', ValidateObjectIdPipe) peopleId: string,
+    @Param('peopleIdOrUsername', ValidateObjectIdPipe)
+    peopleIdOrUsername: string,
   ) {
-    return this.peoplesService.getOne({ peopleId });
+    return this.peoplesService.getOne({ peopleIdOrUsername });
   }
 }
