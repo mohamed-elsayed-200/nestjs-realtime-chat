@@ -55,7 +55,7 @@ export class ContactsService {
   // get contact by id
   public async getOne({ contactId, authUser }) {
     const findContact = await this.contactsRepository.findOne({
-      query: { _id: contactId, me: authUser._id },
+      query: { contact: contactId, me: authUser._id },
       populate: [
         {
           path: 'contact',
@@ -105,6 +105,7 @@ export class ContactsService {
   // update contact
   public async update({ contactId, dto, authUser }) {
     const { name, avatar } = dto;
+    console.log(contactId, authUser?._id);
 
     const updatedContact = await this.contactsRepository.updateOne({
       query: { contact: contactId, me: authUser._id },
@@ -117,15 +118,11 @@ export class ContactsService {
 
   // delete contact
   public async delete({ contactId, authUser }) {
-    const findContact = await this.contactsRepository.findOne({
-      query: { _id: contactId, me: authUser._id },
+    const findContact = await this.contactsRepository.deleteOne({
+      query: { contact: contactId, me: authUser._id },
     });
     if (!findContact) throw new NotFoundException('contacts.notFound');
 
-    await this.contactsRepository.deleteOne({
-      query: { _id: contactId },
-    });
-
-    return { message: 'contacts.deleted' };
+    return findContact;
   }
 }

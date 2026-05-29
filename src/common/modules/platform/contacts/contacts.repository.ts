@@ -47,6 +47,8 @@ export class ContactsRepository {
   public async updateOne({ query, dto }) {
     if (dto?.contact) dto.contact = new Types.ObjectId(dto?.contact);
     if (dto?.me) dto.me = new Types.ObjectId(dto?.me);
+    if (query?.contact) query.contact = new Types.ObjectId(query?.contact);
+    if (query?.me) query.me = new Types.ObjectId(query?.me);
     return this.contactModel.findOneAndUpdate(query, dto, { new: true });
   }
 
