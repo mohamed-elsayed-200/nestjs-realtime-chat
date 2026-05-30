@@ -19,6 +19,8 @@ import { UserTypes } from '../../../../common/decorators/user-type.decorator';
 import { QueryDto } from '../../../../common/modules/dto/query.dto';
 import { GetUser } from '../../../../common/decorators/get-user.decorator';
 import { CreatePrivateSpaceDto } from './dto/create-private-space.dto';
+import { CreateGroupSpaceDto } from './dto/create-group.dto';
+import { CreateChannelSpaceDto } from './dto/create-channel.dto';
 
 @Controller('/users/spaces')
 @UseGuards(AuthGuard, UserTypeGuard)
@@ -42,11 +44,29 @@ export class SpacesController {
 
   @Post('/private')
   @ResponseMeta({ message: 'spaces.created', statusCode: 201 })
-  public async create(
+  public async createPrivate(
     @Body() dto: CreatePrivateSpaceDto,
     @GetUser() authUser: any,
   ) {
     return this.spacesService.createPrivate({ dto, authUser });
+  }
+
+  @Post('/group')
+  @ResponseMeta({ message: 'spaces.created', statusCode: 201 })
+  public async createGroup(
+    @Body() dto: CreateGroupSpaceDto,
+    @GetUser() authUser: any,
+  ) {
+    return this.spacesService.createGroup({ dto, authUser });
+  }
+
+  @Post('/channel')
+  @ResponseMeta({ message: 'spaces.created', statusCode: 201 })
+  public async createChannel(
+    @Body() dto: CreateChannelSpaceDto,
+    @GetUser() authUser: any,
+  ) {
+    return this.spacesService.createChannel({ dto, authUser });
   }
 
   @Put('/:spaceId/toggle-pin')

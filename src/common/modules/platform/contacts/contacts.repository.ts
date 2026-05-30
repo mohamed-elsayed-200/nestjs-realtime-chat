@@ -23,6 +23,10 @@ export class ContactsRepository {
 
   public async findOne({ query, populate, select }: FindOneProps) {
     const base = this.contactModel.findOne(query);
+
+    if (query?.contact) query.contact = new Types.ObjectId(query?.contact);
+    if (query?.me) query.me = new Types.ObjectId(query?.me);
+
     if (select) base.select(select);
     if (populate) base.populate(populate);
     const contact = await base;
@@ -53,6 +57,8 @@ export class ContactsRepository {
   }
 
   public async deleteOne({ query }) {
+    if (query?.contact) query.contact = new Types.ObjectId(query?.contact);
+    if (query?.me) query.me = new Types.ObjectId(query?.me);
     return this.contactModel.findOneAndDelete(query);
   }
 }
