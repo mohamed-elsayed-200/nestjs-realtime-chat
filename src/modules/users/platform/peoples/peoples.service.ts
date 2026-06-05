@@ -49,12 +49,14 @@ export class PeoplesService {
           {
             $project: {
               _id: 1,
-              name: 1,
               email: 1,
               username: 1,
               avatar: 1,
               status: 1,
               profileColor: 1,
+              name: {
+                $ifNull: ['$contact.name', '$name'],
+              },
               isContact: {
                 $ifNull: [{ $toBool: '$contact._id' }, false],
               },
