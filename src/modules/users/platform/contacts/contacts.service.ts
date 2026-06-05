@@ -39,12 +39,10 @@ export class ContactsService {
           },
           {
             $project: {
+              me: 1,
               name: 1,
-              _id: '$contactObj._id',
-              username: '$contactObj.username',
-              email: '$contactObj.email',
+              contact: '$contactObj',
               avatar: '$contactObj.avatar',
-              profileColor: '$contactObj.profileColor',
             },
           },
         ],
@@ -97,6 +95,13 @@ export class ContactsService {
         contact: getUser._id,
         me: authUser?._id,
       },
+      populate: [
+        {
+          path: 'contact',
+          model: 'User',
+          select: 'name profileColor username avatar',
+        },
+      ],
     });
 
     return newContact;
