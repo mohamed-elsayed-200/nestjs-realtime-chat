@@ -7,6 +7,8 @@ import { UserType } from '../../../../common/types/enums';
 export class PeoplesService {
   constructor(private readonly usersRepository: UsersRepository) {}
   public async getAll({ query, authUser }) {
+    const userId = new Types.ObjectId(authUser?._id);
+
     return this.usersRepository.findAll({
       query,
       options: {
@@ -15,23 +17,54 @@ export class PeoplesService {
           {
             $match: {
               userType: UserType.USER,
-              _id: { $ne: new Types.ObjectId(authUser?._id) },
+              _id: { $ne: userId },
+            },
+          },
+          {
+            $lookup: {
+              from: 'contacts',
+              let: { peopleId: '$_id' },
+              pipeline: [
+                {
+                  $match: {
+                    $expr: {
+                      $and: [
+                        { $eq: ['$me', userId] },
+                        { $eq: ['$contact', '$$peopleId'] },
+                      ],
+                    },
+                  },
+                },
+                { $limit: 1 },
+              ],
+              as: 'contact',
+            },
+          },
+          {
+            $unwind: {
+              path: '$contact',
+              preserveNullAndEmptyArrays: true,
             },
           },
           {
             $project: {
+              _id: 1,
               name: 1,
               email: 1,
               username: 1,
               avatar: 1,
               status: 1,
               profileColor: 1,
+              isContact: {
+                $ifNull: [{ $toBool: '$contact._id' }, false],
+              },
             },
           },
         ],
       },
     });
   }
+
   public async getOne({ peopleIdOrUsername }) {
     const people = await this.usersRepository.findOne({
       query: {

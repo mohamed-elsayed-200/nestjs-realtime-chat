@@ -3,7 +3,11 @@ import { Contact } from './contact.schema';
 import { Injectable } from '@nestjs/common';
 import { Model, Types } from 'mongoose';
 import { aggregateQuery } from '../../data-access/aggregate-query';
-import { CreateOneProps, FindOneProps } from '../../../types/interfaces';
+import {
+  CreateOneProps,
+  DeleteOneProps,
+  FindOneProps,
+} from '../../../types/interfaces';
 
 @Injectable()
 export class ContactsRepository {
@@ -56,9 +60,17 @@ export class ContactsRepository {
     return this.contactModel.findOneAndUpdate(query, dto, { new: true });
   }
 
-  public async deleteOne({ query }) {
-    if (query?.contact) query.contact = new Types.ObjectId(query?.contact);
-    if (query?.me) query.me = new Types.ObjectId(query?.me);
-    return this.contactModel.findOneAndDelete(query);
+  public async deleteOne({ query, populate }: DeleteOneProps) {
+    if (query?.contact) query.contact = new Types.ObjectId(query.contact);
+    if (query?.me) query.me = new Types.ObjectId(query.me);
+
+    let record = this.contactModel.findOneAndDelete(query);
+
+    const doc = await record;
+
+    if (populate?.length) {
+      await doc.populate(populate);
+    }
+    return doc;
   }
 }

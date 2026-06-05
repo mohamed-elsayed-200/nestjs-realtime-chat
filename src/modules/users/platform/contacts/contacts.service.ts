@@ -120,6 +120,13 @@ export class ContactsService {
   public async delete({ contactId, authUser }) {
     const findContact = await this.contactsRepository.deleteOne({
       query: { contact: contactId, me: authUser._id },
+      populate: [
+        {
+          path: 'contact',
+          model: 'User',
+          select: 'name profileColor username avatar',
+        },
+      ],
     });
     if (!findContact) throw new NotFoundException('contacts.notFound');
 
