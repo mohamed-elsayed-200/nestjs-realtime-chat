@@ -27,6 +27,7 @@ export class SpacesService {
       options: {
         allowedSearchFields: ['name', 'description'],
         allowedFilterFields: ['status'],
+
         pipelines: [
           {
             $lookup: {
@@ -47,10 +48,9 @@ export class SpacesService {
               as: 'userMembership',
             },
           },
-
           {
             $match: {
-              userMembership: { $ne: [] },
+              'userMembership.0': { $exists: true },
             },
           },
           {
@@ -80,12 +80,43 @@ export class SpacesService {
                   },
                 },
                 {
+                  $lookup: {
+                    from: 'contacts',
+                    let: { memberUserId: '$user._id' },
+                    pipeline: [
+                      {
+                        $match: {
+                          $expr: {
+                            $and: [
+                              { $eq: ['$me', userId] },
+                              { $eq: ['$contact', '$$memberUserId'] },
+                            ],
+                          },
+                        },
+                      },
+                      { $limit: 1 },
+                    ],
+                    as: 'contact',
+                  },
+                },
+                {
+                  $unwind: {
+                    path: '$contact',
+                    preserveNullAndEmptyArrays: true,
+                  },
+                },
+                {
                   $project: {
                     role: 1,
                     joinedAt: 1,
                     lastReadMessage: 1,
                     _id: '$user._id',
-                    name: '$user.name',
+                    name: {
+                      $ifNull: ['$contact.name', '$user.name'],
+                    },
+                    isContact: {
+                      $ifNull: [{ $toBool: '$contact._id' }, false],
+                    },
                     email: '$user.email',
                     avatar: '$user.avatar',
                     profileColor: '$user.profileColor',
@@ -114,12 +145,9 @@ export class SpacesService {
               pin: 1,
               mute: 1,
               archive: 1,
-              name: 1,
-              avatar: 1,
               description: 1,
               status: 1,
               type: 1,
-              isPrivate: 1,
               createdAt: 1,
               updatedAt: 1,
               members: 1,
