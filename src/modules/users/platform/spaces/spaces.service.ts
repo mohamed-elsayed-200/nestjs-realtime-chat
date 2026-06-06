@@ -142,6 +142,13 @@ export class SpacesService {
               membersCount: 1,
               lastMessage: 1,
               description: 1,
+              isContact: {
+                $cond: {
+                  if: { $eq: ['$type', SpaceTypes.PRIVATE] },
+                  then: { $gt: [{ $ifNull: ['$contact._id', null] }, null] },
+                  else: null,
+                },
+              },
               profileColor: {
                 $cond: {
                   if: { $eq: ['$type', SpaceTypes.PRIVATE] },
