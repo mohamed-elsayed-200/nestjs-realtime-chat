@@ -13,6 +13,15 @@ export class Space {
   description: string;
 
   @Prop()
+  profileColor: string;
+
+  @Prop()
+  membersCount: number;
+
+  @Prop()
+  isContact: boolean;
+
+  @Prop()
   avatar: string;
 
   @Prop({ type: Types.ObjectId, ref: 'User' })

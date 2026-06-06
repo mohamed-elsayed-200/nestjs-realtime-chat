@@ -11,12 +11,16 @@ import {
   SpaceTypes,
 } from '../../../../common/types/enums';
 import { Types } from 'mongoose';
+import { UsersRepository } from '../../../../common/modules/iam/users/users.repository';
+import { ContactsRepository } from '../../../../common/modules/platform/contacts/contacts.repository';
 
 @Injectable()
 export class SpacesService {
   constructor(
     private readonly spacesRepository: SpacesRepository,
     private readonly membersRepository: MembersRepository,
+    private readonly usersRepository: UsersRepository,
+    private readonly contactsRepository: ContactsRepository,
   ) {}
 
   public async getAll({ query, authUser }) {
@@ -29,103 +33,6 @@ export class SpacesService {
         allowedFilterFields: ['status'],
 
         pipelines: [
-          {
-            $lookup: {
-              from: 'members',
-              let: { spaceId: '$_id' },
-              pipeline: [
-                {
-                  $match: {
-                    $expr: {
-                      $and: [
-                        { $eq: ['$space', '$$spaceId'] },
-                        { $eq: ['$user', userId] },
-                      ],
-                    },
-                  },
-                },
-              ],
-              as: 'userMembership',
-            },
-          },
-          {
-            $match: {
-              'userMembership.0': { $exists: true },
-            },
-          },
-          {
-            $lookup: {
-              from: 'members',
-              let: { spaceId: '$_id' },
-              pipeline: [
-                {
-                  $match: {
-                    $expr: {
-                      $eq: ['$space', '$$spaceId'],
-                    },
-                  },
-                },
-                {
-                  $lookup: {
-                    from: 'users',
-                    localField: 'user',
-                    foreignField: '_id',
-                    as: 'user',
-                  },
-                },
-                {
-                  $unwind: {
-                    path: '$user',
-                    preserveNullAndEmptyArrays: true,
-                  },
-                },
-                {
-                  $lookup: {
-                    from: 'contacts',
-                    let: { memberUserId: '$user._id' },
-                    pipeline: [
-                      {
-                        $match: {
-                          $expr: {
-                            $and: [
-                              { $eq: ['$me', userId] },
-                              { $eq: ['$contact', '$$memberUserId'] },
-                            ],
-                          },
-                        },
-                      },
-                      { $limit: 1 },
-                    ],
-                    as: 'contact',
-                  },
-                },
-                {
-                  $unwind: {
-                    path: '$contact',
-                    preserveNullAndEmptyArrays: true,
-                  },
-                },
-                {
-                  $project: {
-                    role: 1,
-                    joinedAt: 1,
-                    lastReadMessage: 1,
-                    _id: '$user._id',
-                    name: {
-                      $ifNull: ['$contact.name', '$user.name'],
-                    },
-                    isContact: {
-                      $ifNull: [{ $toBool: '$contact._id' }, false],
-                    },
-                    email: '$user.email',
-                    avatar: '$user.avatar',
-                    profileColor: '$user.profileColor',
-                  },
-                },
-              ],
-              as: 'members',
-            },
-          },
           {
             $lookup: {
               from: 'messages',
@@ -150,7 +57,11 @@ export class SpacesService {
               type: 1,
               createdAt: 1,
               updatedAt: 1,
-              members: 1,
+              membersCount: 1,
+              isContact: 1,
+              name: 1,
+              avatar: 1,
+              profileColor: 1,
               lastMessage: 1,
             },
           },
@@ -180,18 +91,29 @@ export class SpacesService {
   }
 
   public async createPrivate({ dto, authUser }) {
+    const findMember = await this.usersRepository.findOne({
+      query: { _id: dto.memberId },
+    });
+    if (!findMember)
+      throw new InternalServerErrorException('spaces.memberNotFound');
+    const findContact = await this.contactsRepository.findOne({
+      query: { contact: dto.memberId },
+    });
+
+    const isContact = Boolean(findContact?._id);
     const newSpace = {
-      archived: false,
+      name: isContact ? findContact?.name : findMember.name,
+      avatar: findMember.avatar,
+      profileColor: findMember.profileColor,
       status: ActivationStatus.ACTIVE,
       type: SpaceTypes.PRIVATE,
       createdBy: authUser._id,
+      isContact,
     };
 
     const space = await this.spacesRepository.createOne({ dto: newSpace });
 
-    if (!space) {
-      throw new InternalServerErrorException('spaces.notCreated');
-    }
+    if (!space) throw new InternalServerErrorException('spaces.notCreated');
 
     const members = [dto.memberId, authUser._id];
 
