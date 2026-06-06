@@ -20,6 +20,7 @@ export class SpacesService {
     private readonly spacesRepository: SpacesRepository,
     private readonly membersRepository: MembersRepository,
     private readonly usersRepository: UsersRepository,
+    private readonly contactsRepository: ContactsRepository,
   ) {}
 
   public async getAll({ query, authUser }) {
@@ -170,6 +171,7 @@ export class SpacesService {
                 },
               },
               received: {
+                _id: '$otherParty._id',
                 name: '$otherParty.name',
                 profileColor: '$otherParty.profileColor',
                 avatar: '$otherParty.avatar',
@@ -207,8 +209,11 @@ export class SpacesService {
 
   public async createPrivate({ dto, authUser }) {
     const { memberId } = dto;
+    const userId = new Types.ObjectId(authUser._id);
+
     const findMember = await this.usersRepository.findOne({
       query: { _id: memberId },
+      select: 'name profileColor avatar username description',
     });
     if (!findMember)
       throw new InternalServerErrorException('spaces.memberNotFound');
@@ -216,23 +221,18 @@ export class SpacesService {
     const newSpace = {
       status: ActivationStatus.ACTIVE,
       type: SpaceTypes.PRIVATE,
-      createdBy: new Types.ObjectId(authUser._id),
-      sender: new Types.ObjectId(authUser._id),
+      createdBy: userId,
+      sender: userId,
       received: new Types.ObjectId(memberId),
     };
 
     const space = await this.spacesRepository.createOne({ dto: newSpace });
-
     if (!space) throw new InternalServerErrorException('spaces.notCreated');
 
     const members = [memberId, authUser._id];
-
-    const createdMembers = await Promise.all(
+    await Promise.all(
       members.map((id) =>
         this.membersRepository.createOne({
-          populate: [
-            { path: 'user', model: 'User', select: 'name profileColor' },
-          ],
           dto: {
             user: new Types.ObjectId(id),
             space: space._id,
@@ -245,17 +245,24 @@ export class SpacesService {
       ),
     );
 
+    const contact = await this.contactsRepository.findOne({
+      query: { me: userId, contact: new Types.ObjectId(memberId) },
+      select: 'name profileColor',
+    });
+
+    const otherParty = findMember;
+
     return {
       ...space.toObject(),
-      members: createdMembers?.map((m) => {
-        const member = m.toObject();
-
-        return {
-          ...member,
-          ...member.user,
-          user: undefined,
-        };
-      }),
+      profileColor: contact?.profileColor ?? otherParty.profileColor,
+      name: contact?.name ?? otherParty.name,
+      avatar: otherParty.avatar,
+      received: {
+        name: otherParty.name,
+        profileColor: otherParty.profileColor,
+        avatar: otherParty.avatar,
+        username: otherParty.username,
+      },
     };
   }
 
