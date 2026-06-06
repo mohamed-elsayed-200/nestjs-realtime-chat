@@ -26,3 +26,4 @@ export class Member {
 }
 
 export const MemberSchema = SchemaFactory.createForClass(Member);
+MemberSchema.index({ user: 1, space: 1 });
