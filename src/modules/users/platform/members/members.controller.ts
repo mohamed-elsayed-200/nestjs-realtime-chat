@@ -25,10 +25,14 @@ import { UpdateMemberDto } from './dto/update-member.dto';
 @UserTypes(UserType.USER)
 export class MembersController {
   constructor(private readonly membersService: MembersService) {}
-  @Get()
+
+  @Get('/for-space/:spaceId')
   @ResponseMeta({ message: 'members.foundAll' })
-  public async getAll(@Query() query: QueryDto) {
-    return this.membersService.getAll({ query });
+  public async getAll(
+    @Param('spaceId', ValidateObjectIdPipe) spaceId: string,
+    @Query() query: QueryDto,
+  ) {
+    return this.membersService.getAll({ query, spaceId });
   }
 
   @Get('/:memberId')

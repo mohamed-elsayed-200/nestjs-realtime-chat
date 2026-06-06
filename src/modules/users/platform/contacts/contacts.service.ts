@@ -6,7 +6,6 @@ import {
 import { Types } from 'mongoose';
 import { ContactsRepository } from './../../../../common/modules/platform/contacts/contacts.repository';
 import { UsersRepository } from '../../../../common/modules/iam/users/users.repository';
-
 @Injectable()
 export class ContactsService {
   constructor(
@@ -74,7 +73,7 @@ export class ContactsService {
 
   // create contact
   public async create({ dto, authUser }) {
-    const { userId, name } = dto;
+    const { userId, name, avatar, profileColor } = dto;
 
     const getUser = await this.usersRepository.findOne({
       query: { _id: userId },
@@ -91,9 +90,11 @@ export class ContactsService {
 
     const newContact = await this.contactsRepository.createOne({
       dto: {
-        name,
-        contact: getUser._id,
-        me: authUser?._id,
+        me: new Types.ObjectId(authUser?._id),
+        contact: new Types.ObjectId(getUser._id),
+        name: name || getUser?.name,
+        profileColor: profileColor || getUser?.profileColor,
+        avatar: avatar || getUser?.avatar,
       },
       populate: [
         {
@@ -124,7 +125,10 @@ export class ContactsService {
   // delete contact
   public async delete({ contactId, authUser }) {
     const findContact = await this.contactsRepository.deleteOne({
-      query: { contact: contactId, me: authUser._id },
+      query: {
+        contact: new Types.ObjectId(contactId),
+        me: new Types.ObjectId(authUser._id),
+      },
       populate: [
         {
           path: 'contact',

@@ -19,13 +19,16 @@ export class Space {
   membersCount: number;
 
   @Prop()
-  isContact: boolean;
-
-  @Prop()
   avatar: string;
 
   @Prop({ type: Types.ObjectId, ref: 'User' })
   createdBy: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, ref: 'User' })
+  received?: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, ref: 'User' })
+  sender?: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'Message' })
   lastMessage: Types.ObjectId;
@@ -54,3 +57,9 @@ export class Space {
 }
 
 export const SpaceSchema = SchemaFactory.createForClass(Space);
+
+SpaceSchema.index({ lastMessage: 1 });
+SpaceSchema.index({ received: 1 });
+SpaceSchema.index({ createdBy: 1 });
+SpaceSchema.index({ status: 1 });
+SpaceSchema.index({ isContact: 1 });

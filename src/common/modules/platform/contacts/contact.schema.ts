@@ -11,11 +11,18 @@ export class Contact {
   @Prop()
   avatar: string;
 
-  @Prop({ type: Types.ObjectId, ref: 'User', index: true })
+  @Prop()
+  profileColor: string;
+
+  @Prop({ type: Types.ObjectId, ref: 'User' })
   me: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: 'User', index: true })
+  @Prop({ type: Types.ObjectId, ref: 'User' })
   contact: Types.ObjectId;
 }
 
 export const ContactSchema = SchemaFactory.createForClass(Contact);
+
+ContactSchema.index({ me: 1 });
+ContactSchema.index({ contact: 1 });
+ContactSchema.index({ name: 1 });

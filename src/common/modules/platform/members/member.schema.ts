@@ -6,7 +6,7 @@ export type MemberDocument = HydratedDocument<Member>;
 
 @Schema({ timestamps: true })
 export class Member {
-  @Prop({ type: Types.ObjectId, ref: 'Member', index: true })
+  @Prop({ type: Types.ObjectId, ref: 'Space', index: true })
   space: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'User', index: true })
@@ -18,7 +18,7 @@ export class Member {
   })
   role: SpaceMemberRole;
 
-  @Prop()
+  @Prop({ type: Types.ObjectId, ref: 'Message', index: true })
   lastReadMessage: Types.ObjectId;
 
   @Prop()

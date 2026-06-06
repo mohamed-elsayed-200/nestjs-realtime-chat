@@ -20,19 +20,37 @@ export class SpacesService {
     private readonly spacesRepository: SpacesRepository,
     private readonly membersRepository: MembersRepository,
     private readonly usersRepository: UsersRepository,
-    private readonly contactsRepository: ContactsRepository,
   ) {}
 
   public async getAll({ query, authUser }) {
     const userId = new Types.ObjectId(authUser._id);
-
-    return this.spacesRepository.findAll({
+    const spaces = await this.membersRepository.findAll({
       query,
       options: {
         allowedSearchFields: ['name', 'description'],
         allowedFilterFields: ['status'],
-
         pipelines: [
+          {
+            $match: {
+              user: userId,
+            },
+          },
+          {
+            $lookup: {
+              from: 'spaces',
+              localField: 'space',
+              foreignField: '_id',
+              as: 'space',
+            },
+          },
+          {
+            $unwind: '$space',
+          },
+          {
+            $replaceRoot: {
+              newRoot: '$space',
+            },
+          },
           {
             $lookup: {
               from: 'messages',
@@ -48,26 +66,123 @@ export class SpacesService {
             },
           },
           {
+            $lookup: {
+              from: 'users',
+              localField: 'received',
+              foreignField: '_id',
+              as: 'received',
+            },
+          },
+          {
+            $unwind: {
+              path: '$received',
+              preserveNullAndEmptyArrays: true,
+            },
+          },
+          {
+            $lookup: {
+              from: 'users',
+              localField: 'sender',
+              foreignField: '_id',
+              as: 'sender',
+            },
+          },
+          {
+            $unwind: {
+              path: '$sender',
+              preserveNullAndEmptyArrays: true,
+            },
+          },
+          {
+            $addFields: {
+              otherParty: {
+                $cond: {
+                  if: { $eq: ['$sender._id', userId] },
+                  then: '$received',
+                  else: '$sender',
+                },
+              },
+            },
+          },
+          {
+            $lookup: {
+              from: 'contacts',
+              let: { otherPartyId: '$otherParty._id' },
+              pipeline: [
+                {
+                  $match: {
+                    $expr: {
+                      $and: [
+                        { $eq: ['$me', userId] },
+                        { $eq: ['$contact', '$$otherPartyId'] },
+                      ],
+                    },
+                  },
+                },
+              ],
+              as: 'contact',
+            },
+          },
+          {
+            $unwind: {
+              path: '$contact',
+              preserveNullAndEmptyArrays: true,
+            },
+          },
+          {
             $project: {
               pin: 1,
               mute: 1,
               archive: 1,
-              description: 1,
               status: 1,
               type: 1,
               createdAt: 1,
               updatedAt: 1,
               membersCount: 1,
-              isContact: 1,
-              name: 1,
-              avatar: 1,
-              profileColor: 1,
               lastMessage: 1,
+              description: 1,
+              profileColor: {
+                $cond: {
+                  if: { $eq: ['$type', SpaceTypes.PRIVATE] },
+                  then: {
+                    $ifNull: [
+                      '$contact.profileColor',
+                      '$otherParty.profileColor',
+                    ],
+                  },
+                  else: '$profileColor',
+                },
+              },
+              name: {
+                $cond: {
+                  if: { $eq: ['$type', SpaceTypes.PRIVATE] },
+                  then: {
+                    $ifNull: ['$contact.name', '$otherParty.name'],
+                  },
+                  else: '$name',
+                },
+              },
+              avatar: {
+                $cond: {
+                  if: { $eq: ['$type', SpaceTypes.PRIVATE] },
+                  then: '$otherParty.avatar',
+                  else: '$avatar',
+                },
+              },
+              received: {
+                name: '$otherParty.name',
+                profileColor: '$otherParty.profileColor',
+                avatar: '$otherParty.avatar',
+                username: '$otherParty.username',
+                description: '$otherParty.description',
+              },
             },
           },
         ],
       },
     });
+
+    return spaces;
   }
 
   public async getOne({ spaceId, authUser }) {
@@ -91,31 +206,26 @@ export class SpacesService {
   }
 
   public async createPrivate({ dto, authUser }) {
+    const { memberId } = dto;
     const findMember = await this.usersRepository.findOne({
-      query: { _id: dto.memberId },
+      query: { _id: memberId },
     });
     if (!findMember)
       throw new InternalServerErrorException('spaces.memberNotFound');
-    const findContact = await this.contactsRepository.findOne({
-      query: { contact: dto.memberId },
-    });
 
-    const isContact = Boolean(findContact?._id);
     const newSpace = {
-      name: isContact ? findContact?.name : findMember.name,
-      avatar: findMember.avatar,
-      profileColor: findMember.profileColor,
       status: ActivationStatus.ACTIVE,
       type: SpaceTypes.PRIVATE,
-      createdBy: authUser._id,
-      isContact,
+      createdBy: new Types.ObjectId(authUser._id),
+      sender: new Types.ObjectId(authUser._id),
+      received: new Types.ObjectId(memberId),
     };
 
     const space = await this.spacesRepository.createOne({ dto: newSpace });
 
     if (!space) throw new InternalServerErrorException('spaces.notCreated');
 
-    const members = [dto.memberId, authUser._id];
+    const members = [memberId, authUser._id];
 
     const createdMembers = await Promise.all(
       members.map((id) =>
@@ -151,10 +261,12 @@ export class SpacesService {
 
   public async createGroup({ dto, authUser }) {
     const newSpace = {
-      archived: false,
+      name: dto?.name,
+      avatar: dto?.avatar,
+      profileColor: dto?.profileColor,
       status: ActivationStatus.ACTIVE,
       type: SpaceTypes.GROUP,
-      createdBy: authUser._id,
+      createdBy: new Types.ObjectId(authUser._id),
     };
 
     const space = await this.spacesRepository.createOne({ dto: newSpace });

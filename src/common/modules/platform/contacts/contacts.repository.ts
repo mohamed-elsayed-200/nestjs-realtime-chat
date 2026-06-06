@@ -65,7 +65,6 @@ export class ContactsRepository {
     if (query?.me) query.me = new Types.ObjectId(query.me);
 
     let record = this.contactModel.findOneAndDelete(query);
-
     const doc = await record;
 
     if (populate?.length) {

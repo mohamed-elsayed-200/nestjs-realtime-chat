@@ -4,12 +4,13 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { MembersRepository } from '../../../../common/modules/platform/members/members.repository';
+import { Types } from 'mongoose';
 
 @Injectable()
 export class MembersService {
   constructor(private readonly membersRepository: MembersRepository) {}
 
-  public async getAll({ query }) {
+  public async getAll({ query, spaceId }) {
     return this.membersRepository.findAll({
       query,
       options: {
@@ -17,22 +18,59 @@ export class MembersService {
         allowedFilterFields: ['status'],
         pipelines: [
           {
+            $match: {
+              space: new Types.ObjectId(spaceId),
+            },
+          },
+          {
             $lookup: {
-              from: 'products',
-              localField: '_id',
-              foreignField: 'member',
-              as: 'getProducts',
+              from: 'spaces',
+              localField: 'space',
+              foreignField: '_id',
+              as: 'space',
+            },
+          },
+          {
+            $unwind: {
+              path: '$space',
+              preserveNullAndEmptyArrays: true,
+            },
+          },
+          {
+            $lookup: {
+              from: 'users',
+              localField: 'user',
+              foreignField: '_id',
+              as: 'user',
+            },
+          },
+          {
+            $unwind: {
+              path: '$user',
+              preserveNullAndEmptyArrays: true,
+            },
+          },
+          {
+            $lookup: {
+              from: 'messages',
+              localField: 'message',
+              foreignField: '_id',
+              as: 'lastReadMessage',
+            },
+          },
+          {
+            $unwind: {
+              path: '$lastReadMessage',
+              preserveNullAndEmptyArrays: true,
             },
           },
           {
             $project: {
-              name: 1,
-              thumbnail: 1,
-              description: 1,
-              status: 1,
-              createdAt: 1,
-              updatedAt: 1,
-              products: { $size: '$getProducts' },
+              space: 1,
+              user: 1,
+              role: 1,
+              lastReadMessage: 1,
+              joinedAt: 1,
             },
           },
         ],
