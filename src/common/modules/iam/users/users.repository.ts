@@ -74,7 +74,7 @@ export class UsersRepository {
     return user;
   }
 
-  private colors: string[] = [
+  public colors: string[] = [
     '#FF5733',
     '#33FF57',
     '#3357FF',
@@ -87,7 +87,7 @@ export class UsersRepository {
     '#D35400',
   ];
 
-  private getRandomColor(): string {
+  public getRandomColor(): string {
     const randomIndex = Math.floor(Math.random() * this.colors.length);
     return this.colors[randomIndex];
   }

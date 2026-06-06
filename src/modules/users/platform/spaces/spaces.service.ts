@@ -274,111 +274,83 @@ export class SpacesService {
   }
 
   public async createGroup({ dto, authUser }) {
+    const members = [
+      ...dto.members?.filter((id) => id !== authUser._id.toString()),
+      authUser._id.toString(),
+    ];
+
     const newSpace = {
       name: dto?.name,
       avatar: dto?.avatar,
-      profileColor: dto?.profileColor,
+      profileColor: this.usersRepository.getRandomColor(),
+      description: dto?.description,
       status: ActivationStatus.ACTIVE,
       type: SpaceTypes.GROUP,
       createdBy: new Types.ObjectId(authUser._id),
+      membersCount: members?.length,
     };
 
     const space = await this.spacesRepository.createOne({ dto: newSpace });
+    if (!space) throw new InternalServerErrorException('spaces.notCreated');
 
-    if (!space) {
-      throw new InternalServerErrorException('spaces.notCreated');
-    }
-
-    // Use all members from dto.members array plus the authUser
-    const members = [
-      ...dto.members?.filter((id) => id !== authUser._id.toString()),
-      authUser._id.toString(),
-    ];
-
-    const createdMembers = await Promise.all(
+    await Promise.all(
       members.map((id) =>
         this.membersRepository.createOne({
-          populate: [
-            { path: 'user', model: 'User', select: 'name profileColor' },
-          ],
           dto: {
             user: new Types.ObjectId(id),
-            space: space._id,
-            role: authUser._id.equals(id)
-              ? SpaceMemberRole.OWNER
-              : SpaceMemberRole.MEMBER,
+            space: new Types.ObjectId(space._id?.toString()),
+            role:
+              authUser._id.toString() === id
+                ? SpaceMemberRole.OWNER
+                : SpaceMemberRole.MEMBER,
             joinedAt: new Date(),
           },
         }),
       ),
     );
 
-    return {
-      ...space.toObject(),
-      members: createdMembers?.map((m) => {
-        const member = m.toObject();
-
-        return {
-          ...member,
-          ...member.user,
-          user: undefined,
-        };
-      }),
-    };
+    return space;
   }
 
   public async createChannel({ dto, authUser }) {
-    const newSpace = {
-      archived: false,
-      status: ActivationStatus.ACTIVE,
-      type: SpaceTypes.CHANNEL,
-      createdBy: authUser._id,
-    };
-
-    const space = await this.spacesRepository.createOne({ dto: newSpace });
-
-    if (!space) {
-      throw new InternalServerErrorException('spaces.notCreated');
-    }
-
-    // Use all members from dto.members array plus the authUser
     const members = [
       ...dto.members?.filter((id) => id !== authUser._id.toString()),
       authUser._id.toString(),
     ];
 
-    const createdMembers = await Promise.all(
+    const newSpace = {
+      name: dto?.name,
+      avatar: dto?.avatar,
+      profileColor: this.usersRepository.getRandomColor(),
+      description: dto?.description,
+      archive: false,
+      status: ActivationStatus.ACTIVE,
+      type: SpaceTypes.CHANNEL,
+      createdBy: new Types.ObjectId(authUser._id),
+      membersCount: members?.length,
+    };
+
+    const space = await this.spacesRepository.createOne({ dto: newSpace });
+    if (!space) throw new InternalServerErrorException('spaces.notCreated');
+
+    await Promise.all(
       members.map((id) =>
         this.membersRepository.createOne({
-          populate: [
-            { path: 'user', model: 'User', select: 'name profileColor' },
-          ],
           dto: {
             user: new Types.ObjectId(id),
             space: space._id,
-            role: authUser._id.equals(id)
-              ? SpaceMemberRole.OWNER
-              : SpaceMemberRole.MEMBER,
+            role:
+              authUser._id.toString() === id
+                ? SpaceMemberRole.OWNER
+                : SpaceMemberRole.MEMBER,
             joinedAt: new Date(),
           },
         }),
       ),
     );
 
-    return {
-      ...space.toObject(),
-      members: createdMembers?.map((m) => {
-        const member = m.toObject();
-
-        return {
-          ...member,
-          ...member.user,
-          user: undefined,
-        };
-      }),
-    };
+    return space;
   }
-
   public async togglePin({ spaceId, authUser }) {
     const findSpace = await this.spacesRepository.findOne({
       query: { _id: spaceId },
