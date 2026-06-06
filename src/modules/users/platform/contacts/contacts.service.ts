@@ -111,7 +111,6 @@ export class ContactsService {
   // update contact
   public async update({ contactId, dto, authUser }) {
     const { name, avatar } = dto;
-    console.log(contactId, authUser?._id);
 
     const updatedContact = await this.contactsRepository.updateOne({
       query: { contact: contactId, me: authUser._id },

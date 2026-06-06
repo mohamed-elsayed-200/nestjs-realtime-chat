@@ -1,14 +1,13 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Types } from 'mongoose';
 import { UsersRepository } from '../../../../common/modules/iam/users/users.repository';
-import { UserType } from '../../../../common/types/enums';
+import { SpaceTypes, UserType } from '../../../../common/types/enums';
 
 @Injectable()
 export class PeoplesService {
   constructor(private readonly usersRepository: UsersRepository) {}
   public async getAll({ query, authUser }) {
     const userId = new Types.ObjectId(authUser?._id);
-
     return this.usersRepository.findAll({
       query,
       options: {
@@ -44,6 +43,46 @@ export class PeoplesService {
             $unwind: {
               path: '$contact',
               preserveNullAndEmptyArrays: true,
+            },
+          },
+          {
+            $lookup: {
+              from: 'spaces',
+              let: { peopleId: '$_id' },
+              pipeline: [
+                {
+                  $match: {
+                    $expr: {
+                      $and: [
+                        { $eq: ['$type', SpaceTypes.PRIVATE] },
+                        {
+                          $or: [
+                            {
+                              $and: [
+                                { $eq: ['$sender', userId] },
+                                { $eq: ['$received', '$$peopleId'] },
+                              ],
+                            },
+                            {
+                              $and: [
+                                { $eq: ['$sender', '$$peopleId'] },
+                                { $eq: ['$received', userId] },
+                              ],
+                            },
+                          ],
+                        },
+                      ],
+                    },
+                  },
+                },
+                { $limit: 1 },
+              ],
+              as: 'existingSpace',
+            },
+          },
+          {
+            $match: {
+              existingSpace: { $size: 0 },
             },
           },
           {

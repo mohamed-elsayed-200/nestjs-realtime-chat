@@ -63,3 +63,7 @@ SpaceSchema.index({ received: 1 });
 SpaceSchema.index({ createdBy: 1 });
 SpaceSchema.index({ status: 1 });
 SpaceSchema.index({ isContact: 1 });
+SpaceSchema.index({ sender: 1, received: 1 });
+SpaceSchema.index({ received: 1, sender: 1 });
+SpaceSchema.index({ type: 1, sender: 1 });
+SpaceSchema.index({ type: 1, received: 1 });
