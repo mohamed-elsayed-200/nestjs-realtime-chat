@@ -46,6 +46,9 @@ class SpaceSettings {
   hideMembersList: boolean;
 
   @Prop({ default: false })
+  enablePolls: boolean;
+
+  @Prop({ default: false })
   isSubscriptionRequired: boolean;
 
   @Prop({ default: true })

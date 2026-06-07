@@ -177,13 +177,26 @@ export class SpacesService {
                   else: '$avatar',
                 },
               },
+              settings: {
+                $cond: {
+                  if: { $eq: ['$type', SpaceTypes.GROUP] },
+                  then: '$settings',
+                  else: null,
+                },
+              },
               received: {
-                _id: '$otherParty._id',
-                name: '$otherParty.name',
-                profileColor: '$otherParty.profileColor',
-                avatar: '$otherParty.avatar',
-                username: '$otherParty.username',
-                description: '$otherParty.description',
+                $cond: {
+                  if: { $eq: ['$type', SpaceTypes.PRIVATE] },
+                  then: {
+                    _id: '$otherParty._id',
+                    name: '$otherParty.name',
+                    profileColor: '$otherParty.profileColor',
+                    avatar: '$otherParty.avatar',
+                    username: '$otherParty.username',
+                    description: '$otherParty.description',
+                  },
+                  else: null,
+                },
               },
             },
           },
