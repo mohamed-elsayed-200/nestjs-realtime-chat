@@ -10,7 +10,7 @@ import {
   ChatHistory,
   JoinApproval,
   WhoCanComment,
-} from 'src/common/types/enums';
+} from '../../../../../../common/types/enums';
 
 export class ChannelSettingsDto {
   @IsOptional()

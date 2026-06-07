@@ -5,10 +5,8 @@ import {
   IsNumber,
   IsOptional,
   IsString,
-  Max,
   Min,
 } from 'class-validator';
-import { Type } from 'class-transformer';
 import {
   ChatHistory,
   JoinApproval,
@@ -17,7 +15,7 @@ import {
   WhoCanDeleteMessages,
   WhoCanPinMessages,
   WhoCanSendMessages,
-} from 'src/common/types/enums';
+} from '../../../../../../common/types/enums';
 
 export class GroupSettingsDto {
   @IsOptional()

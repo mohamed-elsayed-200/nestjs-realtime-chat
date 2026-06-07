@@ -7,7 +7,7 @@ import {
   WhoCanDeleteMessages,
   WhoCanPinMessages,
   WhoCanSendMessages,
-} from 'src/common/types/enums';
+} from '../../../../../../common/types/enums';
 
 @Schema({ _id: false })
 export class GroupSettings {

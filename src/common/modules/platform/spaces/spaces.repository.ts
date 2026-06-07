@@ -41,4 +41,21 @@ export class SpacesRepository {
   public async deleteOne({ query }) {
     return this.spaceModel.findOneAndDelete(query);
   }
+
+  public async updateMany({ query, dto }) {
+    if (dto?.createdBy) dto.createdBy = new Types.ObjectId(dto?.createdBy);
+    await this.spaceModel.updateMany(query, { $set: dto });
+    return this.spaceModel.find(query).lean().exec();
+  }
+
+  public async bulkUpdate({ operations }) {
+    const bulkOps = operations.map((op) => ({
+      updateOne: {
+        filter: op.filter,
+        update: { $set: op.update },
+      },
+    }));
+
+    return this.spaceModel.bulkWrite(bulkOps);
+  }
 }
