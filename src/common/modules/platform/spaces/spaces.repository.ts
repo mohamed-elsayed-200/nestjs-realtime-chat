@@ -1,5 +1,5 @@
 import { InjectModel } from '@nestjs/mongoose';
-import { Space } from './space.schema';
+import { Space } from './schemas/space.schema';
 import { Injectable } from '@nestjs/common';
 import { Model, Types } from 'mongoose';
 import { aggregateQuery } from '../../data-access/aggregate-query';

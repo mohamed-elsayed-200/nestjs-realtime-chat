@@ -177,13 +177,7 @@ export class SpacesService {
                   else: '$avatar',
                 },
               },
-              settings: {
-                $cond: {
-                  if: { $eq: ['$type', SpaceTypes.GROUP] },
-                  then: '$settings',
-                  else: null,
-                },
-              },
+              settings: 1,
               received: {
                 $cond: {
                   if: { $eq: ['$type', SpaceTypes.PRIVATE] },
@@ -294,6 +288,7 @@ export class SpacesService {
 
     const newSpace = {
       name: dto?.name,
+      settings: dto?.settings,
       avatar: dto?.avatar,
       profileColor: this.usersRepository.getRandomColor(),
       description: dto?.description,
@@ -326,11 +321,6 @@ export class SpacesService {
   }
 
   public async createChannel({ dto, authUser }) {
-    const members = [
-      ...dto.members?.filter((id) => id !== authUser._id.toString()),
-      authUser._id.toString(),
-    ];
-
     const newSpace = {
       name: dto?.name,
       avatar: dto?.avatar,
@@ -340,30 +330,25 @@ export class SpacesService {
       status: ActivationStatus.ACTIVE,
       type: SpaceTypes.CHANNEL,
       createdBy: new Types.ObjectId(authUser._id),
-      membersCount: members?.length,
+      membersCount: 1,
+      settings: dto?.settings,
     };
 
     const space = await this.spacesRepository.createOne({ dto: newSpace });
     if (!space) throw new InternalServerErrorException('spaces.notCreated');
 
-    await Promise.all(
-      members.map((id) =>
-        this.membersRepository.createOne({
-          dto: {
-            user: new Types.ObjectId(id),
-            space: space._id,
-            role:
-              authUser._id.toString() === id
-                ? SpaceMemberRole.OWNER
-                : SpaceMemberRole.MEMBER,
-            joinedAt: new Date(),
-          },
-        }),
-      ),
-    );
+    await this.membersRepository.createOne({
+      dto: {
+        user: new Types.ObjectId(authUser._id),
+        space: new Types.ObjectId(space._id?.toString()),
+        role: SpaceMemberRole.OWNER,
+        joinedAt: new Date(),
+      },
+    });
 
     return space;
   }
+
   public async togglePin({ spaceId, authUser }) {
     const findSpace = await this.spacesRepository.findOne({
       query: { _id: spaceId },

@@ -1,3 +1,4 @@
+import { Type } from 'class-transformer';
 import {
   IsArray,
   IsMongoId,
@@ -6,9 +7,18 @@ import {
   IsString,
   MaxLength,
   MinLength,
+  ValidateNested,
 } from 'class-validator';
+import { GroupSettingsDto } from './group-settings.dto';
 
-export class CreateChannelSpaceDto {
+export class SpaceSettingsDto {
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => GroupSettingsDto)
+  group?: GroupSettingsDto;
+}
+
+export class CreateGroupSpaceDto {
   @IsNotEmpty({ message: 'categories.validation.memberId.isNotEmpty' })
   @IsArray({ message: 'categories.validation.members.isArray' })
   @IsMongoId({ each: true, message: 'categories.validation.members.isMongoId' })
@@ -28,4 +38,9 @@ export class CreateChannelSpaceDto {
   @IsOptional()
   @IsString({ message: 'spaces.validation.avatar.isString' })
   avatar?: string;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => SpaceSettingsDto)
+  settings?: Partial<SpaceSettingsDto>;
 }

@@ -18,9 +18,9 @@ import { UserType } from '../../../../common/types/enums';
 import { UserTypes } from '../../../../common/decorators/user-type.decorator';
 import { QueryDto } from '../../../../common/modules/dto/query.dto';
 import { GetUser } from '../../../../common/decorators/get-user.decorator';
-import { CreatePrivateSpaceDto } from './dto/create-private-space.dto';
-import { CreateGroupSpaceDto } from './dto/create-group.dto';
-import { CreateChannelSpaceDto } from './dto/create-channel.dto';
+import { CreatePrivateSpaceDto } from './dto/create-private/create-private-space.dto';
+import { CreateGroupSpaceDto } from './dto/create-group/create-group.dto';
+import { CreateChannelSpaceDto } from './dto/create-channel/create-channel.dto';
 
 @Controller('/users/spaces')
 @UseGuards(AuthGuard, UserTypeGuard)

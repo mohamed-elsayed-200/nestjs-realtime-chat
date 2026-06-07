@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
-import { Space, SpaceSchema } from './space.schema';
+import { Space, SpaceSchema } from './schemas/space.schema';
 import { SpacesRepository } from './spaces.repository';
 
 @Module({
