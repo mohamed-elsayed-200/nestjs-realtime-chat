@@ -58,4 +58,8 @@ export class MessagesRepository {
   public async deleteOne({ query }) {
     return this.messageModel.findOneAndDelete(query);
   }
+
+  public async deleteMany({ query }) {
+    return this.messageModel.deleteMany(query);
+  }
 }

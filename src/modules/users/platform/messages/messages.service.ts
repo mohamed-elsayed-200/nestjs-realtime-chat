@@ -104,8 +104,15 @@ export class MessagesService {
     if (!message) throw new InternalServerErrorException('messages.notCreated');
 
     await this.spacesRepository.updateOne({
-      query: { _id: message.space },
-      dto: { lastMessage: message._id },
+      query: { _id: new Types.ObjectId(message.space?.toString()) },
+      dto: {
+        lastMessage: {
+          _id: new Types.ObjectId(message?._id),
+          text: message?.text,
+          sender: message?.sender,
+          createdAt: new Date(),
+        },
+      },
     });
 
     return message;

@@ -45,7 +45,7 @@ export class AuthGuard implements CanActivate {
 
       const user = await this.usersRepository.findOne({
         query: { _id: payload.userId },
-        select: 'userType',
+        select: 'userType name avatar username profileColor',
       });
 
       if (!user) throw new UnauthorizedException('auth.userNotFound');

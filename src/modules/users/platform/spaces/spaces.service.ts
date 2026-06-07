@@ -3,16 +3,17 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
+import { Types } from 'mongoose';
 import { SpacesRepository } from '../../../../common/modules/platform/spaces/spaces.repository';
 import { MembersRepository } from '../../../../common/modules/platform/members/members.repository';
+import { UsersRepository } from '../../../../common/modules/iam/users/users.repository';
+import { ContactsRepository } from '../../../../common/modules/platform/contacts/contacts.repository';
+import { MessagesRepository } from '../../../../common/modules/platform/messages/messages.repository';
 import {
   ActivationStatus,
   SpaceMemberRole,
   SpaceTypes,
 } from '../../../../common/types/enums';
-import { Types } from 'mongoose';
-import { UsersRepository } from '../../../../common/modules/iam/users/users.repository';
-import { ContactsRepository } from '../../../../common/modules/platform/contacts/contacts.repository';
 
 @Injectable()
 export class SpacesService {
@@ -21,6 +22,7 @@ export class SpacesService {
     private readonly membersRepository: MembersRepository,
     private readonly usersRepository: UsersRepository,
     private readonly contactsRepository: ContactsRepository,
+    private readonly messagesRepository: MessagesRepository,
   ) {}
 
   public async getAll({ query, authUser }) {
@@ -89,24 +91,21 @@ export class SpacesService {
               // space
               type: '$space.type',
               status: '$space.status',
-
               createdAt: '$space.createdAt',
               updatedAt: '$space.updatedAt',
-
               membersCount: '$space.membersCount',
-
               settings: '$space.settings',
-
               lastMessage: '$space.lastMessage',
 
-              // computed
               isContact: {
                 $cond: {
                   if: {
                     $eq: ['$space.type', SpaceTypes.PRIVATE],
                   },
-                  then: '$otherParty.isContact',
-                  else: null,
+                  then: {
+                    $eq: ['$otherParty.isContact', 'true'],
+                  },
+                  else: false,
                 },
               },
 
@@ -199,49 +198,88 @@ export class SpacesService {
 
   public async createPrivate({ dto, authUser }) {
     const { memberId } = dto;
-    const userId = new Types.ObjectId(authUser._id);
 
+    const userId = new Types.ObjectId(authUser._id);
+    const otherUserId = new Types.ObjectId(memberId);
+
+    // other user
     const findMember = await this.usersRepository.findOne({
-      query: { _id: memberId },
+      query: { _id: otherUserId },
       select: 'name profileColor avatar username description',
     });
-    if (!findMember)
-      throw new InternalServerErrorException('spaces.memberNotFound');
 
+    if (!findMember) {
+      throw new InternalServerErrorException('spaces.memberNotFound');
+    }
+
+    // contact snapshot
+    const findContact = await this.contactsRepository.findOne({
+      query: {
+        me: userId,
+        contact: otherUserId,
+      },
+      select: 'name profileColor avatar',
+    });
+
+    // private space
     const newSpace = {
       status: ActivationStatus.ACTIVE,
       type: SpaceTypes.PRIVATE,
+
       createdBy: userId,
+
       sender: {
         _id: userId,
-        name: authUser?.name,
-        avatar: authUser?.avatar,
-        username: authUser?.username,
-        profileColor: authUser?.profileColor,
+        name: authUser.name,
+        avatar: authUser.avatar,
+        username: authUser.username,
+        profileColor: authUser.profileColor,
+        isContact: false,
+        contactName: null,
+        contactAvatar: null,
+        contactProfileColor: null,
       },
+
       received: {
-        _id: new Types.ObjectId(memberId),
-        name: findMember?.name,
-        avatar: findMember?.avatar,
-        username: findMember?.username,
-        profileColor: findMember?.profileColor,
+        _id: otherUserId,
+        name: findMember.name,
+        avatar: findMember.avatar,
+        username: findMember.username,
+        profileColor: findMember.profileColor,
+        isContact: !!findContact,
+        contactName: findContact?.name ?? undefined,
+        contactAvatar: findContact?.avatar ?? undefined,
+        contactProfileColor: findContact?.profileColor ?? undefined,
       },
     };
 
-    const space = await this.spacesRepository.createOne({ dto: newSpace });
-    if (!space) throw new InternalServerErrorException('spaces.notCreated');
+    // create space
+    const space = await this.spacesRepository.createOne({
+      dto: newSpace,
+    });
 
-    const members = [memberId, authUser._id];
+    if (!space) {
+      throw new InternalServerErrorException('spaces.notCreated');
+    }
+
+    // members
+    const members = [otherUserId, userId];
+
     await Promise.all(
       members.map((id) =>
         this.membersRepository.createOne({
           dto: {
-            user: new Types.ObjectId(id),
-            space: new Types.ObjectId(space._id?.toString()),
-            role: authUser._id.equals(id)
-              ? SpaceMemberRole.OWNER
-              : SpaceMemberRole.MEMBER,
+            user: id,
+
+            space: new Types.ObjectId(space._id.toString()),
+
+            role:
+              id.toString() === userId.toString()
+                ? SpaceMemberRole.OWNER
+                : SpaceMemberRole.MEMBER,
+
             joinedAt: new Date(),
+
             pin: false,
             mute: false,
             archive: false,
@@ -250,24 +288,24 @@ export class SpacesService {
       ),
     );
 
-    const contact = await this.contactsRepository.findOne({
-      query: { me: userId, contact: new Types.ObjectId(memberId) },
-      select: 'name profileColor',
-    });
-
-    const otherParty = findMember;
-
+    // response
     return {
       ...space.toObject(),
-      profileColor: contact?.profileColor ?? otherParty.profileColor,
-      name: contact?.name ?? otherParty.name,
-      avatar: otherParty.avatar,
+
+      profileColor: findContact?.profileColor ?? findMember.profileColor,
+
+      name: findContact?.name ?? findMember.name,
+
+      avatar: findContact?.avatar ?? findMember.avatar,
+
+      isContact: !!findContact,
+
       received: {
-        _id: otherParty._id,
-        name: otherParty.name,
-        profileColor: otherParty.profileColor,
-        avatar: otherParty.avatar,
-        username: otherParty.username,
+        _id: findMember._id,
+        name: findMember.name,
+        profileColor: findMember.profileColor,
+        avatar: findMember.avatar,
+        username: findMember.username,
       },
     };
   }
@@ -397,16 +435,24 @@ export class SpacesService {
 
   public async delete({ spaceId, authUser }) {
     const findMember = await this.membersRepository.findOne({
-      query: { space: spaceId, user: authUser._id },
+      query: {
+        space: new Types.ObjectId(spaceId),
+        user: new Types.ObjectId(authUser._id),
+      },
     });
+
     if (!findMember) throw new NotFoundException('spaces.notFound');
 
     await this.membersRepository.deleteMany({
-      query: { space: spaceId },
+      query: { space: new Types.ObjectId(spaceId) },
+    });
+
+    await this.messagesRepository.deleteMany({
+      query: { space: new Types.ObjectId(spaceId) },
     });
 
     const item = await this.spacesRepository.deleteOne({
-      query: { _id: spaceId },
+      query: { _id: new Types.ObjectId(spaceId) },
     });
 
     if (!item) throw new NotFoundException('spaces.notDeleted');

@@ -30,15 +30,11 @@ export class SpacesRepository {
 
   public async createOne({ dto }) {
     if (dto?.createdBy) dto.createdBy = new Types.ObjectId(dto?.createdBy);
-    if (dto?.lastMessage)
-      dto.lastMessage = new Types.ObjectId(dto?.lastMessage);
     return this.spaceModel.create(dto);
   }
 
   public async updateOne({ query, dto }) {
     if (dto?.createdBy) dto.createdBy = new Types.ObjectId(dto?.createdBy);
-    if (dto?.lastMessage)
-      dto.lastMessage = new Types.ObjectId(dto?.lastMessage);
     return this.spaceModel.findOneAndUpdate(query, dto, { new: true });
   }
 

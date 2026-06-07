@@ -1,11 +1,12 @@
 import { Module } from '@nestjs/common';
 import { SpacesService } from './spaces.service';
 import { SpacesController } from './spaces.controller';
+import { SpacesGateway } from './spaces.gateway';
 import { BaseAuthModule } from '../../../../common/modules/auth/auth.module';
 import { BaseSpaceModule } from '../../../../common/modules/platform/spaces/spaces.module';
-import { SpacesGateway } from './spaces.gateway';
 import { BaseMemberModule } from '../../../../common/modules/platform/members/members.module';
 import { BaseContactModule } from '../../../../common/modules/platform/contacts/contacts.module';
+import { BaseMessageModule } from '../../../../common/modules/platform/messages/messages.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { BaseContactModule } from '../../../../common/modules/platform/contacts/
     BaseMemberModule,
     BaseAuthModule,
     BaseContactModule,
+    BaseMessageModule,
   ],
   controllers: [SpacesController],
   providers: [SpacesService, SpacesGateway],
