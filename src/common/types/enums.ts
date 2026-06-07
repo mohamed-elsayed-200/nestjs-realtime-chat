@@ -47,3 +47,42 @@ export enum MessageStatus {
   DELIVERED = 'delivered',
   READ = 'seen',
 }
+
+// space settings
+export enum WhoCanSendMessages {
+  EVERYONE = 'everyone',
+  MEMBERS_ONLY = 'members-only',
+  ADMINS_ONLY = 'admins-only',
+}
+
+export enum WhoCanAddMembers {
+  EVERYONE = 'everyone',
+  MEMBERS_ONLY = 'members-only',
+  ADMINS_ONLY = 'admins-only',
+}
+
+export enum WhoCanChangeInfo {
+  EVERYONE = 'everyone',
+  ADMINS_ONLY = 'admins-only',
+}
+
+export enum WhoCanPinMessages {
+  EVERYONE = 'everyone',
+  ADMINS_ONLY = 'admins-only',
+}
+
+export enum WhoCanDeleteMessages {
+  EVERYONE = 'everyone',
+  ADMINS_ONLY = 'admins-only',
+}
+
+export enum JoinApproval {
+  ANYONE_CAN_JOIN = 'anyone-can-join',
+  NEED_APPROVAL = 'need-approval',
+  INVITE_ONLY = 'invite-only',
+}
+
+export enum ChatHistory {
+  VISIBLE = 'visible',
+  HIDDEN = 'hidden',
+}

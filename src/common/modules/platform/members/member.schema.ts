@@ -12,10 +12,7 @@ export class Member {
   @Prop({ type: Types.ObjectId, ref: 'User', index: true })
   user: Types.ObjectId;
 
-  @Prop({
-    enum: SpaceMemberRole,
-    default: SpaceMemberRole.MEMBER,
-  })
+  @Prop({ enum: SpaceMemberRole, default: SpaceMemberRole.MEMBER })
   role: SpaceMemberRole;
 
   @Prop({ type: Types.ObjectId, ref: 'Message', index: true })
@@ -23,7 +20,30 @@ export class Member {
 
   @Prop()
   joinedAt: Date;
+
+  // Mute
+  @Prop({ default: false })
+  isMuted: boolean;
+
+  @Prop({ default: null })
+  mutedUntil: Date;
+
+  // Ban
+  @Prop({ default: false })
+  isBanned: boolean;
+
+  @Prop({ default: null })
+  bannedAt: Date;
+
+  @Prop({ default: null })
+  mutedAt: Date;
+
+  @Prop({ default: null })
+  bannedReason: string;
 }
 
 export const MemberSchema = SchemaFactory.createForClass(Member);
+
 MemberSchema.index({ user: 1, space: 1 });
+MemberSchema.index({ space: 1, isBanned: 1 });
+MemberSchema.index({ space: 1, isMuted: 1 });
