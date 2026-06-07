@@ -14,9 +14,6 @@ export class Folder {
   @Prop()
   color: string;
 
-  @Prop({ type: [{ type: Types.ObjectId, ref: 'Space' }], default: [] })
-  spaces: Types.ObjectId[];
-
   @Prop({ required: true, default: 0 })
   order: number;
 

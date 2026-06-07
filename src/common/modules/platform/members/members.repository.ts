@@ -52,4 +52,7 @@ export class MembersRepository {
   public async deleteOne({ query }) {
     return this.memberModel.findOneAndDelete(query);
   }
+  public async deleteMany({ query }) {
+    return this.memberModel.deleteMany(query);
+  }
 }

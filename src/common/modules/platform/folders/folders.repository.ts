@@ -30,9 +30,6 @@ export class FoldersRepository {
 
   public async createOne({ dto, populate }: CreateOneProps) {
     if (dto?.user) dto.user = new Types.ObjectId(dto.user);
-    if (dto?.spaces?.length)
-      dto.spaces = dto?.spaces?.map((el) => new Types.ObjectId(el));
-
     let query = this.folderModel.create(dto);
 
     const doc = await query;
@@ -46,8 +43,6 @@ export class FoldersRepository {
 
   public async updateOne({ query, dto }) {
     if (dto?.user) dto.user = new Types.ObjectId(dto?.user);
-    if (dto?.spaces?.length)
-      dto.spaces = dto?.spaces?.map((el) => new Types.ObjectId(el));
     return this.folderModel.findOneAndUpdate(query, dto, { new: true });
   }
 

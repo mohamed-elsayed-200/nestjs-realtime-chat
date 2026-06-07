@@ -9,6 +9,9 @@ export class Member {
   @Prop({ type: Types.ObjectId, ref: 'Space', index: true })
   space: Types.ObjectId;
 
+  @Prop({ type: Types.ObjectId, ref: 'Folder', index: true })
+  folder: Types.ObjectId;
+
   @Prop({ type: Types.ObjectId, ref: 'User', index: true })
   user: Types.ObjectId;
 
@@ -40,6 +43,15 @@ export class Member {
 
   @Prop({ default: null })
   bannedReason: string;
+
+  @Prop({ default: false })
+  archive: boolean;
+
+  @Prop({ default: false })
+  pin: boolean;
+
+  @Prop({ default: false })
+  mute: boolean;
 }
 
 export const MemberSchema = SchemaFactory.createForClass(Member);

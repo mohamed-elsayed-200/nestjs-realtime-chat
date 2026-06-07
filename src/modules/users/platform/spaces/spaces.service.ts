@@ -30,12 +30,16 @@ export class SpacesService {
       options: {
         allowedSearchFields: ['name', 'description'],
         allowedFilterFields: ['status'],
+
         pipelines: [
+          // member
           {
             $match: {
               user: userId,
             },
           },
+
+          // space
           {
             $lookup: {
               from: 'spaces',
@@ -44,149 +48,122 @@ export class SpacesService {
               as: 'space',
             },
           },
+
           {
             $unwind: '$space',
           },
+
+          // private chat other user
           {
-            $replaceRoot: {
-              newRoot: '$space',
-            },
-          },
-          {
-            $lookup: {
-              from: 'messages',
-              localField: 'lastMessage',
-              foreignField: '_id',
-              as: 'lastMessage',
-            },
-          },
-          {
-            $unwind: {
-              path: '$lastMessage',
-              preserveNullAndEmptyArrays: true,
-            },
-          },
-          {
-            $lookup: {
-              from: 'users',
-              localField: 'received',
-              foreignField: '_id',
-              as: 'received',
-            },
-          },
-          {
-            $unwind: {
-              path: '$received',
-              preserveNullAndEmptyArrays: true,
-            },
-          },
-          {
-            $lookup: {
-              from: 'users',
-              localField: 'sender',
-              foreignField: '_id',
-              as: 'sender',
-            },
-          },
-          {
-            $unwind: {
-              path: '$sender',
-              preserveNullAndEmptyArrays: true,
-            },
-          },
-          {
-            $addFields: {
+            $set: {
               otherParty: {
                 $cond: {
-                  if: { $eq: ['$sender._id', userId] },
-                  then: '$received',
-                  else: '$sender',
+                  if: {
+                    $eq: ['$space.sender._id', userId],
+                  },
+                  then: '$space.received',
+                  else: '$space.sender',
                 },
               },
             },
           },
+
+          // sort
           {
-            $lookup: {
-              from: 'contacts',
-              let: { otherPartyId: '$otherParty._id' },
-              pipeline: [
-                {
-                  $match: {
-                    $expr: {
-                      $and: [
-                        { $eq: ['$me', userId] },
-                        { $eq: ['$contact', '$$otherPartyId'] },
-                      ],
-                    },
-                  },
-                },
-              ],
-              as: 'contact',
+            $sort: {
+              'space.lastMessage.createdAt': -1,
             },
           },
-          {
-            $unwind: {
-              path: '$contact',
-              preserveNullAndEmptyArrays: true,
-            },
-          },
+
+          // final response
           {
             $project: {
-              pin: 1,
-              mute: 1,
-              archive: 1,
-              status: 1,
-              type: 1,
-              createdAt: 1,
-              updatedAt: 1,
-              membersCount: 1,
-              lastMessage: 1,
-              description: 1,
+              _id: '$space._id',
+
+              // member settings
+              pin: '$pin',
+              mute: '$mute',
+              archive: '$archive',
+              folder: '$folder',
+
+              // space
+              type: '$space.type',
+              status: '$space.status',
+
+              createdAt: '$space.createdAt',
+              updatedAt: '$space.updatedAt',
+
+              membersCount: '$space.membersCount',
+
+              settings: '$space.settings',
+
+              lastMessage: '$space.lastMessage',
+
+              // computed
               isContact: {
                 $cond: {
-                  if: { $eq: ['$type', SpaceTypes.PRIVATE] },
-                  then: { $gt: [{ $ifNull: ['$contact._id', null] }, null] },
+                  if: {
+                    $eq: ['$space.type', SpaceTypes.PRIVATE],
+                  },
+                  then: '$otherParty.isContact',
                   else: null,
                 },
               },
-              profileColor: {
+
+              name: {
                 $cond: {
-                  if: { $eq: ['$type', SpaceTypes.PRIVATE] },
+                  if: {
+                    $eq: ['$space.type', SpaceTypes.PRIVATE],
+                  },
+                  then: {
+                    $ifNull: ['$otherParty.contactName', '$otherParty.name'],
+                  },
+                  else: '$space.name',
+                },
+              },
+
+              avatar: {
+                $cond: {
+                  if: {
+                    $eq: ['$space.type', SpaceTypes.PRIVATE],
+                  },
                   then: {
                     $ifNull: [
-                      '$contact.profileColor',
+                      '$otherParty.contactAvatar',
+                      '$otherParty.avatar',
+                    ],
+                  },
+                  else: '$space.avatar',
+                },
+              },
+
+              profileColor: {
+                $cond: {
+                  if: {
+                    $eq: ['$space.type', SpaceTypes.PRIVATE],
+                  },
+                  then: {
+                    $ifNull: [
+                      '$otherParty.contactProfileColor',
                       '$otherParty.profileColor',
                     ],
                   },
-                  else: '$profileColor',
+                  else: '$space.profileColor',
                 },
               },
-              name: {
-                $cond: {
-                  if: { $eq: ['$type', SpaceTypes.PRIVATE] },
-                  then: {
-                    $ifNull: ['$contact.name', '$otherParty.name'],
-                  },
-                  else: '$name',
-                },
-              },
-              avatar: {
-                $cond: {
-                  if: { $eq: ['$type', SpaceTypes.PRIVATE] },
-                  then: '$otherParty.avatar',
-                  else: '$avatar',
-                },
-              },
-              settings: 1,
+
+              // other user
               received: {
                 $cond: {
-                  if: { $eq: ['$type', SpaceTypes.PRIVATE] },
+                  if: {
+                    $eq: ['$space.type', SpaceTypes.PRIVATE],
+                  },
                   then: {
                     _id: '$otherParty._id',
                     name: '$otherParty.name',
-                    profileColor: '$otherParty.profileColor',
-                    avatar: '$otherParty.avatar',
                     username: '$otherParty.username',
+                    avatar: '$otherParty.avatar',
+                    profileColor: '$otherParty.profileColor',
                     description: '$otherParty.description',
                   },
                   else: null,
@@ -197,7 +174,6 @@ export class SpacesService {
         ],
       },
     });
-
     return spaces;
   }
 
@@ -236,8 +212,20 @@ export class SpacesService {
       status: ActivationStatus.ACTIVE,
       type: SpaceTypes.PRIVATE,
       createdBy: userId,
-      sender: userId,
-      received: new Types.ObjectId(memberId),
+      sender: {
+        _id: userId,
+        name: authUser?.name,
+        avatar: authUser?.avatar,
+        username: authUser?.username,
+        profileColor: authUser?.profileColor,
+      },
+      received: {
+        _id: new Types.ObjectId(memberId),
+        name: findMember?.name,
+        avatar: findMember?.avatar,
+        username: findMember?.username,
+        profileColor: findMember?.profileColor,
+      },
     };
 
     const space = await this.spacesRepository.createOne({ dto: newSpace });
@@ -249,11 +237,14 @@ export class SpacesService {
         this.membersRepository.createOne({
           dto: {
             user: new Types.ObjectId(id),
-            space: space._id,
+            space: new Types.ObjectId(space._id?.toString()),
             role: authUser._id.equals(id)
               ? SpaceMemberRole.OWNER
               : SpaceMemberRole.MEMBER,
             joinedAt: new Date(),
+            pin: false,
+            mute: false,
+            archive: false,
           },
         }),
       ),
@@ -272,6 +263,7 @@ export class SpacesService {
       name: contact?.name ?? otherParty.name,
       avatar: otherParty.avatar,
       received: {
+        _id: otherParty._id,
         name: otherParty.name,
         profileColor: otherParty.profileColor,
         avatar: otherParty.avatar,
@@ -312,6 +304,9 @@ export class SpacesService {
                 ? SpaceMemberRole.OWNER
                 : SpaceMemberRole.MEMBER,
             joinedAt: new Date(),
+            pin: false,
+            mute: false,
+            archive: false,
           },
         }),
       ),
@@ -343,6 +338,9 @@ export class SpacesService {
         space: new Types.ObjectId(space._id?.toString()),
         role: SpaceMemberRole.OWNER,
         joinedAt: new Date(),
+        pin: false,
+        mute: false,
+        archive: false,
       },
     });
 
@@ -350,78 +348,65 @@ export class SpacesService {
   }
 
   public async togglePin({ spaceId, authUser }) {
-    const findSpace = await this.spacesRepository.findOne({
-      query: { _id: spaceId },
-    });
-    if (!findSpace) throw new NotFoundException('spaces.notFound');
-
     const findMember = await this.membersRepository.findOne({
-      query: { space: findSpace?._id, user: authUser?._id },
+      query: { space: spaceId, user: authUser._id },
     });
     if (!findMember) throw new NotFoundException('spaces.notFound');
 
-    const space = await this.spacesRepository.updateOne({
-      query: { _id: spaceId },
-      dto: { pin: !findSpace.pin },
+    const member = await this.membersRepository.updateOne({
+      query: { space: spaceId, user: authUser._id },
+      dto: { pin: !findMember.pin },
     });
-    if (!space) throw new InternalServerErrorException('spaces.notUpdated');
 
-    return space;
+    if (!member) throw new InternalServerErrorException('spaces.notUpdated');
+
+    return { pin: member.pin };
   }
 
   public async toggleMute({ spaceId, authUser }) {
-    const findSpace = await this.spacesRepository.findOne({
-      query: { _id: spaceId },
-    });
-    if (!findSpace) throw new NotFoundException('spaces.notFound');
-
     const findMember = await this.membersRepository.findOne({
-      query: { space: findSpace?._id, user: authUser?._id },
+      query: { space: spaceId, user: authUser._id },
     });
     if (!findMember) throw new NotFoundException('spaces.notFound');
 
-    const space = await this.spacesRepository.updateOne({
-      query: { _id: spaceId },
-      dto: { mute: !findSpace.mute },
+    const member = await this.membersRepository.updateOne({
+      query: { space: spaceId, user: authUser._id },
+      dto: { mute: !findMember.mute },
     });
-    if (!space) throw new InternalServerErrorException('spaces.notUpdated');
 
-    return space;
+    if (!member) throw new InternalServerErrorException('spaces.notUpdated');
+
+    return { mute: member.mute };
   }
 
   public async toggleArchive({ spaceId, authUser }) {
-    const findSpace = await this.spacesRepository.findOne({
-      query: { _id: spaceId },
-    });
-    if (!findSpace) throw new NotFoundException('spaces.notFound');
-
     const findMember = await this.membersRepository.findOne({
-      query: { space: findSpace?._id, user: authUser?._id },
+      query: { space: spaceId, user: authUser._id },
     });
     if (!findMember) throw new NotFoundException('spaces.notFound');
 
-    const space = await this.spacesRepository.updateOne({
-      query: { _id: spaceId },
-      dto: { archive: !findSpace.archive },
+    const member = await this.membersRepository.updateOne({
+      query: { space: spaceId, user: authUser._id },
+      dto: { archive: !findMember.archive },
     });
-    if (!space) throw new InternalServerErrorException('spaces.notUpdated');
 
-    return space;
+    if (!member) throw new InternalServerErrorException('spaces.notUpdated');
+
+    return { archive: member.archive };
   }
 
   public async delete({ spaceId, authUser }) {
-    const findSpace = await this.spacesRepository.findOne({
-      query: { _id: spaceId },
-    });
-    if (!findSpace) throw new NotFoundException('spaces.notFound');
-
     const findMember = await this.membersRepository.findOne({
-      query: { space: findSpace?._id, user: authUser?._id },
+      query: { space: spaceId, user: authUser._id },
     });
     if (!findMember) throw new NotFoundException('spaces.notFound');
 
+    await this.membersRepository.deleteMany({
+      query: { space: spaceId },
+    });
+
     const item = await this.spacesRepository.deleteOne({
-      query: { _id: findSpace._id },
+      query: { _id: spaceId },
     });
 
     if (!item) throw new NotFoundException('spaces.notDeleted');
