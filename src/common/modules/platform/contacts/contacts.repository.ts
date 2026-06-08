@@ -57,6 +57,7 @@ export class ContactsRepository {
     if (dto?.me) dto.me = new Types.ObjectId(dto?.me);
     if (query?.contact) query.contact = new Types.ObjectId(query?.contact);
     if (query?.me) query.me = new Types.ObjectId(query?.me);
+
     return this.contactModel.findOneAndUpdate(query, dto, { new: true });
   }
 
@@ -64,12 +65,12 @@ export class ContactsRepository {
     if (query?.contact) query.contact = new Types.ObjectId(query.contact);
     if (query?.me) query.me = new Types.ObjectId(query.me);
 
-    let record = this.contactModel.findOneAndDelete(query);
+    let record = this.contactModel.findOneAndDelete(query, { new: true });
     const doc = await record;
-
     if (populate?.length) {
       await doc.populate(populate);
     }
+
     return doc;
   }
 }

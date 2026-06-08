@@ -36,10 +36,10 @@ export class ContactsService {
           },
           {
             $project: {
-              me: 1,
+              _id: '$contactObj._id',
               name: 1,
-              contact: '$contactObj',
-              avatar: '$contactObj.avatar',
+              avatar: 1,
+              profileColor: 1,
             },
           },
         ],
@@ -70,67 +70,77 @@ export class ContactsService {
   }
 
   public async create({ dto, authUser }) {
-    const { contactId, name, avatar, profileColor } = dto;
-    const userId = new Types.ObjectId(authUser._id);
+    const { userId, name, avatar, profileColor } = dto;
 
-    const contactUser = await this.usersRepository.findOne({
-      query: { _id: contactId },
+    const findUser = await this.usersRepository.findOne({
+      query: { _id: userId },
     });
 
-    if (!contactUser) {
+    if (!findUser) {
       throw new NotFoundException('User not found');
     }
 
     const contact = await this.contactsRepository.createOne({
       dto: {
-        name: name || contactUser.name,
-        avatar: avatar || contactUser.avatar,
-        profileColor: profileColor || contactUser.profileColor,
-        me: userId,
-        contact: new Types.ObjectId(contactId),
+        name: name || findUser.name,
+        avatar: avatar || findUser.avatar,
+        profileColor: profileColor || findUser.profileColor,
+        me: new Types.ObjectId(authUser?._id),
+        contact: new Types.ObjectId(userId),
       },
     });
 
-    await this.syncContactToSpaces(contactId, contact);
+    await this.syncContactToSpaces(userId, contact);
 
-    return contact;
+    return {
+      _id: contact.contact._id,
+      name: contact?.name,
+      profileColor: contact?.profileColor,
+      avatar: contact?.avatar,
+    };
   }
 
   public async update({ contactId, dto, authUser }) {
-    const userId = new Types.ObjectId(authUser._id);
-
     const contact = await this.contactsRepository.updateOne({
-      query: { _id: contactId, me: userId },
+      query: {
+        contact: new Types.ObjectId(contactId),
+        me: new Types.ObjectId(authUser?._id),
+      },
       dto,
     });
 
     if (!contact) {
       throw new NotFoundException('Contact not found');
     }
-
     await this.syncContactToSpaces(contact.contact.toString(), contact);
 
-    return contact;
+    return {
+      _id: contact.contact._id,
+      name: contact?.name,
+      profileColor: contact?.profileColor,
+      avatar: contact?.avatar,
+    };
   }
 
   public async delete({ contactId, authUser }) {
-    const userId = new Types.ObjectId(authUser._id);
-
-    const contact = await this.contactsRepository.findOne({
-      query: { _id: contactId, me: userId },
+    const contact = await this.contactsRepository.deleteOne({
+      query: {
+        contact: new Types.ObjectId(contactId),
+        me: new Types.ObjectId(authUser._id),
+      },
     });
 
-    if (!contact) {
-      throw new NotFoundException('Contact not found');
-    }
+    if (!contact) throw new NotFoundException('Contact not found');
+    const userData = await this.removeContactFromSpaces(
+      contact.contact.toString(),
+    );
 
-    await this.contactsRepository.deleteOne({
-      query: { _id: contactId, me: userId },
-    });
-
-    await this.removeContactFromSpaces(contact.contact.toString());
-
-    return { success: true };
+    return {
+      name: userData?.name,
+      profileColor: userData?.profileColor,
+      avatar: userData?.avatar,
+      _id: userData?._id,
+    };
   }
 
   private async syncContactToSpaces(contactUserId: string, contact: any) {
@@ -208,5 +218,7 @@ export class ContactsService {
         'received.contactAvatar': null,
       },
     });
+
+    return userData;
   }
 }
