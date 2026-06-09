@@ -15,17 +15,9 @@ export class CreateMessageDto {
   @IsString()
   space: string;
 
-  @IsOptional()
-  @IsMongoId()
-  sender?: Types.ObjectId;
-
   @IsEnum(MessageType)
   @IsOptional()
   messageType?: MessageType;
-
-  @IsBoolean()
-  @IsOptional()
-  isOutgoing?: boolean;
 
   @IsEnum(MessageStatus)
   @IsOptional()

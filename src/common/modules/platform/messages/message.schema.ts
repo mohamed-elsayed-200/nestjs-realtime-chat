@@ -15,9 +15,6 @@ export class Message {
   @Prop({ required: true, enum: MessageType, default: MessageType.TEXT })
   messageType: MessageType;
 
-  @Prop({ required: true, default: false })
-  isOutgoing: boolean;
-
   @Prop({ required: true, enum: MessageStatus, default: MessageStatus.SENT })
   status: MessageStatus;
 

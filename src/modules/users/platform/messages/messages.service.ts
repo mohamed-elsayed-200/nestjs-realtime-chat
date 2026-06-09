@@ -68,7 +68,15 @@ export class MessagesService {
           },
           {
             $project: {
-              isOutgoing: 1,
+              isOutgoing: {
+                $cond: {
+                  if: {
+                    $eq: ['$sender._id', new Types.ObjectId(authUser?._id)],
+                  },
+                  then: true,
+                  else: false,
+                },
+              },
               space: 1,
               sender: 1,
               text: 1,
@@ -92,8 +100,10 @@ export class MessagesService {
     });
 
     if (!message) throw new NotFoundException('messages.notFound');
-
-    return message;
+    return {
+      ...message,
+      isOutgoing: message.sender?.toString() === authUser?._id?.toString(),
+    };
   }
 
   public async create({ dto, authUser }) {
@@ -114,8 +124,10 @@ export class MessagesService {
         },
       },
     });
-
-    return message;
+    return {
+      ...message.toObject(),
+      isOutgoing: message.sender?.toString() === authUser?._id?.toString(),
+    };
   }
 
   public async update({ messageId, dto, authUser }) {
@@ -130,16 +142,22 @@ export class MessagesService {
       dto: { lastMessage: message._id },
     });
 
-    return message;
+    return {
+      ...message.toObject(),
+      isOutgoing: message.sender?.toString() === authUser?._id?.toString(),
+    };
   }
 
   public async delete({ messageId, authUser }) {
-    const item = await this.messagesRepository.deleteOne({
+    const message = await this.messagesRepository.deleteOne({
       query: { _id: messageId, sender: authUser?._id },
     });
 
-    if (!item) throw new NotFoundException('messages.notDeleted');
+    if (!message) throw new NotFoundException('messages.notDeleted');
 
-    return item;
+    return {
+      ...message.toObject(),
+      isOutgoing: message.sender?.toString() === authUser?._id?.toString(),
+    };
   }
 }
