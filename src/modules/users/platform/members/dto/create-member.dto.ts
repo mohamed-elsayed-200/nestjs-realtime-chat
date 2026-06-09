@@ -7,8 +7,8 @@ export class CreateMemberDto {
   name: string;
 
   @IsOptional()
-  @IsString({ message: 'members.validation.description.isString' })
-  description?: string;
+  @IsString({ message: 'members.validation.bio.isString' })
+  bio?: string;
 
   @IsOptional()
   @IsEnum(ActivationStatus)

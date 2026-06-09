@@ -59,7 +59,7 @@ export class RolesService {
       populate: [
         {
           path: 'permissions',
-          select: 'code description',
+          select: 'code bio',
         },
       ],
     });

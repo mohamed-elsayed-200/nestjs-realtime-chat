@@ -10,7 +10,7 @@ export class Space {
   name: string;
 
   @Prop()
-  description: string;
+  bio: string;
 
   @Prop()
   profileColor: string;

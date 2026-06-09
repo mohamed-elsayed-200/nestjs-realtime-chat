@@ -14,7 +14,7 @@
       "isString": "الاسم يجب أن يكون نصًا",
       "isNotEmpty": "الاسم مطلوب"
     },
-    "description": {
+    "bio": {
       "isString": "الوصف يجب أن يكون نصًا"
     },
     "icon": {

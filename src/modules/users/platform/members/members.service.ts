@@ -14,7 +14,7 @@ export class MembersService {
     return this.membersRepository.findAll({
       query,
       options: {
-        allowedSearchFields: ['name', 'description'],
+        allowedSearchFields: ['name', 'bio'],
         allowedFilterFields: ['status'],
         pipelines: [
           {

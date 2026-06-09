@@ -9,7 +9,7 @@ export class PermissionsService {
     return this.permissionsRepository.findAll({
       query,
       options: {
-        allowedSearchFields: ['code', 'description'],
+        allowedSearchFields: ['code', 'bio'],
       },
     });
   }

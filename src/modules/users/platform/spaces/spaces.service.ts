@@ -30,7 +30,7 @@ export class SpacesService {
     const spaces = await this.membersRepository.findAll({
       query,
       options: {
-        allowedSearchFields: ['name', 'description'],
+        allowedSearchFields: ['name', 'bio'],
         allowedFilterFields: ['status'],
 
         pipelines: [
@@ -163,7 +163,7 @@ export class SpacesService {
                     username: '$otherParty.username',
                     avatar: '$otherParty.avatar',
                     profileColor: '$otherParty.profileColor',
-                    description: '$otherParty.description',
+                    bio: '$otherParty.bio',
                   },
                   else: null,
                 },
@@ -205,7 +205,7 @@ export class SpacesService {
     // other user
     const findMember = await this.usersRepository.findOne({
       query: { _id: otherUserId },
-      select: 'name profileColor avatar username description',
+      select: 'name profileColor avatar username bio',
     });
 
     if (!findMember) {
@@ -321,7 +321,7 @@ export class SpacesService {
       settings: dto?.settings,
       avatar: dto?.avatar,
       profileColor: this.usersRepository.getRandomColor(),
-      description: dto?.description,
+      bio: dto?.bio,
       status: ActivationStatus.ACTIVE,
       type: SpaceTypes.GROUP,
       createdBy: new Types.ObjectId(authUser._id),
@@ -358,7 +358,7 @@ export class SpacesService {
       name: dto?.name,
       avatar: dto?.avatar,
       profileColor: this.usersRepository.getRandomColor(),
-      description: dto?.description,
+      bio: dto?.bio,
       archive: false,
       status: ActivationStatus.ACTIVE,
       type: SpaceTypes.CHANNEL,

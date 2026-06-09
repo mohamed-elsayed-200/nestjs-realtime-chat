@@ -13,7 +13,7 @@ export class ReactionsService {
     return this.reactionsRepository.findAll({
       query,
       options: {
-        allowedSearchFields: ['name', 'description'],
+        allowedSearchFields: ['name', 'bio'],
         allowedFilterFields: ['status'],
         pipelines: [
           {
@@ -28,7 +28,7 @@ export class ReactionsService {
             $project: {
               name: 1,
               thumbnail: 1,
-              description: 1,
+              bio: 1,
               status: 1,
               createdAt: 1,
               updatedAt: 1,

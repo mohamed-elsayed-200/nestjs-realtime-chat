@@ -14,8 +14,8 @@
       "isString": "Name must be a string",
       "isNotEmpty": "Name is required"
     },
-    "description": {
-      "isString": "Description must be a string"
+    "bio": {
+      "isString": "Bio must be a string"
     },
     "icon": {
       "isString": "Icon must be a string"

@@ -24,9 +24,9 @@ export class CreateChannelSpaceDto {
   name: string;
 
   @IsOptional()
-  @IsString({ message: 'spaces.validation.description.isString' })
-  @MaxLength(200, { message: 'spaces.validation.description.maxLength' })
-  description?: string;
+  @IsString({ message: 'spaces.validation.bio.isString' })
+  @MaxLength(200, { message: 'spaces.validation.bio.maxLength' })
+  bio?: string;
 
   @IsOptional()
   @IsString({ message: 'spaces.validation.avatar.isString' })

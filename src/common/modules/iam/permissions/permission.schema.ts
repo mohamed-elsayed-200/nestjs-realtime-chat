@@ -15,7 +15,7 @@ export class Permission {
   code: string;
 
   @Prop({ trim: true, type: String })
-  description?: string;
+  bio?: string;
 }
 
 export const PermissionSchema = SchemaFactory.createForClass(Permission);

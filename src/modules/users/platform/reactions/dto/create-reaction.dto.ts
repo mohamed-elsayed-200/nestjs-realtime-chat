@@ -7,8 +7,8 @@ export class CreateReactionDto {
   name: string;
 
   @IsOptional()
-  @IsString({ message: 'reactions.validation.description.isString' })
-  description?: string;
+  @IsString({ message: 'reactions.validation.bio.isString' })
+  bio?: string;
 
   @IsOptional()
   @IsEnum(ActivationStatus)
