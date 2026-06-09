@@ -59,14 +59,14 @@ export class PeoplesService {
                           $or: [
                             {
                               $and: [
-                                { $eq: ['$sender', userId] },
-                                { $eq: ['$received', '$$peopleId'] },
+                                { $eq: ['$sender._id', userId] },
+                                { $eq: ['$received._id', '$$peopleId'] },
                               ],
                             },
                             {
                               $and: [
-                                { $eq: ['$sender', '$$peopleId'] },
-                                { $eq: ['$received', userId] },
+                                { $eq: ['$sender._id', '$$peopleId'] },
+                                { $eq: ['$received._id', userId] },
                               ],
                             },
                           ],

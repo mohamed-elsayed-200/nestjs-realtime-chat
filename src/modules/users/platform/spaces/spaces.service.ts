@@ -387,12 +387,18 @@ export class SpacesService {
 
   public async togglePin({ spaceId, authUser }) {
     const findMember = await this.membersRepository.findOne({
-      query: { space: spaceId, user: authUser._id },
+      query: {
+        space: new Types.ObjectId(spaceId),
+        user: new Types.ObjectId(authUser._id),
+      },
     });
     if (!findMember) throw new NotFoundException('spaces.notFound');
 
     const member = await this.membersRepository.updateOne({
-      query: { space: spaceId, user: authUser._id },
+      query: {
+        space: new Types.ObjectId(spaceId),
+        user: new Types.ObjectId(authUser._id),
+      },
       dto: { pin: !findMember.pin },
     });
 
@@ -403,12 +409,18 @@ export class SpacesService {
 
   public async toggleMute({ spaceId, authUser }) {
     const findMember = await this.membersRepository.findOne({
-      query: { space: spaceId, user: authUser._id },
+      query: {
+        space: new Types.ObjectId(spaceId),
+        user: new Types.ObjectId(authUser._id),
+      },
     });
     if (!findMember) throw new NotFoundException('spaces.notFound');
 
     const member = await this.membersRepository.updateOne({
-      query: { space: spaceId, user: authUser._id },
+      query: {
+        space: new Types.ObjectId(spaceId),
+        user: new Types.ObjectId(authUser._id),
+      },
       dto: { mute: !findMember.mute },
     });
 
@@ -419,12 +431,18 @@ export class SpacesService {
 
   public async toggleArchive({ spaceId, authUser }) {
     const findMember = await this.membersRepository.findOne({
-      query: { space: spaceId, user: authUser._id },
+      query: {
+        space: new Types.ObjectId(spaceId),
+        user: new Types.ObjectId(authUser._id),
+      },
     });
     if (!findMember) throw new NotFoundException('spaces.notFound');
 
     const member = await this.membersRepository.updateOne({
-      query: { space: spaceId, user: authUser._id },
+      query: {
+        space: new Types.ObjectId(spaceId),
+        user: new Types.ObjectId(authUser._id),
+      },
       dto: { archive: !findMember.archive },
     });
 
