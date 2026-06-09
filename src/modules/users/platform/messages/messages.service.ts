@@ -78,7 +78,12 @@ export class MessagesService {
                 },
               },
               space: 1,
-              sender: 1,
+              sender: {
+                profileColor: '$send.profileColor',
+                avatar: '$send.avatar',
+                name: '$send.name',
+                _id: '$sender._id',
+              },
               text: 1,
               content: 1,
               messageType: 1,
