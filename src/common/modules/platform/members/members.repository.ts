@@ -49,6 +49,13 @@ export class MembersRepository {
     return this.memberModel.findOneAndUpdate(query, dto, { new: true });
   }
 
+  public async updateMany({ query, dto }) {
+    if (dto?.space) dto.space = new Types.ObjectId(dto?.space);
+    if (dto?.user) dto.user = new Types.ObjectId(dto?.user);
+
+    return this.memberModel.updateMany(query, dto);
+  }
+
   public async deleteOne({ query }) {
     return this.memberModel.findOneAndDelete(query);
   }

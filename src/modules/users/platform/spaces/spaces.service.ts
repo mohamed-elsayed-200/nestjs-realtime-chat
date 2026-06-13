@@ -81,6 +81,7 @@ export class SpacesService {
           {
             $project: {
               _id: '$space._id',
+              unreadCount: '$unreadCount',
 
               // member settings
               pin: '$pin',
@@ -489,5 +490,18 @@ export class SpacesService {
     if (!item) throw new NotFoundException('spaces.notDeleted');
 
     return item;
+  }
+
+  public async markSpaceAsRead({ spaceId, authUser }) {
+    const userId = new Types.ObjectId(authUser?._id);
+    await this.membersRepository.updateOne({
+      query: {
+        space: new Types.ObjectId(spaceId),
+        user: new Types.ObjectId(userId),
+      },
+      dto: {
+        unreadCount: 0,
+      },
+    });
   }
 }

@@ -7,13 +7,16 @@ import { Types } from 'mongoose';
 import { MessagesRepository } from '../../../../common/modules/platform/messages/messages.repository';
 import { SpacesRepository } from '../../../../common/modules/platform/spaces/spaces.repository';
 import { MessageStatus } from '../../../../common/types/enums';
+import { MembersRepository } from '../../../../common/modules/platform/members/members.repository';
 
 @Injectable()
 export class MessagesService {
   constructor(
     private readonly messagesRepository: MessagesRepository,
     private readonly spacesRepository: SpacesRepository,
+    private readonly membersRepository: MembersRepository,
   ) {}
+
   public async getAll({ query, spaceId, authUser }) {
     return this.messagesRepository.findAll({
       query,
@@ -119,8 +122,21 @@ export class MessagesService {
 
     if (!message) throw new InternalServerErrorException('messages.notCreated');
 
+    const spaceId = new Types.ObjectId(message.space?.toString());
+    const senderId = new Types.ObjectId(authUser?._id);
+
+    await this.membersRepository.updateMany({
+      query: {
+        space: spaceId,
+        user: { $ne: senderId },
+      },
+      dto: {
+        $inc: { unreadCount: 1 },
+      },
+    });
+
     await this.spacesRepository.updateOne({
-      query: { _id: new Types.ObjectId(message.space?.toString()) },
+      query: { _id: spaceId },
       dto: {
         lastMessage: {
           _id: new Types.ObjectId(message?._id),

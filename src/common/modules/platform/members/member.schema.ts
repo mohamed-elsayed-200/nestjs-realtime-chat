@@ -52,6 +52,9 @@ export class Member {
 
   @Prop({ default: false })
   mute: boolean;
+
+  @Prop({ type: Number, default: 0 })
+  unreadCount: number;
 }
 
 export const MemberSchema = SchemaFactory.createForClass(Member);
@@ -59,3 +62,4 @@ export const MemberSchema = SchemaFactory.createForClass(Member);
 MemberSchema.index({ user: 1, space: 1 });
 MemberSchema.index({ space: 1, isBanned: 1 });
 MemberSchema.index({ space: 1, isMuted: 1 });
+MemberSchema.index({ space: 1, unreadCount: 1 });
