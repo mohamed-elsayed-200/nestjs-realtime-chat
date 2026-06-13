@@ -19,6 +19,9 @@ export class MessagesService {
 
   public async getAll({ query, spaceId, authUser }) {
     this.membersRepository.markUnreadCountAsRead({ spaceId, authUser });
+
+    const userId = new Types.ObjectId(authUser?._id);
+
     return this.messagesRepository.findAll({
       query,
       options: {
@@ -72,21 +75,66 @@ export class MessagesService {
             },
           },
           {
+            $lookup: {
+              from: 'reactions',
+              localField: '_id',
+              foreignField: 'message',
+              as: 'reactionsList',
+            },
+          },
+          {
+            $addFields: {
+              reactions: {
+                $reduce: {
+                  input: '$reactionsList',
+                  initialValue: {},
+                  in: {
+                    $mergeObjects: [
+                      '$$value',
+                      {
+                        $arrayToObject: [
+                          [
+                            [
+                              '$$this.emoji',
+                              {
+                                $cond: [
+                                  { $eq: ['$$this.user', userId] },
+                                  {
+                                    user: '$$this.user',
+                                    count: 1,
+                                    hasUserReacted: true,
+                                  },
+                                  {
+                                    user: '$$this.user',
+                                    count: 1,
+                                    hasUserReacted: false,
+                                  },
+                                ],
+                              },
+                            ],
+                          ],
+                        ],
+                      },
+                    ],
+                  },
+                },
+              },
+            },
+          },
+          {
             $project: {
               isOutgoing: {
                 $cond: {
-                  if: {
-                    $eq: ['$sender._id', new Types.ObjectId(authUser?._id)],
-                  },
+                  if: { $eq: ['$sender._id', userId] },
                   then: true,
                   else: false,
                 },
               },
               space: 1,
               sender: {
-                profileColor: '$send.profileColor',
-                avatar: '$send.avatar',
-                name: '$send.name',
+                profileColor: '$sender.profileColor',
+                avatar: '$sender.avatar',
+                name: '$sender.name',
                 _id: '$sender._id',
               },
               text: 1,
@@ -98,6 +146,7 @@ export class MessagesService {
               replyTo: 1,
               status: 1,
               createdAt: 1,
+              reactions: 1,
             },
           },
         ],

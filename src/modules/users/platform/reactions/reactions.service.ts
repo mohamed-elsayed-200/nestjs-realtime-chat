@@ -1,81 +1,56 @@
-import {
-  Injectable,
-  InternalServerErrorException,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { ReactionsRepository } from '../../../../common/modules/platform/reactions/reactions.repository';
+import { MessagesRepository } from '../../../../common/modules/platform/messages/messages.repository';
+import { Types } from 'mongoose';
 
 @Injectable()
 export class ReactionsService {
-  constructor(private readonly reactionsRepository: ReactionsRepository) {}
+  constructor(
+    private readonly reactionsRepository: ReactionsRepository,
+    private readonly messagesRepository: MessagesRepository,
+  ) {}
 
-  public async getAll({ query }) {
-    return this.reactionsRepository.findAll({
-      query,
-      options: {
-        allowedSearchFields: ['name', 'bio'],
-        allowedFilterFields: ['status'],
-        pipelines: [
-          {
-            $lookup: {
-              from: 'products',
-              localField: '_id',
-              foreignField: 'reaction',
-              as: 'getProducts',
-            },
-          },
-          {
-            $project: {
-              name: 1,
-              thumbnail: 1,
-              bio: 1,
-              status: 1,
-              createdAt: 1,
-              updatedAt: 1,
-              products: { $size: '$getProducts' },
-            },
-          },
-        ],
+  public async toggleReaction({ dto, authUser }) {
+    const { message, emoji } = dto;
+
+    const messageId = new Types.ObjectId(message);
+    const userId = new Types.ObjectId(authUser._id);
+
+    const findMessage = await this.messagesRepository.findOne({
+      query: { _id: messageId },
+    });
+
+    if (!findMessage) throw new NotFoundException('messages.notFound');
+
+    const existingReaction = await this.reactionsRepository.findOne({
+      query: {
+        message: messageId,
+        user: userId,
       },
     });
-  }
 
-  public async getOne({ reactionId }) {
-    const reaction = await this.reactionsRepository.findOne({
-      query: { _id: reactionId },
-    });
+    let action = 'added';
 
-    if (!reaction) throw new NotFoundException('reactions.notFound');
+    if (existingReaction) {
+      await this.reactionsRepository.deleteOne({
+        query: { _id: existingReaction._id },
+      });
+      action = 'removed';
+    } else {
+      await this.reactionsRepository.createOne({
+        dto: {
+          message: messageId,
+          user: userId,
+          emoji: emoji,
+        },
+      });
+      action = 'added';
+    }
 
-    return reaction;
-  }
-
-  public async create({ dto }) {
-    const reaction = await this.reactionsRepository.createOne({ dto });
-
-    if (!reaction)
-      throw new InternalServerErrorException('reactions.notCreated');
-
-    return reaction;
-  }
-
-  public async update({ reactionId, dto }) {
-    const reaction = await this.reactionsRepository.updateOne({
-      query: { _id: reactionId },
-      dto,
-    });
-    if (!reaction) throw new NotFoundException('reactions.notUpdated');
-
-    return reaction;
-  }
-
-  public async delete({ reactionId }) {
-    const item = await this.reactionsRepository.deleteOne({
-      query: { _id: reactionId },
-    });
-
-    if (!item) throw new NotFoundException('reactions.notDeleted');
-
-    return item;
+    return {
+      messageId,
+      emoji,
+      action,
+    };
   }
 }

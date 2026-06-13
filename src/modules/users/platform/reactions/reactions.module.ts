@@ -3,9 +3,10 @@ import { ReactionsService } from './reactions.service';
 import { ReactionsController } from './reactions.controller';
 import { BaseAuthModule } from '../../../../common/modules/auth/auth.module';
 import { BaseReactionModule } from '../../../../common/modules/platform/reactions/reactions.module';
+import { BaseMessageModule } from '../../../../common/modules/platform/messages/messages.module';
 
 @Module({
-  imports: [BaseReactionModule, BaseAuthModule],
+  imports: [BaseReactionModule, BaseAuthModule, BaseMessageModule],
   controllers: [ReactionsController],
   providers: [ReactionsService],
   exports: [ReactionsService],

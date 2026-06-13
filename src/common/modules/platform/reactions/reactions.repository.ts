@@ -44,4 +44,8 @@ export class ReactionsRepository {
   public async deleteOne({ query }) {
     return this.reactionModel.findOneAndDelete(query);
   }
+
+  async count({ query }: { query: any }): Promise<number> {
+    return this.reactionModel.countDocuments(query).exec();
+  }
 }
