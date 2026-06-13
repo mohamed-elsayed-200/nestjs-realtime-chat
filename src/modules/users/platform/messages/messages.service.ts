@@ -92,6 +92,7 @@ export class MessagesService {
               text: 1,
               content: 1,
               messageType: 1,
+              isEdited: 1,
               metadata: 1,
               mediaUrl: 1,
               replyTo: 1,

@@ -26,7 +26,7 @@ import { GetUser } from '../../../../common/decorators/get-user.decorator';
 @UserTypes(UserType.USER)
 export class MessagesController {
   constructor(private readonly messagesService: MessagesService) {}
-  @Get(':spaceId')
+  @Get('/:spaceId')
   @ResponseMeta({ message: 'messages.foundAll' })
   public async getAll(
     @Param('spaceId', ValidateObjectIdPipe) spaceId: string,
@@ -42,7 +42,7 @@ export class MessagesController {
     return this.messagesService.create({ dto, authUser });
   }
 
-  @Put(':messageId')
+  @Put('/:messageId')
   @ResponseMeta({ message: 'messages.updated' })
   public async update(
     @Param('messageId', ValidateObjectIdPipe) messageId: string,
@@ -52,7 +52,7 @@ export class MessagesController {
     return this.messagesService.update({ messageId, dto, authUser });
   }
 
-  @Delete(':messageId')
+  @Delete('/:messageId')
   @ResponseMeta({ message: 'messages.deleted' })
   public async delete(
     @GetUser() authUser: any,

@@ -106,6 +106,7 @@ export class SpacesService {
                     else: false,
                   },
                 },
+                id: '$space.lastMessage._id',
                 status: '$space.lastMessage.status',
                 text: '$space.lastMessage.text',
                 createdAt: '$space.lastMessage.createdAt',
