@@ -18,6 +18,7 @@ export class MessagesService {
   ) {}
 
   public async getAll({ query, spaceId, authUser }) {
+    this.membersRepository.markUnreadCountAsRead({ spaceId, authUser });
     return this.messagesRepository.findAll({
       query,
       options: {

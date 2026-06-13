@@ -49,6 +49,19 @@ export class MembersRepository {
     return this.memberModel.findOneAndUpdate(query, dto, { new: true });
   }
 
+  public async markUnreadCountAsRead({ spaceId, authUser }) {
+    const userId = new Types.ObjectId(authUser?._id);
+    await this.updateOne({
+      query: {
+        space: new Types.ObjectId(spaceId),
+        user: new Types.ObjectId(userId),
+      },
+      dto: {
+        unreadCount: 0,
+      },
+    });
+  }
+
   public async updateMany({ query, dto }) {
     if (dto?.space) dto.space = new Types.ObjectId(dto?.space);
     if (dto?.user) dto.user = new Types.ObjectId(dto?.user);

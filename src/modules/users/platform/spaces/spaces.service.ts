@@ -493,15 +493,6 @@ export class SpacesService {
   }
 
   public async markSpaceAsRead({ spaceId, authUser }) {
-    const userId = new Types.ObjectId(authUser?._id);
-    await this.membersRepository.updateOne({
-      query: {
-        space: new Types.ObjectId(spaceId),
-        user: new Types.ObjectId(userId),
-      },
-      dto: {
-        unreadCount: 0,
-      },
-    });
+    await this.membersRepository.markUnreadCountAsRead({ spaceId, authUser });
   }
 }
