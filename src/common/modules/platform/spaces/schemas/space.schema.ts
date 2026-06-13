@@ -82,6 +82,7 @@ export class Space {
     type: {
       _id: Types.ObjectId,
       text: String,
+      status: { type: String, enum: Object.values(MessageStatus) },
       sender: Types.ObjectId,
       createdAt: Date,
     },

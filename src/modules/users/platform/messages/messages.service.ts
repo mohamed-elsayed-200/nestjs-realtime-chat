@@ -6,7 +6,7 @@ import {
 import { Types } from 'mongoose';
 import { MessagesRepository } from '../../../../common/modules/platform/messages/messages.repository';
 import { SpacesRepository } from '../../../../common/modules/platform/spaces/spaces.repository';
-import { MessageStatus } from 'src/common/types/enums';
+import { MessageStatus } from '../../../../common/types/enums';
 
 @Injectable()
 export class MessagesService {
@@ -146,7 +146,16 @@ export class MessagesService {
 
     await this.spacesRepository.updateOne({
       query: { _id: message.space },
-      dto: { lastMessage: message._id },
+      dto: {
+        lastMessage: {
+          _id: new Types.ObjectId(message?._id),
+          text: message?.text,
+          sender: message?.sender,
+          status: message?.status,
+          isEdited: true,
+          createdAt: new Date(),
+        },
+      },
     });
 
     return {
