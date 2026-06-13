@@ -95,7 +95,20 @@ export class SpacesService {
               updatedAt: '$space.updatedAt',
               membersCount: '$space.membersCount',
               settings: '$space.settings',
-              lastMessage: '$space.lastMessage',
+              lastMessage: {
+                isOutgoing: {
+                  $cond: {
+                    if: {
+                      $eq: ['$space.lastMessage.sender', userId],
+                    },
+                    then: true,
+                    else: false,
+                  },
+                },
+                status: '$space.lastMessage.status',
+                text: '$space.lastMessage.text',
+                createdAt: '$space.lastMessage.createdAt',
+              },
 
               isContact: {
                 $cond: {

@@ -6,6 +6,7 @@ import {
 import { Types } from 'mongoose';
 import { MessagesRepository } from '../../../../common/modules/platform/messages/messages.repository';
 import { SpacesRepository } from '../../../../common/modules/platform/spaces/spaces.repository';
+import { MessageStatus } from 'src/common/types/enums';
 
 @Injectable()
 export class MessagesService {
@@ -125,6 +126,7 @@ export class MessagesService {
           _id: new Types.ObjectId(message?._id),
           text: message?.text,
           sender: message?.sender,
+          status: MessageStatus.SENT,
           createdAt: new Date(),
         },
       },

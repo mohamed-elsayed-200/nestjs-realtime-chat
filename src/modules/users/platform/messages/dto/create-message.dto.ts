@@ -7,12 +7,14 @@ import {
   IsArray,
   IsNumber,
   Min,
+  IsNotEmpty,
 } from 'class-validator';
 import { Types } from 'mongoose';
 import { MessageStatus, MessageType } from '../../../../../common/types/enums';
 
 export class CreateMessageDto {
-  @IsString()
+  @IsNotEmpty()
+  @IsMongoId()
   space: string;
 
   @IsEnum(MessageType)

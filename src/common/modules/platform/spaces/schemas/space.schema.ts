@@ -1,6 +1,10 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument, Types } from 'mongoose';
-import { ActivationStatus, SpaceTypes } from '../../../../types/enums';
+import {
+  ActivationStatus,
+  MessageStatus,
+  SpaceTypes,
+} from '../../../../types/enums';
 import { SpaceSettings } from './settings/space-settings';
 export type SpaceDocument = HydratedDocument<Space>;
 
@@ -84,6 +88,7 @@ export class Space {
   })
   lastMessage?: {
     _id: Types.ObjectId;
+    status: MessageStatus;
     text: string;
     sender: Types.ObjectId;
     createdAt: Date;
