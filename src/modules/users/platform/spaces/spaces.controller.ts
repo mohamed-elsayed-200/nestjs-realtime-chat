@@ -96,6 +96,15 @@ export class SpacesController {
     return this.spacesService.toggleArchive({ spaceId, authUser });
   }
 
+  @Put('/:spaceId/mark-as-read')
+  @ResponseMeta({ message: 'spaces.toggled', statusCode: 201 })
+  public async markAsRead(
+    @Param('spaceId', ValidateObjectIdPipe) spaceId: string,
+    @GetUser() authUser: any,
+  ) {
+    return this.spacesService.markSpaceAsRead({ spaceId, authUser });
+  }
+
   @Delete(':spaceId')
   @ResponseMeta({ message: 'spaces.deleted' })
   public async delete(
