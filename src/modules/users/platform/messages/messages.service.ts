@@ -25,7 +25,7 @@ export class MessagesService {
     return this.messagesRepository.findAll({
       query,
       options: {
-        allowedSearchFields: ['text'],
+        allowedSearchFields: ['text', 'content'],
         pipelines: [
           {
             $match: {
@@ -77,45 +77,75 @@ export class MessagesService {
           {
             $lookup: {
               from: 'reactions',
-              localField: '_id',
-              foreignField: 'message',
-              as: 'reactionsList',
+              let: { messageId: '$_id' },
+              pipeline: [
+                {
+                  $match: {
+                    $expr: { $eq: ['$message', '$$messageId'] },
+                  },
+                },
+                {
+                  $lookup: {
+                    from: 'users',
+                    localField: 'user',
+                    foreignField: '_id',
+                    as: 'userDetails',
+                  },
+                },
+                {
+                  $unwind: '$userDetails',
+                },
+                {
+                  $sort: { createdAt: -1 }, // Sort by newest first
+                },
+                {
+                  $group: {
+                    _id: '$emoji',
+                    count: { $sum: 1 },
+                    users: {
+                      $push: {
+                        id: '$userDetails._id',
+                        name: '$userDetails.name',
+                        avatar: '$userDetails.avatar',
+                        profileColor: '$userDetails.profileColor',
+                      },
+                    },
+                    hasUserReacted: {
+                      $sum: {
+                        $cond: [{ $eq: ['$userDetails._id', userId] }, 1, 0],
+                      },
+                    },
+                  },
+                },
+                {
+                  $project: {
+                    _id: 0,
+                    emoji: '$_id',
+                    count: 1,
+                    hasUserReacted: { $gt: ['$hasUserReacted', 0] },
+                    recentUsers: { $slice: ['$users', 3] }, // Take last 3 users
+                  },
+                },
+              ],
+              as: 'reactions',
             },
           },
           {
             $addFields: {
-              reactions: {
-                $reduce: {
-                  input: '$reactionsList',
-                  initialValue: {},
-                  in: {
-                    $mergeObjects: [
-                      '$$value',
-                      {
-                        $arrayToObject: [
-                          [
-                            [
-                              '$$this.emoji',
-                              {
-                                $cond: [
-                                  { $eq: ['$$this.user', userId] },
-                                  {
-                                    user: '$$this.user',
-                                    count: 1,
-                                    hasUserReacted: true,
-                                  },
-                                  {
-                                    user: '$$this.user',
-                                    count: 1,
-                                    hasUserReacted: false,
-                                  },
-                                ],
-                              },
-                            ],
-                          ],
-                        ],
+              // Convert reactions array to object format
+              reactionsMap: {
+                $arrayToObject: {
+                  $map: {
+                    input: '$reactions',
+                    as: 'reaction',
+                    in: {
+                      k: '$$reaction.emoji',
+                      v: {
+                        count: '$$reaction.count',
+                        hasUserReacted: '$$reaction.hasUserReacted',
+                        recentUsers: '$$reaction.recentUsers',
                       },
-                    ],
+                    },
                   },
                 },
               },
@@ -146,7 +176,7 @@ export class MessagesService {
               replyTo: 1,
               status: 1,
               createdAt: 1,
-              reactions: 1,
+              reactions: '$reactionsMap',
             },
           },
         ],
