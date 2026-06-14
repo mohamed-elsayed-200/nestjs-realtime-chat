@@ -22,6 +22,7 @@ export class ReactionsService {
 
     if (!findMessage) throw new NotFoundException('messages.notFound');
 
+    // Use findOneAndUpdate with upsert for atomic operation
     const existingReaction = await this.reactionsRepository.findOne({
       query: {
         message: messageId,
@@ -32,23 +33,34 @@ export class ReactionsService {
     let action = 'added';
 
     if (existingReaction) {
-      await this.reactionsRepository.deleteOne({
-        query: { _id: existingReaction._id },
-      });
-      action = 'removed';
+      if (existingReaction.emoji === emoji) {
+        // Same emoji -> delete
+        await this.reactionsRepository.deleteOne({
+          query: { _id: existingReaction._id },
+        });
+        action = 'removed';
+      } else {
+        // Different emoji -> update
+        await this.reactionsRepository.updateOne({
+          query: { _id: existingReaction._id },
+          dto: { emoji },
+        });
+        action = 'updated';
+      }
     } else {
+      // Create new reaction
       await this.reactionsRepository.createOne({
         dto: {
           message: messageId,
           user: userId,
-          emoji: emoji,
+          emoji,
         },
       });
       action = 'added';
     }
 
     return {
-      messageId,
+      messageId: messageId.toString(),
       emoji,
       action,
     };
