@@ -13,7 +13,6 @@ import {
   SpaceTypes,
 } from '../../../../common/types/enums';
 import { MembersRepository } from '../../../../common/modules/platform/members/members.repository';
-import { Space } from 'src/common/modules/platform/spaces/schemas/space.schema';
 
 @Injectable()
 export class MessagesService {
@@ -316,21 +315,82 @@ export class MessagesService {
       isOutgoing: message.sender?.toString() === authUser?._id?.toString(),
     };
   }
+  public async delete({ dto, authUser }) {
+    const { messageIds } = dto;
+    const userId = new Types.ObjectId(authUser?._id);
 
-  public async delete({ messageId, authUser }) {
-    const message = await this.messagesRepository.deleteOne({
-      query: { _id: messageId, sender: authUser?._id },
+    // Get messages BEFORE deleting
+    const messagesToDelete = await this.messagesRepository.findMany({
+      query: {
+        _id: { $in: messageIds },
+        sender: userId,
+      },
     });
 
-    if (!message) throw new NotFoundException('messages.notDeleted');
+    if (messagesToDelete.length === 0) {
+      throw new NotFoundException('messages.notFound');
+    }
 
+    // Extract unique space IDs
+    const uniqueSpaceIds = [
+      ...new Set(messagesToDelete.map((msg) => msg.space.toString())),
+    ];
+
+    // Delete messages
+    const result = await this.messagesRepository.deleteMany({
+      query: {
+        _id: { $in: messageIds },
+        sender: userId,
+      },
+    });
+
+    if (result.deletedCount === 0) {
+      throw new NotFoundException('messages.notDeleted');
+    }
+
+    // Update lastMessage for each space and collect results
+    const updatedSpaces = [];
+
+    for (const spaceId of uniqueSpaceIds) {
+      const lastMessage: any = await this.messagesRepository.findOne({
+        query: {
+          space: new Types.ObjectId(spaceId),
+          isDeleted: { $ne: true },
+        },
+        sort: { createdAt: -1 },
+      });
+
+      await this.spacesRepository.updateOne({
+        query: { _id: spaceId },
+        dto: {
+          lastMessage: lastMessage
+            ? {
+                _id: lastMessage._id,
+                text: lastMessage.text,
+                sender: lastMessage.sender,
+                status: lastMessage.status,
+                createdAt: lastMessage.createdAt,
+              }
+            : null,
+        },
+      });
+
+      updatedSpaces.push({
+        spaceId,
+        lastMessage: lastMessage,
+      });
+    }
+    const lastMessage = updatedSpaces[0]?.lastMessage;
+    const processLastMessage = {
+      ...lastMessage,
+      isOutgoing: lastMessage?.sender?.toString() === authUser?._id?.toString(),
+    };
     return {
-      ...message.toObject(),
-      isOutgoing: message.sender?.toString() === authUser?._id?.toString(),
+      deletedCount: result.deletedCount,
+      lastMessage: processLastMessage,
     };
   }
-
-  public async forwardMessages({ dto, authUser }) {
+  public async forward({ dto, authUser }) {
     const { messageIds, targetSpaceId } = dto;
     const userId = new Types.ObjectId(authUser?._id);
 

@@ -21,13 +21,16 @@ export class MessagesRepository {
     });
   }
 
-  public async findMany({ query }: FindManyProps) {
-    return this.messageModel.find(query).exec();
+  public async findMany({ query, sort }: FindManyProps) {
+    let base = this.messageModel.find(query);
+    if (sort) base.sort(sort);
+    return await base.lean().exec();
   }
 
-  public async findOne({ query, populate, select }: FindOneProps) {
+  public async findOne({ query, populate, select, sort }: FindOneProps) {
     const base = this.messageModel.findOne(query);
     if (select) base.select(select);
+    if (sort) base.sort(sort);
     if (populate) base.populate(populate);
     return await base.lean().exec();
   }

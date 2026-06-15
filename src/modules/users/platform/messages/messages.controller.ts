@@ -21,6 +21,7 @@ import { QueryDto } from '../../../../common/modules/dto/query.dto';
 import { UpdateMessageDto } from './dto/update-message.dto';
 import { GetUser } from '../../../../common/decorators/get-user.decorator';
 import { ForwardMessageDto } from './dto/forward-message.dto';
+import { DeleteMessageDto } from './dto/delete-messages.dto';
 
 @Controller('/users/messages')
 @UseGuards(AuthGuard, UserTypeGuard)
@@ -49,7 +50,7 @@ export class MessagesController {
     @Body() dto: ForwardMessageDto,
     @GetUser() authUser: any,
   ) {
-    return this.messagesService.forwardMessages({ dto, authUser });
+    return this.messagesService.forward({ dto, authUser });
   }
 
   @Put('/:messageId')
@@ -62,12 +63,9 @@ export class MessagesController {
     return this.messagesService.update({ messageId, dto, authUser });
   }
 
-  @Delete('/:messageId')
+  @Delete()
   @ResponseMeta({ message: 'messages.deleted' })
-  public async delete(
-    @GetUser() authUser: any,
-    @Param('messageId', ValidateObjectIdPipe) messageId: string,
-  ) {
-    return this.messagesService.delete({ messageId, authUser });
+  public async delete(@GetUser() authUser: any, @Body() dto: DeleteMessageDto) {
+    return this.messagesService.delete({ dto, authUser });
   }
 }

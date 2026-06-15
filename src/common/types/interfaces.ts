@@ -1,13 +1,16 @@
 export interface FindOneProps {
   query: any;
-  select?: string;
-  populate?: any[];
+  populate?: any;
+  select?: any;
+  sort?: any;
 }
+
 export interface FindManyProps {
   query: any;
   select?: string;
   limit?: number;
   skip?: number;
+  sort?: any;
 }
 
 export interface CreateOneProps {
