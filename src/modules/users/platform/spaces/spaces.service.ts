@@ -278,7 +278,10 @@ export class SpacesService {
     }
 
     // members
-    const members = [otherUserId, userId];
+    const members =
+      otherUserId?.toString() === userId?.toString()
+        ? [userId]
+        : [otherUserId, userId];
 
     await Promise.all(
       members.map((id) =>
