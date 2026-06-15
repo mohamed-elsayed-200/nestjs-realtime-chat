@@ -22,6 +22,7 @@ import { UpdateMessageDto } from './dto/update-message.dto';
 import { GetUser } from '../../../../common/decorators/get-user.decorator';
 import { ForwardMessageDto } from './dto/forward-message.dto';
 import { DeleteMessageDto } from './dto/delete-messages.dto';
+import { PinMessageDto } from './dto/pin-message.dto';
 
 @Controller('/users/messages')
 @UseGuards(AuthGuard, UserTypeGuard)
@@ -45,12 +46,18 @@ export class MessagesController {
   }
 
   @Post('forward')
-  @ResponseMeta({ message: 'messages.forwarded', statusCode: 201 })
+  @ResponseMeta({ message: 'messages.forwarded', statusCode: 200 })
   public async forwardMessages(
     @Body() dto: ForwardMessageDto,
     @GetUser() authUser: any,
   ) {
     return this.messagesService.forward({ dto, authUser });
+  }
+
+  @Post('/pin')
+  @ResponseMeta({ message: 'messages.updated', statusCode: 200 })
+  public async pin(@Body() dto: PinMessageDto, @GetUser() authUser: any) {
+    return this.messagesService.pin({ dto, authUser });
   }
 
   @Put('/:messageId')

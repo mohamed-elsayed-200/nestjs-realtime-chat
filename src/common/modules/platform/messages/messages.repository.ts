@@ -63,6 +63,12 @@ export class MessagesRepository {
     if (dto.replyTo) dto.replyTo = new Types.ObjectId(dto.replyTo);
     return this.messageModel.findOneAndUpdate(query, dto, { new: true });
   }
+  public async updateMany({ query, dto }) {
+    if (dto.space) dto.space = new Types.ObjectId(dto.space);
+    if (dto.sender) dto.sender = new Types.ObjectId(dto.sender);
+    if (dto.replyTo) dto.replyTo = new Types.ObjectId(dto.replyTo);
+    return this.messageModel.updateMany(query, dto);
+  }
 
   public async deleteOne({ query }) {
     return this.messageModel.findOneAndDelete(query);

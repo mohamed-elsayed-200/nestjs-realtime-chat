@@ -7,12 +7,12 @@ import {
 import { Types } from 'mongoose';
 import { MessagesRepository } from '../../../../common/modules/platform/messages/messages.repository';
 import { SpacesRepository } from '../../../../common/modules/platform/spaces/spaces.repository';
+import { MembersRepository } from '../../../../common/modules/platform/members/members.repository';
 import {
   MessageStatus,
   SpaceMemberRole,
   SpaceTypes,
 } from '../../../../common/types/enums';
-import { MembersRepository } from '../../../../common/modules/platform/members/members.repository';
 
 @Injectable()
 export class MessagesService {
@@ -315,6 +315,7 @@ export class MessagesService {
       isOutgoing: message.sender?.toString() === authUser?._id?.toString(),
     };
   }
+
   public async delete({ dto, authUser }) {
     const { messageIds } = dto;
     const userId = new Types.ObjectId(authUser?._id);
@@ -390,6 +391,7 @@ export class MessagesService {
       lastMessage: processLastMessage,
     };
   }
+
   public async forward({ dto, authUser }) {
     const { messageIds, targetSpaceId } = dto;
     const userId = new Types.ObjectId(authUser?._id);
@@ -462,6 +464,52 @@ export class MessagesService {
         },
       },
     });
+
+    return;
+  }
+
+  public async pin({ dto, authUser }) {
+    const { messages, space, isPinned } = dto;
+    const userId = new Types.ObjectId(authUser?._id);
+    const spaceId = new Types.ObjectId(space);
+
+    // Check if user has permission to pin messages in this space
+    const member = await this.membersRepository.findOne({
+      query: {
+        user: userId,
+        space: spaceId,
+      },
+    });
+
+    if (!member) throw new NotFoundException('members.notFound');
+
+    // Check if user has permission to pin (admin, moderator, or channel admin)
+    const findSpace = await this.spacesRepository.findOne({
+      query: { _id: spaceId },
+    });
+
+    if (
+      findSpace.type === SpaceTypes.CHANNEL &&
+      member.role === SpaceMemberRole.MEMBER
+    ) {
+      throw new ForbiddenException('messages.noPermissionToPin');
+    }
+
+    // Convert to array if single ID
+    const messageIdsArray = Array.isArray(messages) ? messages : [messages];
+    const messageObjectIds = messageIdsArray.map(
+      (id) => new Types.ObjectId(id),
+    );
+
+    // Batch update all messages in one query
+    const result = await this.messagesRepository.updateMany({
+      query: { _id: { $in: messageObjectIds }, space: spaceId },
+      dto: { isPinned },
+    });
+
+    if (result.modifiedCount === 0) {
+      throw new InternalServerErrorException('messages.notUpdated');
+    }
 
     return;
   }
