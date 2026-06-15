@@ -1,4 +1,5 @@
 import {
+  ForbiddenException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
@@ -6,8 +7,13 @@ import {
 import { Types } from 'mongoose';
 import { MessagesRepository } from '../../../../common/modules/platform/messages/messages.repository';
 import { SpacesRepository } from '../../../../common/modules/platform/spaces/spaces.repository';
-import { MessageStatus } from '../../../../common/types/enums';
+import {
+  MessageStatus,
+  SpaceMemberRole,
+  SpaceTypes,
+} from '../../../../common/types/enums';
 import { MembersRepository } from '../../../../common/modules/platform/members/members.repository';
+import { Space } from 'src/common/modules/platform/spaces/schemas/space.schema';
 
 @Injectable()
 export class MessagesService {
@@ -71,6 +77,20 @@ export class MessagesService {
           {
             $unwind: {
               path: '$replyTo.sender',
+              preserveNullAndEmptyArrays: true,
+            },
+          },
+          {
+            $lookup: {
+              from: 'users',
+              localField: 'forwardFrom',
+              foreignField: '_id',
+              as: 'forwardFrom',
+            },
+          },
+          {
+            $unwind: {
+              path: '$forwardFrom',
               preserveNullAndEmptyArrays: true,
             },
           },
@@ -176,23 +196,41 @@ export class MessagesService {
                 name: '$sender.name',
                 _id: '$sender._id',
               },
-              replyTo: {
-                _id: '$replyTo._id',
-                text: '$replyTo.text',
-                content: '$replyTo.content',
-                messageType: '$replyTo.messageType',
-                sender: {
-                  profileColor: '$replyTo.sender.profileColor',
-                  avatar: '$replyTo.sender.avatar',
-                  name: '$replyTo.sender.name',
-                  _id: '$replyTo.sender._id',
-                },
-                isOutgoing: {
-                  $cond: {
-                    if: { $eq: ['$replyTo.sender._id', userId] },
-                    then: true,
-                    else: false,
+              forwardFrom: {
+                $cond: {
+                  if: { $ifNull: ['$forwardFrom', false] },
+                  then: {
+                    _id: '$forwardFrom._id',
+                    name: '$forwardFrom.name',
+                    avatar: '$forwardFrom.avatar',
+                    profileColor: '$forwardFrom.profileColor',
                   },
+                  else: null,
+                },
+              },
+              replyTo: {
+                $cond: {
+                  if: { $ifNull: ['$replyTo', false] },
+                  then: {
+                    _id: '$replyTo._id',
+                    text: '$replyTo.text',
+                    content: '$replyTo.content',
+                    messageType: '$replyTo.messageType',
+                    sender: {
+                      profileColor: '$replyTo.sender.profileColor',
+                      avatar: '$replyTo.sender.avatar',
+                      name: '$replyTo.sender.name',
+                      _id: '$replyTo.sender._id',
+                    },
+                    isOutgoing: {
+                      $cond: {
+                        if: { $eq: ['$replyTo.sender._id', userId] },
+                        then: true,
+                        else: false,
+                      },
+                    },
+                  },
+                  else: null,
                 },
               },
             },
@@ -290,5 +328,81 @@ export class MessagesService {
       ...message.toObject(),
       isOutgoing: message.sender?.toString() === authUser?._id?.toString(),
     };
+  }
+
+  public async forwardMessages({ dto, authUser }) {
+    const { messageIds, targetSpaceId } = dto;
+    const userId = new Types.ObjectId(authUser?._id);
+
+    // Check if user is a member of target space
+    const findMember: any = await this.membersRepository.findOne({
+      query: {
+        user: userId,
+        space: new Types.ObjectId(targetSpaceId),
+      },
+      populate: [
+        {
+          path: 'space',
+          model: 'Space',
+          select: 'status type',
+        },
+      ],
+    });
+
+    if (!findMember) throw new NotFoundException('spaces.notFound');
+
+    // Channel: only admins and moderators can forward
+    if (
+      findMember.space.type === SpaceTypes.CHANNEL &&
+      findMember.role === SpaceMemberRole.MEMBER
+    ) {
+      throw new ForbiddenException('channels.onlyAdminsCanForward');
+    }
+
+    // Rest of your code...
+    const originalMessages = await this.messagesRepository.findMany({
+      query: {
+        _id: { $in: messageIds },
+      },
+    });
+
+    if (originalMessages.length === 0) {
+      throw new NotFoundException('messages.notFound');
+    }
+
+    const messagesToInsert = originalMessages.map((originalMessage) => ({
+      space: new Types.ObjectId(targetSpaceId),
+      sender: userId,
+      messageType: originalMessage.messageType,
+      content: originalMessage.content,
+      text: originalMessage.text,
+      forwardFrom: originalMessage.sender,
+      albumFiles: originalMessage.albumFiles,
+      mimeType: originalMessage.mimeType,
+      status: MessageStatus.SENT,
+      createdAt: new Date(),
+    }));
+
+    const forwardedMessages = await this.messagesRepository.insertMany({
+      documents: messagesToInsert,
+    });
+
+    const lastForwardedMessage =
+      forwardedMessages[forwardedMessages.length - 1];
+
+    await this.spacesRepository.updateOne({
+      query: { _id: targetSpaceId },
+      dto: {
+        lastMessage: {
+          _id: lastForwardedMessage._id,
+          text: lastForwardedMessage.text,
+          sender: lastForwardedMessage.sender,
+          status: MessageStatus.SENT,
+          createdAt: new Date(),
+        },
+      },
+    });
+
+    return;
   }
 }

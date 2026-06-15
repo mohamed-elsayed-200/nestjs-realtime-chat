@@ -20,6 +20,7 @@ import { UserTypes } from '../../../../common/decorators/user-type.decorator';
 import { QueryDto } from '../../../../common/modules/dto/query.dto';
 import { UpdateMessageDto } from './dto/update-message.dto';
 import { GetUser } from '../../../../common/decorators/get-user.decorator';
+import { ForwardMessageDto } from './dto/forward-message.dto';
 
 @Controller('/users/messages')
 @UseGuards(AuthGuard, UserTypeGuard)
@@ -40,6 +41,15 @@ export class MessagesController {
   @ResponseMeta({ message: 'messages.created', statusCode: 201 })
   public async create(@Body() dto: CreateMessageDto, @GetUser() authUser: any) {
     return this.messagesService.create({ dto, authUser });
+  }
+
+  @Post('forward')
+  @ResponseMeta({ message: 'messages.forwarded', statusCode: 201 })
+  public async forwardMessages(
+    @Body() dto: ForwardMessageDto,
+    @GetUser() authUser: any,
+  ) {
+    return this.messagesService.forwardMessages({ dto, authUser });
   }
 
   @Put('/:messageId')

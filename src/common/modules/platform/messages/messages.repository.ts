@@ -3,7 +3,7 @@ import { Message } from './message.schema';
 import { Injectable } from '@nestjs/common';
 import { Model, Types } from 'mongoose';
 import { aggregateQuery } from '../../data-access/aggregate-query';
-import { FindOneProps } from '../../../types/interfaces';
+import { FindManyProps, FindOneProps } from '../../../types/interfaces';
 
 @Injectable()
 export class MessagesRepository {
@@ -19,6 +19,10 @@ export class MessagesRepository {
         ...options,
       },
     });
+  }
+
+  public async findMany({ query }: FindManyProps) {
+    return this.messageModel.find(query).exec();
   }
 
   public async findOne({ query, populate, select }: FindOneProps) {
@@ -47,7 +51,9 @@ export class MessagesRepository {
     ]);
     return newMsg;
   }
-
+  async insertMany({ documents }: { documents: any[] }) {
+    return this.messageModel.insertMany(documents);
+  }
   public async updateOne({ query, dto }) {
     if (dto.space) dto.space = new Types.ObjectId(dto.space);
     if (dto.sender) dto.sender = new Types.ObjectId(dto.sender);
