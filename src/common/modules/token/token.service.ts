@@ -22,7 +22,7 @@ export class TokenService {
   public async generateToken(payload: any): Promise<string> {
     const JWT_SECRET = this.configService.get<string>('JWT_SECRET');
     const JWT_EXPIRES_IN =
-      this.configService.get<string>('JWT_EXPIRES_IN') ?? '86400';
+      this.configService.get<string>('JWT_EXPIRES_IN') ?? '30d';
 
     const token = await this.jwtService.signAsync(payload, {
       secret: JWT_SECRET,

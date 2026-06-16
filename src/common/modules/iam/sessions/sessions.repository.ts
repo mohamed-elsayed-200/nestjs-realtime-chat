@@ -59,7 +59,6 @@ export class SessionsRepository {
       session = await this.sessionModel.create({
         user: dto?.user,
         ip: dto?.ip || '',
-        token: dto?.token,
         userAgent: dto?.userAgent,
         expiresIn,
         location,

@@ -77,9 +77,29 @@ export class AuthRepository {
     if (!isPasswordMatch)
       throw new UnauthorizedException('auth.invalidCredentials');
 
+    // Check if user is active
+    if (user.status !== UserStatus.ACTIVE) {
+      throw new UnauthorizedException('auth.accountNotActivated');
+    }
+
+    // Create session
+    const session = await this.sessionsRepository.createOne({
+      dto: {
+        user: user._id,
+        userAgent,
+        ip,
+        status: ActivationStatus.ACTIVE,
+      },
+    });
+
+    if (!session) {
+      throw new InternalServerErrorException('auth.failedCreateSession');
+    }
+
     // Generate token
     const token = await this.tokenService.generateToken({
       userId: user._id,
+      sessionId: session?._id,
     });
 
     if (user.status === UserStatus.ACTIVE) {
@@ -100,17 +120,6 @@ export class AuthRepository {
     await this.sessionsRepository.updateOne({
       query: { user: userId, token },
       dto: { isActive: false },
-    });
-
-    res.clearCookie('token', {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'none',
-    });
-    res.clearCookie('sessionId', {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'none',
     });
 
     return true;
@@ -190,7 +199,8 @@ export class AuthRepository {
     return {
       ...user?.toObject(),
       id: user?._id,
-      token: newToken,
+      token,
+      newToken,
     };
   }
 
