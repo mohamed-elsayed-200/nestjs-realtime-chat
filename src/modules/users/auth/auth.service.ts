@@ -48,10 +48,17 @@ export class AuthService {
     } else {
       return {
         token: userData?.token,
+        id: userData?.id,
         name: userData?.name,
         email: userData?.email,
         userType: userData?.userType,
         status: userData?.status,
+        bio: userData?.bio,
+        profileColor: userData?.profileColor,
+        is2FA: userData?.is2FA,
+        username: userData?.username,
+        avatar: userData?.avatar,
+        lastLoginAt: userData?.lastLoginAt,
       };
     }
   }
