@@ -59,6 +59,9 @@ export class Message {
   @Prop()
   gifId?: string;
 
+  @Prop()
+  gifPack?: string;
+
   // File fields
   @Prop()
   duration?: number;

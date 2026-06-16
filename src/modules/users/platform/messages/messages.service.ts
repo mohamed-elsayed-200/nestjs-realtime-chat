@@ -31,6 +31,7 @@ export class MessagesService {
       query,
       options: {
         allowedSearchFields: ['text', 'content'],
+        allowedFilterFields: ['isPinned', 'messageType', 'isEdited', 'sender'],
         pipelines: [
           {
             $match: {
@@ -182,6 +183,7 @@ export class MessagesService {
               status: 1,
               createdAt: 1,
               reactions: '$reactionsMap',
+              isPinned: 1,
               isOutgoing: {
                 $cond: {
                   if: { $eq: ['$sender._id', userId] },

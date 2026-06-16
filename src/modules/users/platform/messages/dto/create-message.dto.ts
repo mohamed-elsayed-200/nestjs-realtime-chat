@@ -78,6 +78,10 @@ export class CreateMessageDto {
   gifId?: string;
 
   @IsOptional()
+  @IsString()
+  gifPack?: string;
+
+  @IsOptional()
   @IsNumber()
   @Min(0)
   duration?: number;
