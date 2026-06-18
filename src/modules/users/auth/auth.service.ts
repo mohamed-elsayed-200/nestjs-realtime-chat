@@ -48,7 +48,7 @@ export class AuthService {
     } else {
       return {
         token: userData?.token,
-        id: userData?.id,
+        id: userData?._id,
         name: userData?.name,
         email: userData?.email,
         userType: userData?.userType,
