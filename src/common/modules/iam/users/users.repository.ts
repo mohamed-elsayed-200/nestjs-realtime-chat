@@ -75,16 +75,18 @@ export class UsersRepository {
   }
 
   public colors: string[] = [
-    '#FF5733',
-    '#33FF57',
-    '#3357FF',
-    '#FF33A1',
-    '#FFC300',
-    '#8E44AD',
-    '#16A085',
-    '#E67E22',
-    '#2C3E50',
-    '#D35400',
+    '#FF6B6B',
+    '#FF9F43',
+    '#FECA57',
+    '#48DBFB',
+    '#0ABDE3',
+    '#10AC84',
+    '#EE5A24',
+    '#5F27CD',
+    '#341F97',
+    '#FF6FB7',
+    '#8395A7',
+    '#222F3E',
   ];
 
   public getRandomColor(): string {
