@@ -19,14 +19,10 @@ export class AuthController {
     message: 'auth.loginSuccess',
     statusCode: 200,
   })
-  async login(
-    @Body() dto: LoginDto,
-    @Res({ passthrough: true }) res: any,
-    @Req() req: Request,
-  ) {
+  async login(@Body() dto: LoginDto, @Req() req: Request) {
     const ip = getClientIp(req);
     const userAgent = getClientUserAgent(req);
-    return this.authService.login({ ip, res, dto, userAgent });
+    return this.authService.login({ ip, dto, userAgent });
   }
 
   @Post('/logout')

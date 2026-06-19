@@ -3,7 +3,6 @@ import {
   Injectable,
   InternalServerErrorException,
   NotFoundException,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { OtpService } from '../otp/otp.service';
 import { SessionsRepository } from '../iam/sessions/sessions.repository';
@@ -57,7 +56,7 @@ export class AuthRepository {
     return { otpId: otpData.otpId, email };
   }
 
-  public async login({ ip, email, userAgent, password, userType, res }) {
+  public async login({ ip, email, userAgent, password, userType }) {
     const user = await this.usersRepository.findOne({
       query: {
         email,
@@ -70,16 +69,16 @@ export class AuthRepository {
     });
 
     if (!user || !user.password)
-      throw new UnauthorizedException('auth.invalidCredentials');
+      throw new BadRequestException('auth.invalidCredentials');
 
     const isPasswordMatch = await bcrypt.compare(password, user.password);
 
     if (!isPasswordMatch)
-      throw new UnauthorizedException('auth.invalidCredentials');
+      throw new BadRequestException('auth.invalidCredentials');
 
     // Check if user is active
     if (user.status !== UserStatus.ACTIVE) {
-      throw new UnauthorizedException('auth.accountNotActivated');
+      throw new BadRequestException('auth.accountNotActivated');
     }
 
     // Create session
@@ -168,7 +167,7 @@ export class AuthRepository {
     const decoded = await this.tokenService.verifyToken(token);
 
     if (!decoded || !decoded.userId) {
-      throw new UnauthorizedException('auth.invalidToken');
+      throw new BadRequestException('auth.invalidToken');
     }
 
     const session = await this.sessionsRepository.findOne({
@@ -180,7 +179,7 @@ export class AuthRepository {
     });
 
     if (!session) {
-      throw new UnauthorizedException('auth.sessionExpired');
+      throw new BadRequestException('auth.sessionExpired');
     }
 
     const user = await this.usersRepository.findOne({

@@ -12,6 +12,9 @@ export class Member {
   @Prop({ type: Types.ObjectId, ref: 'User', index: true })
   user: Types.ObjectId;
 
+  @Prop({ type: Types.ObjectId, ref: 'Folder', index: true })
+  folder: Types.ObjectId;
+
   @Prop({ enum: SpaceMemberRole, default: SpaceMemberRole.MEMBER })
   role: SpaceMemberRole;
 

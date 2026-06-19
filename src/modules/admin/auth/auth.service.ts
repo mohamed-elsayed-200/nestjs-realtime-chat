@@ -16,7 +16,7 @@ export class AuthService {
     private readonly otpService: OtpService,
   ) {}
 
-  public async login({ ip, userAgent, res, dto }) {
+  public async login({ ip, userAgent, dto }) {
     const { email, password } = dto;
 
     const userData = await this.authRepository.login({
@@ -25,7 +25,6 @@ export class AuthService {
       password,
       userAgent,
       userType: UserType.ADMIN,
-      res,
     });
 
     if (userData?.status === UserStatus.NOT_VERIFIED || userData?.is2FA) {
