@@ -25,172 +25,6 @@ export class SpacesService {
     private readonly messagesRepository: MessagesRepository,
   ) {}
 
-  public async getAll({ query, authUser }) {
-    const userId = new Types.ObjectId(authUser._id);
-    const spaces = await this.membersRepository.findAll({
-      query,
-      options: {
-        allowedSearchFields: ['name', 'bio'],
-        allowedFilterFields: ['status'],
-
-        pipelines: [
-          // member
-          {
-            $match: {
-              user: userId,
-            },
-          },
-
-          // space
-          {
-            $lookup: {
-              from: 'spaces',
-              localField: 'space',
-              foreignField: '_id',
-              as: 'space',
-            },
-          },
-
-          {
-            $unwind: '$space',
-          },
-
-          // private chat other user
-          {
-            $set: {
-              otherParty: {
-                $cond: {
-                  if: {
-                    $eq: ['$space.sender._id', userId],
-                  },
-                  then: '$space.received',
-                  else: '$space.sender',
-                },
-              },
-            },
-          },
-
-          // sort
-          {
-            $sort: {
-              'space.lastMessage.createdAt': -1,
-            },
-          },
-
-          // final response
-          {
-            $project: {
-              _id: '$space._id',
-              unreadCount: '$unreadCount',
-
-              // member settings
-              pin: '$pin',
-              mute: '$mute',
-              archive: '$archive',
-              folder: '$folder',
-
-              // space
-              type: '$space.type',
-              status: '$space.status',
-              createdAt: '$space.createdAt',
-              updatedAt: '$space.updatedAt',
-              membersCount: '$space.membersCount',
-              settings: '$space.settings',
-              lastMessage: {
-                isOutgoing: {
-                  $cond: {
-                    if: {
-                      $eq: ['$space.lastMessage.sender', userId],
-                    },
-                    then: true,
-                    else: false,
-                  },
-                },
-                id: '$space.lastMessage._id',
-                status: '$space.lastMessage.status',
-                text: '$space.lastMessage.text',
-                createdAt: '$space.lastMessage.createdAt',
-              },
-
-              isContact: {
-                $cond: {
-                  if: {
-                    $eq: ['$space.type', SpaceTypes.PRIVATE],
-                  },
-                  then: {
-                    $eq: ['$otherParty.isContact', 'true'],
-                  },
-                  else: false,
-                },
-              },
-
-              name: {
-                $cond: {
-                  if: {
-                    $eq: ['$space.type', SpaceTypes.PRIVATE],
-                  },
-                  then: {
-                    $ifNull: ['$otherParty.contactName', '$otherParty.name'],
-                  },
-                  else: '$space.name',
-                },
-              },
-
-              avatar: {
-                $cond: {
-                  if: {
-                    $eq: ['$space.type', SpaceTypes.PRIVATE],
-                  },
-                  then: {
-                    $ifNull: [
-                      '$otherParty.contactAvatar',
-                      '$otherParty.avatar',
-                    ],
-                  },
-                  else: '$space.avatar',
-                },
-              },
-
-              profileColor: {
-                $cond: {
-                  if: {
-                    $eq: ['$space.type', SpaceTypes.PRIVATE],
-                  },
-                  then: {
-                    $ifNull: [
-                      '$otherParty.contactProfileColor',
-                      '$otherParty.profileColor',
-                    ],
-                  },
-                  else: '$space.profileColor',
-                },
-              },
-
-              // other user
-              received: {
-                $cond: {
-                  if: {
-                    $eq: ['$space.type', SpaceTypes.PRIVATE],
-                  },
-                  then: {
-                    _id: '$otherParty._id',
-                    name: '$otherParty.name',
-                    username: '$otherParty.username',
-                    avatar: '$otherParty.avatar',
-                    profileColor: '$otherParty.profileColor',
-                    bio: '$otherParty.bio',
-                  },
-                  else: null,
-                },
-              },
-            },
-          },
-        ],
-      },
-    });
-    return spaces;
-  }
-
   public async getOne({ spaceId, authUser }) {
     const findSpace = await this.spacesRepository.findOne({
       query: { _id: spaceId },
@@ -211,6 +45,302 @@ export class SpacesService {
     return space;
   }
 
+  public async getAll({ query, authUser }) {
+    const userId = new Types.ObjectId(authUser._id);
+
+    const spaces = await this.membersRepository.findAll({
+      query: query,
+      options: {
+        allowedSearchFields: ['name', 'bio'],
+        allowedFilterFields: ['status', 'type', 'archive'],
+
+        pipelines: [
+          // 1. Filter by user
+          {
+            $match: {
+              user: userId,
+            },
+          },
+
+          // 2. Lookup space
+          {
+            $lookup: {
+              from: 'spaces',
+              localField: 'space',
+              foreignField: '_id',
+              as: 'space',
+            },
+          },
+          { $unwind: '$space' },
+
+          // 3. Lookup user details for private chats
+          {
+            $lookup: {
+              from: 'users',
+              let: {
+                senderId: '$space.sender',
+                receivedId: '$space.received',
+              },
+              pipeline: [
+                {
+                  $match: {
+                    $expr: {
+                      $or: [
+                        { $eq: ['$_id', '$$senderId'] },
+                        { $eq: ['$_id', '$$receivedId'] },
+                      ],
+                    },
+                  },
+                },
+                {
+                  $project: {
+                    _id: 1,
+                    name: 1,
+                    username: 1,
+                    avatar: 1,
+                    profileColor: 1,
+                    bio: 1,
+                  },
+                },
+              ],
+              as: 'spaceUsers',
+            },
+          },
+
+          // 4. Lookup user's contacts (where current user is 'me')
+          {
+            $lookup: {
+              from: 'contacts',
+              let: {
+                spaceSender: '$space.sender',
+                spaceReceived: '$space.received',
+                userId: userId,
+              },
+              pipeline: [
+                {
+                  $match: {
+                    $expr: {
+                      $and: [
+                        { $eq: ['$me', '$$userId'] },
+                        {
+                          $or: [
+                            { $eq: ['$contact', '$$spaceSender'] },
+                            { $eq: ['$contact', '$$spaceReceived'] },
+                          ],
+                        },
+                      ],
+                    },
+                  },
+                },
+                {
+                  $project: {
+                    _id: 1,
+                    name: 1,
+                    avatar: 1,
+                    profileColor: 1,
+                  },
+                },
+              ],
+              as: 'userContacts',
+            },
+          },
+
+          // 5. Lookup contact documents from space
+          {
+            $lookup: {
+              from: 'contacts',
+              let: {
+                senderContactId: '$space.senderContact',
+                receivedContactId: '$space.receivedContact',
+              },
+              pipeline: [
+                {
+                  $match: {
+                    $expr: {
+                      $or: [
+                        { $eq: ['$_id', '$$senderContactId'] },
+                        { $eq: ['$_id', '$$receivedContactId'] },
+                      ],
+                    },
+                  },
+                },
+                {
+                  $project: {
+                    _id: 1,
+                    name: 1,
+                    avatar: 1,
+                    profileColor: 1,
+                  },
+                },
+              ],
+              as: 'spaceContacts',
+            },
+          },
+
+          // 6. Determine other party and set fields
+          {
+            $addFields: {
+              otherParty: {
+                $arrayElemAt: [
+                  {
+                    $filter: {
+                      input: '$spaceUsers',
+                      as: 'user',
+                      cond: {
+                        $ne: ['$$user._id', userId],
+                      },
+                    },
+                  },
+                  0,
+                ],
+              },
+              userContact: {
+                $arrayElemAt: ['$userContacts', 0],
+              },
+              spaceContact: {
+                $arrayElemAt: ['$spaceContacts', 0],
+              },
+            },
+          },
+
+          // 7. Final projection - FIXED VERSION
+          {
+            $project: {
+              _id: '$space._id',
+              unreadCount: 1,
+              pin: 1,
+              mute: 1,
+              archive: 1,
+              folder: { $ifNull: ['$folder', null] },
+
+              // Space fields - use $space.fieldName directly
+              type: '$space.type',
+              status: '$space.status',
+              createdAt: '$space.createdAt',
+              updatedAt: '$space.updatedAt',
+              membersCount: '$space.membersCount',
+              settings: '$space.settings',
+
+              lastMessage: {
+                $cond: {
+                  if: { $ne: ['$space.lastMessage', null] },
+                  then: {
+                    isOutgoing: {
+                      $eq: ['$space.lastMessage.sender', userId],
+                    },
+                    id: '$space.lastMessage._id',
+                    status: '$space.lastMessage.status',
+                    text: '$space.lastMessage.text',
+                    createdAt: '$space.lastMessage.createdAt',
+                  },
+                  else: null,
+                },
+              },
+
+              // FIXED: isContact - check if array is not empty
+              isContact: {
+                $cond: {
+                  if: { $eq: ['$space.type', 'private'] },
+                  then: {
+                    $cond: {
+                      if: { $gt: [{ $size: '$userContacts' }, 0] },
+                      then: true,
+                      else: false,
+                    },
+                  },
+                  else: false,
+                },
+              },
+
+              // FIXED: name - use proper field references
+              name: {
+                $cond: {
+                  if: { $eq: ['$space.type', 'private'] },
+                  then: {
+                    $cond: {
+                      if: { $gt: [{ $size: '$userContacts' }, 0] },
+                      then: { $arrayElemAt: ['$userContacts.name', 0] },
+                      else: {
+                        $cond: {
+                          if: { $gt: [{ $size: '$spaceContacts' }, 0] },
+                          then: { $arrayElemAt: ['$spaceContacts.name', 0] },
+                          else: '$otherParty.name',
+                        },
+                      },
+                    },
+                  },
+                  else: '$space.name',
+                },
+              },
+
+              // FIXED: avatar
+              avatar: {
+                $cond: {
+                  if: { $eq: ['$space.type', 'private'] },
+                  then: {
+                    $cond: {
+                      if: { $gt: [{ $size: '$userContacts' }, 0] },
+                      then: { $arrayElemAt: ['$userContacts.avatar', 0] },
+                      else: {
+                        $cond: {
+                          if: { $gt: [{ $size: '$spaceContacts' }, 0] },
+                          then: { $arrayElemAt: ['$spaceContacts.avatar', 0] },
+                          else: '$otherParty.avatar',
+                        },
+                      },
+                    },
+                  },
+                  else: '$space.avatar',
+                },
+              },
+
+              // FIXED: profileColor
+              profileColor: {
+                $cond: {
+                  if: { $eq: ['$space.type', 'private'] },
+                  then: {
+                    $cond: {
+                      if: { $gt: [{ $size: '$userContacts' }, 0] },
+                      then: { $arrayElemAt: ['$userContacts.profileColor', 0] },
+                      else: {
+                        $cond: {
+                          if: { $gt: [{ $size: '$spaceContacts' }, 0] },
+                          then: {
+                            $arrayElemAt: ['$spaceContacts.profileColor', 0],
+                          },
+                          else: '$otherParty.profileColor',
+                        },
+                      },
+                    },
+                  },
+                  else: '$space.profileColor',
+                },
+              },
+
+              // FIXED: received
+              received: {
+                $cond: {
+                  if: { $eq: ['$space.type', 'private'] },
+                  then: {
+                    _id: '$otherParty._id',
+                    name: '$otherParty.name',
+                    username: '$otherParty.username',
+                    avatar: '$otherParty.avatar',
+                    profileColor: '$otherParty.profileColor',
+                    bio: '$otherParty.bio',
+                  },
+                  else: null,
+                },
+              },
+            },
+          },
+        ],
+      },
+    });
+
+    return spaces;
+  }
+
   public async createPrivate({ dto, authUser }) {
     const { memberId } = dto;
 
@@ -227,48 +357,40 @@ export class SpacesService {
       throw new InternalServerErrorException('spaces.memberNotFound');
     }
 
-    // contact snapshot
-    const findContact = await this.contactsRepository.findOne({
-      query: {
-        me: userId,
-        contact: otherUserId,
-      },
-      select: 'name profileColor avatar',
-    });
+    // Check if contact exists from both sides
+    const [senderContact, receivedContact] = await Promise.all([
+      this.contactsRepository.findOne({
+        query: {
+          me: userId,
+          contact: otherUserId,
+        },
+        select: 'name profileColor avatar',
+      }),
+      this.contactsRepository.findOne({
+        query: {
+          me: otherUserId,
+          contact: userId,
+        },
+        select: 'name profileColor avatar',
+      }),
+    ]);
 
-    // private space
+    // Determine which contact to use (prefer sender's contact, then receiver's)
+    const contactToUse = senderContact || receivedContact;
+
+    // Private space
     const newSpace = {
       status: ActivationStatus.ACTIVE,
       type: SpaceTypes.PRIVATE,
-
       createdBy: userId,
-
-      sender: {
-        _id: userId,
-        name: authUser.name,
-        avatar: authUser.avatar,
-        username: authUser.username,
-        profileColor: authUser.profileColor,
-        isContact: false,
-        contactName: null,
-        contactAvatar: null,
-        contactProfileColor: null,
-      },
-
-      received: {
-        _id: otherUserId,
-        name: findMember.name,
-        avatar: findMember.avatar,
-        username: findMember.username,
-        profileColor: findMember.profileColor,
-        isContact: !!findContact,
-        contactName: findContact?.name ?? undefined,
-        contactAvatar: findContact?.avatar ?? undefined,
-        contactProfileColor: findContact?.profileColor ?? undefined,
-      },
+      sender: userId,
+      received: otherUserId,
+      senderContact: senderContact?._id || null,
+      receivedContact: receivedContact?._id || null,
+      // For backward compatibility, you might want to add a virtual field
     };
 
-    // create space
+    // Create space
     const space = await this.spacesRepository.createOne({
       dto: newSpace,
     });
@@ -277,7 +399,7 @@ export class SpacesService {
       throw new InternalServerErrorException('spaces.notCreated');
     }
 
-    // members
+    // Members
     const members =
       otherUserId?.toString() === userId?.toString()
         ? [userId]
@@ -288,16 +410,12 @@ export class SpacesService {
         this.membersRepository.createOne({
           dto: {
             user: id,
-
             space: new Types.ObjectId(space._id.toString()),
-
             role:
               id.toString() === userId.toString()
                 ? SpaceMemberRole.OWNER
                 : SpaceMemberRole.MEMBER,
-
             joinedAt: new Date(),
-
             pin: false,
             mute: false,
             archive: false,
@@ -306,18 +424,13 @@ export class SpacesService {
       ),
     );
 
-    // response
+    // Response
     return {
       ...space.toObject(),
-
-      profileColor: findContact?.profileColor ?? findMember.profileColor,
-
-      name: findContact?.name ?? findMember.name,
-
-      avatar: findContact?.avatar ?? findMember.avatar,
-
-      isContact: !!findContact,
-
+      profileColor: contactToUse?.profileColor ?? findMember.profileColor,
+      name: contactToUse?.name ?? findMember.name,
+      avatar: contactToUse?.avatar ?? findMember.avatar,
+      isContact: !!contactToUse,
       received: {
         _id: findMember._id,
         name: findMember.name,

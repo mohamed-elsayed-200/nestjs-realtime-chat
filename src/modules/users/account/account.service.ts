@@ -6,15 +6,11 @@ import {
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { UserStatus } from '../../../common/types/enums';
-import { SpacesRepository } from 'src/common/modules/platform/spaces/spaces.repository';
 import { Types } from 'mongoose';
 
 @Injectable()
 export class AccountService {
-  constructor(
-    private readonly usersRepository: UsersRepository,
-    private readonly spacesRepository: SpacesRepository,
-  ) {}
+  constructor(private readonly usersRepository: UsersRepository) {}
 
   public async findMyAccount({ authUserId }) {
     const account = await this.usersRepository.findOne({
@@ -30,17 +26,6 @@ export class AccountService {
       dto,
     });
 
-    const space = await this.spacesRepository.updateMany({
-      query: {
-        'received._id': new Types.ObjectId(authUserId),
-      },
-      dto: {
-        received: {
-          _id: new Types.ObjectId(authUserId),
-          ...dto,
-        },
-      },
-    });
     return user;
   }
 

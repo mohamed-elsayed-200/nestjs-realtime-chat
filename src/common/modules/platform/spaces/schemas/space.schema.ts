@@ -1,10 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument, Types } from 'mongoose';
-import {
-  ActivationStatus,
-  MessageStatus,
-  SpaceTypes,
-} from '../../../../types/enums';
+import { ActivationStatus, SpaceTypes } from '../../../../types/enums';
 import { SpaceSettings } from './settings/space-settings';
 export type SpaceDocument = HydratedDocument<Space>;
 
@@ -28,72 +24,20 @@ export class Space {
   @Prop({ type: Types.ObjectId, ref: 'User' })
   createdBy: Types.ObjectId;
 
-  @Prop({
-    type: {
-      _id: Types.ObjectId,
-      name: String,
-      avatar: String,
-      username: String,
-      profileColor: String,
-      isContact: String,
-      contactName: String,
-      contactProfileColor: String,
-      contactAvatar: String,
-    },
-  })
-  received?: {
-    _id: Types.ObjectId;
-    name: String;
-    avatar: String;
-    username: String;
-    profileColor: String;
-    isContact: String;
-    contactName: String;
-    contactProfileColor: String;
-    contactAvatar: String;
-  };
+  @Prop({ type: Types.ObjectId, ref: 'User' })
+  received?: Types.ObjectId;
 
-  @Prop({
-    type: {
-      _id: Types.ObjectId,
-      name: String,
-      avatar: String,
-      username: String,
-      profileColor: String,
-      isContact: String,
-      contactName: String,
-      contactProfileColor: String,
-      contactAvatar: String,
-    },
-  })
-  sender?: {
-    _id: Types.ObjectId;
-    name: String;
-    avatar: String;
-    username: String;
-    profileColor: String;
-    isContact: String;
-    contactName: String;
-    contactProfileColor: String;
-    contactAvatar: String;
-  };
+  @Prop({ type: Types.ObjectId, ref: 'User' })
+  sender?: Types.ObjectId;
 
-  @Prop({
-    type: {
-      _id: Types.ObjectId,
-      text: String,
-      status: { type: String, enum: Object.values(MessageStatus) },
-      sender: Types.ObjectId,
-      createdAt: Date,
-    },
-  })
-  lastMessage?: {
-    _id: Types.ObjectId;
-    status: MessageStatus;
-    text: string;
-    sender: Types.ObjectId;
-    createdAt: Date;
-  };
+  @Prop({ type: Types.ObjectId, ref: 'Contact' })
+  receivedContact?: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, ref: 'Contact' })
+  senderContact?: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, ref: 'Message' })
+  lastMessage?: Types.ObjectId;
 
   @Prop({
     type: String,
@@ -111,15 +55,11 @@ export class Space {
 
 export const SpaceSchema = SchemaFactory.createForClass(Space);
 
-SpaceSchema.index({
-  status: 1,
-  updatedAt: -1,
-});
-
-SpaceSchema.index({
-  type: 1,
-});
-
-SpaceSchema.index({
-  'lastMessage.createdAt': -1,
-});
+SpaceSchema.index({ status: 1 });
+SpaceSchema.index({ senderContact: 1 });
+SpaceSchema.index({ receivedContact: 1 });
+SpaceSchema.index({ updatedAt: -1 });
+SpaceSchema.index({ type: 1 });
+SpaceSchema.index({ lastMessage: 1 });
+SpaceSchema.index({ sender: 1 });
+SpaceSchema.index({ received: 1 });
