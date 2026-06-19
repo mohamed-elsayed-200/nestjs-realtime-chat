@@ -19,8 +19,8 @@ export class AccountController {
     message: 'account.found',
     statusCode: 200,
   })
-  public async findMyAccount(@GetUser('_id') authAdminId: string) {
-    return this.accountService.findMyAccount({ authAdminId });
+  public async findMyAccount(@GetUser('_id') authUserId: string) {
+    return this.accountService.findMyAccount({ authUserId });
   }
 
   @Put('/change-password')
@@ -29,10 +29,10 @@ export class AccountController {
     statusCode: 200,
   })
   public async updatePassword(
-    @GetUser('_id') authAdminId: any,
+    @GetUser('_id') authUserId: any,
     @Body() dto: ChangePasswordDto,
   ) {
-    return this.accountService.changePassword({ authAdminId, dto });
+    return this.accountService.changePassword({ authUserId, dto });
   }
 
   @Put('/change-information')
@@ -41,9 +41,9 @@ export class AccountController {
     statusCode: 200,
   })
   public async changeInformation(
-    @GetUser('_id') authAdminId: string,
+    @GetUser('_id') authUserId: string,
     @Body() dto: ChangeInformationDto,
   ) {
-    return this.accountService.changeInfo({ authAdminId, dto });
+    return this.accountService.changeInfo({ authUserId, dto });
   }
 }

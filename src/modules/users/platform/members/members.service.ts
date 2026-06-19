@@ -50,26 +50,12 @@ export class MembersService {
               preserveNullAndEmptyArrays: true,
             },
           },
-          {
-            $lookup: {
-              from: 'messages',
-              localField: 'message',
-              foreignField: '_id',
-              as: 'lastReadMessage',
-            },
-          },
-          {
-            $unwind: {
-              path: '$lastReadMessage',
-              preserveNullAndEmptyArrays: true,
-            },
-          },
+
           {
             $project: {
               space: 1,
               user: 1,
               role: 1,
-              lastReadMessage: 1,
               joinedAt: 1,
             },
           },

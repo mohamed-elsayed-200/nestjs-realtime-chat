@@ -9,17 +9,11 @@ export class Member {
   @Prop({ type: Types.ObjectId, ref: 'Space', index: true })
   space: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: 'Folder', index: true })
-  folder: Types.ObjectId;
-
   @Prop({ type: Types.ObjectId, ref: 'User', index: true })
   user: Types.ObjectId;
 
   @Prop({ enum: SpaceMemberRole, default: SpaceMemberRole.MEMBER })
   role: SpaceMemberRole;
-
-  @Prop({ type: Types.ObjectId, ref: 'Message', index: true })
-  lastReadMessage: Types.ObjectId;
 
   @Prop()
   joinedAt: Date;

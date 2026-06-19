@@ -6,32 +6,49 @@ import {
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { UserStatus } from '../../../common/types/enums';
+import { SpacesRepository } from 'src/common/modules/platform/spaces/spaces.repository';
+import { Types } from 'mongoose';
 
 @Injectable()
 export class AccountService {
-  constructor(private readonly usersRepository: UsersRepository) {}
+  constructor(
+    private readonly usersRepository: UsersRepository,
+    private readonly spacesRepository: SpacesRepository,
+  ) {}
 
-  public async findMyAccount({ authAdminId }) {
+  public async findMyAccount({ authUserId }) {
     const account = await this.usersRepository.findOne({
-      query: { _id: authAdminId, status: UserStatus.ACTIVE },
+      query: { _id: authUserId, status: UserStatus.ACTIVE },
       select: '+email +phone',
     });
     return account;
   }
 
-  public async changeInfo({ authAdminId, dto }) {
+  public async changeInfo({ authUserId, dto }) {
     const user = await this.usersRepository.updateOne({
-      query: { _id: authAdminId },
+      query: { _id: authUserId },
       dto,
+    });
+
+    const space = await this.spacesRepository.updateMany({
+      query: {
+        'received._id': new Types.ObjectId(authUserId),
+      },
+      dto: {
+        received: {
+          _id: new Types.ObjectId(authUserId),
+          ...dto,
+        },
+      },
     });
     return user;
   }
 
-  public async changePassword({ authAdminId, dto }) {
+  public async changePassword({ authUserId, dto }) {
     const { newPassword, oldPassword } = dto;
 
     const user = await this.usersRepository.findOne({
-      query: { _id: authAdminId },
+      query: { _id: authUserId },
     });
     if (!user) throw new NotFoundException('account.failedUpdatedPassword');
 
@@ -39,7 +56,7 @@ export class AccountService {
     if (!isMatch) throw new BadRequestException('auth.invalidOldPassword');
 
     const updatePassword = await this.usersRepository.updateOne({
-      query: { _id: authAdminId },
+      query: { _id: authUserId },
       dto: { password: newPassword },
     });
     if (!updatePassword) throw new BadRequestException('common.failed');
