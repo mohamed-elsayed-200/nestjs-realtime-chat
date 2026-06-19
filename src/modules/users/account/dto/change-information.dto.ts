@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsBoolean } from 'class-validator';
+import { IsString, IsOptional, IsBoolean, IsUrl } from 'class-validator';
 
 export class ChangeInformationDto {
   @IsOptional()
@@ -18,18 +18,14 @@ export class ChangeInformationDto {
   dateOfBirth: string;
 
   @IsOptional()
-  @IsString({ message: 'users.validation.phone.isString' })
-  country: string;
-
-  @IsOptional()
-  @IsString({ message: 'users.validation.bio.isString' })
-  headline?: string;
-
-  @IsOptional()
   @IsString({ message: 'users.validation.bio.isString' })
   bio?: string;
 
+  @IsString({ message: 'users.validation.profileColor.isString' })
   @IsOptional()
-  @IsString({ message: 'users.validation.phone.isString' })
-  phone?: string;
+  profileColor?: string;
+
+  @IsString({ message: 'users.validation.avatar.isString' })
+  @IsOptional()
+  avatar?: string;
 }
