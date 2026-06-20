@@ -4,11 +4,14 @@ import { Injectable } from '@nestjs/common';
 import { Model, Types } from 'mongoose';
 import { aggregateQuery } from '../../data-access/aggregate-query';
 import { CreateOneProps, FindOneProps } from '../../../types/interfaces';
+import { Message } from '../messages/message.schema';
+import { MessageStatus } from '../../../types/enums';
 
 @Injectable()
 export class MembersRepository {
   constructor(
     @InjectModel(Member.name) private readonly memberModel: Model<Member>,
+    @InjectModel(Message.name) private readonly messagesModel: Model<Message>,
   ) {}
 
   public async findAll({ query, options }) {
@@ -54,12 +57,17 @@ export class MembersRepository {
     await this.updateOne({
       query: {
         space: new Types.ObjectId(spaceId),
-        user: new Types.ObjectId(userId),
+        user: userId,
       },
       dto: {
         unreadCount: 0,
       },
     });
+
+    await this.messagesModel.updateMany(
+      { space: new Types.ObjectId(spaceId), status: MessageStatus.SENT },
+      { status: MessageStatus.SEEN },
+    );
   }
 
   public async updateMany({ query, dto }) {

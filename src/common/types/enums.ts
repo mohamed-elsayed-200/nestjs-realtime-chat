@@ -43,9 +43,9 @@ export enum MessageType {
   SYSTEM = 'system',
 }
 export enum MessageStatus {
+  SENDING = 'sending',
   SENT = 'sent',
-  DELIVERED = 'delivered',
-  READ = 'seen',
+  SEEN = 'seen',
 }
 
 // space settings

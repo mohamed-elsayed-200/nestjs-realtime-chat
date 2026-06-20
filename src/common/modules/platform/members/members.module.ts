@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Member, MemberSchema } from './member.schema';
 import { MembersRepository } from './members.repository';
+import { Message, MessageSchema } from '../messages/message.schema';
 
 @Module({
   imports: [
@@ -9,6 +10,10 @@ import { MembersRepository } from './members.repository';
       {
         name: Member.name,
         schema: MemberSchema,
+      },
+      {
+        name: Message.name,
+        schema: MessageSchema,
       },
     ]),
   ],

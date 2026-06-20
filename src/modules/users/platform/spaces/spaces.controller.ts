@@ -21,6 +21,7 @@ import { GetUser } from '../../../../common/decorators/get-user.decorator';
 import { CreatePrivateSpaceDto } from './dto/create-private/create-private-space.dto';
 import { CreateGroupSpaceDto } from './dto/create-group/create-group.dto';
 import { CreateChannelSpaceDto } from './dto/create-channel/create-channel.dto';
+import { ChangeWallpaperDto } from './dto/change-wallpaper.dto';
 
 @Controller('/users/spaces')
 @UseGuards(AuthGuard, UserTypeGuard)
@@ -67,6 +68,16 @@ export class SpacesController {
     @GetUser() authUser: any,
   ) {
     return this.spacesService.createChannel({ dto, authUser });
+  }
+
+  @Put('/:spaceId/change-wallpaper')
+  @ResponseMeta({ message: 'spaces.toggled', statusCode: 201 })
+  public async changeWallpaper(
+    @Param('spaceId', ValidateObjectIdPipe) spaceId: string,
+    @GetUser() authUser: any,
+    @Body() dto: ChangeWallpaperDto,
+  ) {
+    return this.spacesService.changeWallpaper({ spaceId, dto, authUser });
   }
 
   @Put('/:spaceId/toggle-pin')

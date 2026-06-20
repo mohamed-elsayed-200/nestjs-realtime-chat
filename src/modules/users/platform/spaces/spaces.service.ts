@@ -11,6 +11,8 @@ import { ContactsRepository } from '../../../../common/modules/platform/contacts
 import { MessagesRepository } from '../../../../common/modules/platform/messages/messages.repository';
 import {
   ActivationStatus,
+  MessageStatus,
+  MessageType,
   SpaceMemberRole,
   SpaceTypes,
 } from '../../../../common/types/enums';
@@ -338,6 +340,22 @@ export class SpacesService {
             },
           },
 
+          // 3. Lookup last message details
+          {
+            $lookup: {
+              from: 'messages',
+              localField: 'space.lastMessage',
+              foreignField: '_id',
+              as: 'lastMessage',
+            },
+          },
+          {
+            $unwind: {
+              path: '$lastMessage',
+              preserveNullAndEmptyArrays: true,
+            },
+          },
+
           // 7. Final projection - FIXED VERSION
           {
             $project: {
@@ -346,6 +364,7 @@ export class SpacesService {
               pin: 1,
               mute: 1,
               archive: 1,
+              wallpaper: 1,
               folder: { $ifNull: ['$folder', null] },
 
               // Space fields - use $space.fieldName directly
@@ -357,19 +376,13 @@ export class SpacesService {
               settings: '$space.settings',
 
               lastMessage: {
-                $cond: {
-                  if: { $ne: ['$space.lastMessage', null] },
-                  then: {
-                    isOutgoing: {
-                      $eq: ['$space.lastMessage.sender', userId],
-                    },
-                    id: '$space.lastMessage._id',
-                    status: '$space.lastMessage.status',
-                    text: '$space.lastMessage.text',
-                    createdAt: '$space.lastMessage.createdAt',
-                  },
-                  else: null,
+                isOutgoing: {
+                  $eq: ['$lastMessage.sender', userId],
                 },
+                id: '$lastMessage._id',
+                status: '$lastMessage.status',
+                text: '$lastMessage.text',
+                createdAt: '$lastMessage.createdAt',
               },
 
               // FIXED: isContact - check if array is not empty
@@ -649,6 +662,74 @@ export class SpacesService {
     });
 
     return space;
+  }
+
+  public async changeWallpaper({ spaceId, dto, authUser }) {
+    const { wallpaper, everybody } = dto;
+    const userObjectId = new Types.ObjectId(authUser._id);
+    const spaceObjectId = new Types.ObjectId(spaceId);
+
+    // check member inside space
+    const findMember = await this.membersRepository.findOne({
+      query: { space: spaceObjectId, user: userObjectId },
+    });
+    if (findMember?.space?.toString() !== spaceObjectId?.toString())
+      new NotFoundException('spaces.notFoundOne');
+
+    if (everybody) {
+      // change wallpaper for every body
+      const updateWallpaper = await this.membersRepository.updateMany({
+        query: { space: spaceObjectId },
+        dto: { wallpaper, $inc: { unreadCount: 1 } },
+      });
+
+      const lastMessage = await this.messagesRepository.createOne({
+        dto: {
+          space: spaceObjectId,
+          sender: userObjectId,
+          messageType: MessageType.SYSTEM,
+          status: MessageStatus.SENT,
+          content: `Wallpaper has ben changed to ${wallpaper}`,
+          text: `Wallpaper has ben changed to ${wallpaper}`,
+        },
+      });
+
+      await this.spacesRepository.updateOne({
+        query: { _id: spaceObjectId },
+        dto: {
+          lastMessage: lastMessage?._id,
+        },
+      });
+
+      if (!updateWallpaper)
+        new InternalServerErrorException('spaces.notUpdated');
+
+      return {
+        ...dto,
+        spaceId,
+        lastMessage: {
+          ...lastMessage.toObject(),
+          sender: {
+            name: authUser?.name,
+            id: authUser?.id,
+            username: authUser?.username,
+            avatar: authUser?.avatar,
+            profileColor: authUser?.profileColor,
+          },
+          isOutgoing:
+            lastMessage?.sender?.toString() === userObjectId?.toString(),
+        },
+      };
+    } else {
+      // change wallpaper for every one
+      const updateWallpaper = await this.membersRepository.updateMany({
+        query: { space: spaceObjectId, user: userObjectId },
+        dto: { wallpaper },
+      });
+      if (!updateWallpaper)
+        new InternalServerErrorException('spaces.notUpdated');
+      return dto;
+    }
   }
 
   public async togglePin({ spaceId, authUser }) {

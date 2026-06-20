@@ -15,6 +15,9 @@ export class Member {
   @Prop({ type: Types.ObjectId, ref: 'Folder', index: true })
   folder: Types.ObjectId;
 
+  @Prop()
+  wallpaper: string;
+
   @Prop({ enum: SpaceMemberRole, default: SpaceMemberRole.MEMBER })
   role: SpaceMemberRole;
 

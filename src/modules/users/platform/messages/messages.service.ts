@@ -23,8 +23,6 @@ export class MessagesService {
   ) {}
 
   public async getAll({ query, spaceId, authUser }) {
-    this.membersRepository.markUnreadCountAsRead({ spaceId, authUser });
-
     const userId = new Types.ObjectId(authUser?._id);
 
     return this.messagesRepository.findAll({
@@ -199,7 +197,7 @@ export class MessagesService {
               },
               forwardFrom: {
                 $cond: {
-                  if: { $ifNull: ['$forwardFrom', false] },
+                  if: { $ifNull: ['$forwardFrom', null] },
                   then: {
                     _id: '$forwardFrom._id',
                     name: '$forwardFrom.name',
@@ -211,7 +209,7 @@ export class MessagesService {
               },
               replyTo: {
                 $cond: {
-                  if: { $ifNull: ['$replyTo', false] },
+                  if: { $ifNull: ['$replyTo', null] },
                   then: {
                     _id: '$replyTo._id',
                     text: '$replyTo.text',
@@ -276,13 +274,7 @@ export class MessagesService {
     await this.spacesRepository.updateOne({
       query: { _id: spaceId },
       dto: {
-        lastMessage: {
-          _id: new Types.ObjectId(message?._id),
-          text: message?.text,
-          sender: message?.sender,
-          status: MessageStatus.SENT,
-          createdAt: new Date(),
-        },
+        lastMessage: new Types.ObjectId(message?._id?.toString()),
       },
     });
     return {
@@ -301,14 +293,7 @@ export class MessagesService {
     await this.spacesRepository.updateOne({
       query: { _id: message.space },
       dto: {
-        lastMessage: {
-          _id: new Types.ObjectId(message?._id),
-          text: message?.text,
-          sender: message?.sender,
-          status: message?.status,
-          isEdited: true,
-          createdAt: new Date(),
-        },
+        lastMessage: new Types.ObjectId(message?._id?.toString()),
       },
     });
 
@@ -367,13 +352,7 @@ export class MessagesService {
         query: { _id: spaceId },
         dto: {
           lastMessage: lastMessage
-            ? {
-                _id: lastMessage._id,
-                text: lastMessage.text,
-                sender: lastMessage.sender,
-                status: lastMessage.status,
-                createdAt: lastMessage.createdAt,
-              }
+            ? new Types.ObjectId(lastMessage?._id?.toString())
             : null,
         },
       });
@@ -384,13 +363,9 @@ export class MessagesService {
       });
     }
     const lastMessage = updatedSpaces[0]?.lastMessage;
-    const processLastMessage = {
-      ...lastMessage,
-      isOutgoing: lastMessage?.sender?.toString() === authUser?._id?.toString(),
-    };
     return {
       deletedCount: result.deletedCount,
-      lastMessage: processLastMessage,
+      lastMessage: new Types.ObjectId(lastMessage?._id?.toString()),
     };
   }
 
@@ -457,13 +432,7 @@ export class MessagesService {
     await this.spacesRepository.updateOne({
       query: { _id: targetSpaceId },
       dto: {
-        lastMessage: {
-          _id: lastForwardedMessage._id,
-          text: lastForwardedMessage.text,
-          sender: lastForwardedMessage.sender,
-          status: MessageStatus.SENT,
-          createdAt: new Date(),
-        },
+        lastMessage: new Types.ObjectId(lastForwardedMessage._id?.toString()),
       },
     });
 
