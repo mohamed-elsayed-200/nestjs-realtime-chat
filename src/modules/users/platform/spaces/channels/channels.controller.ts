@@ -25,7 +25,7 @@ export class ChannelsController {
     return this.channelsService.createChannel({ dto, authUser });
   }
 
-  @Put(':spaceId')
+  @Put('/change-info/:spaceId')
   @ResponseMeta({ message: 'spaces.updated', statusCode: 201 })
   public async changeChannelInfo(
     @Param('spaceId', ValidateObjectIdPipe) spaceId: string,
