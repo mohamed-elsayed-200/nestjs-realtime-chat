@@ -1,6 +1,9 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument, Types } from 'mongoose';
-import { SpaceMemberRole } from '../../../../common/types/enums';
+import {
+  SpaceMemberPermission,
+  SpaceMemberRole,
+} from '../../../../common/types/enums';
 
 export type MemberDocument = HydratedDocument<Member>;
 
@@ -21,25 +24,18 @@ export class Member {
   @Prop({ enum: SpaceMemberRole, default: SpaceMemberRole.MEMBER })
   role: SpaceMemberRole;
 
+  @Prop({
+    type: [String],
+    enum: SpaceMemberPermission,
+    default: [],
+  })
+  permissions: SpaceMemberPermission[];
+
   @Prop()
   joinedAt: Date;
 
-  // Mute
   @Prop({ default: false })
-  isMuted: boolean;
-
-  @Prop({ default: null })
-  mutedUntil: Date;
-
-  // Ban
-  @Prop({ default: false })
-  isBanned: boolean;
-
-  @Prop({ default: null })
-  bannedAt: Date;
-
-  @Prop({ default: null })
-  mutedAt: Date;
+  banned: boolean;
 
   @Prop({ default: null })
   bannedReason: string;
@@ -61,5 +57,4 @@ export const MemberSchema = SchemaFactory.createForClass(Member);
 
 MemberSchema.index({ user: 1, space: 1 });
 MemberSchema.index({ space: 1, isBanned: 1 });
-MemberSchema.index({ space: 1, isMuted: 1 });
 MemberSchema.index({ space: 1, unreadCount: 1 });

@@ -27,9 +27,23 @@ export enum SpaceTypes {
 export enum SpaceMemberRole {
   OWNER = 'owner',
   ADMIN = 'admin',
-  MODERATOR = 'moderator',
   MEMBER = 'member',
 }
+
+export enum SpaceMemberPermission {
+  ADD_STORIES = 'post-stories',
+  EDIT_STORIES = 'edit-stories',
+  DELETE_STORIES = 'delete-stories',
+  DELETE_MESSAGES = 'delete-messages',
+  BAN_USERS = 'ban-users',
+  INVITE_USERS_VIA_LINK = 'invite-users-via-link',
+  PIN_MESSAGES = 'pin-messages',
+  ADD_ADMIN = 'add-admin',
+  CHANGE_SPACE_INFO = 'change-space-info',
+  EDIT_MEMBER_TAGS = 'edit-member-tags',
+  MANAGE_LIVE_STREAMS = 'manage-live-streams',
+}
+
 export enum MessageType {
   TEXT = 'text',
   IMAGE = 'image',
@@ -53,7 +67,6 @@ export enum WhoCanSendMessages {
   EVERYONE = 'everyone',
   OWNER = 'owner',
   ADMIN = 'admin',
-  MODERATOR = 'moderator',
   MEMBER = 'member',
 }
 
@@ -61,7 +74,6 @@ export enum WhoCanAddMembers {
   EVERYONE = 'everyone',
   OWNER = 'owner',
   ADMIN = 'admin',
-  MODERATOR = 'moderator',
   MEMBER = 'member',
 }
 
@@ -69,14 +81,12 @@ export enum WhoCanChangeInfo {
   EVERYONE = 'everyone',
   OWNER = 'owner',
   ADMIN = 'admin',
-  MODERATOR = 'moderator',
 }
 
 export enum WhoCanPinMessages {
   EVERYONE = 'everyone',
   OWNER = 'owner',
   ADMIN = 'admin',
-  MODERATOR = 'moderator',
   MEMBER = 'member',
 }
 
@@ -84,7 +94,6 @@ export enum WhoCanComment {
   EVERYONE = 'everyone',
   OWNER = 'owner',
   ADMIN = 'admin',
-  MODERATOR = 'moderator',
   MEMBER = 'member',
 }
 
@@ -92,7 +101,6 @@ export enum WhoCanDeleteMessages {
   EVERYONE = 'everyone',
   OWNER = 'owner',
   ADMIN = 'admin',
-  MODERATOR = 'moderator',
 }
 
 export enum JoinApproval {

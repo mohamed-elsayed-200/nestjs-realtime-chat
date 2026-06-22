@@ -6,23 +6,15 @@ import {
 import { Types } from 'mongoose';
 import { SpacesRepository } from '../../../../common/modules/platform/spaces/spaces.repository';
 import { MembersRepository } from '../../../../common/modules/platform/members/members.repository';
-import { UsersRepository } from '../../../../common/modules/iam/users/users.repository';
 import { ContactsRepository } from '../../../../common/modules/platform/contacts/contacts.repository';
 import { MessagesRepository } from '../../../../common/modules/platform/messages/messages.repository';
-import {
-  ActivationStatus,
-  MessageStatus,
-  MessageType,
-  SpaceMemberRole,
-  SpaceTypes,
-} from '../../../../common/types/enums';
+import { MessageStatus, MessageType } from '../../../../common/types/enums';
 
 @Injectable()
 export class SpacesService {
   constructor(
     private readonly spacesRepository: SpacesRepository,
     private readonly membersRepository: MembersRepository,
-    private readonly usersRepository: UsersRepository,
     private readonly contactsRepository: ContactsRepository,
     private readonly messagesRepository: MessagesRepository,
   ) {}
@@ -364,6 +356,7 @@ export class SpacesService {
               pin: 1,
               mute: 1,
               archive: 1,
+              permissions: 1,
               wallpaper: 1,
               folder: { $ifNull: ['$folder', null] },
 
@@ -487,181 +480,6 @@ export class SpacesService {
     });
 
     return spaces;
-  }
-
-  public async createPrivate({ dto, authUser }) {
-    const { memberId } = dto;
-
-    const userId = new Types.ObjectId(authUser._id);
-    const otherUserId = new Types.ObjectId(memberId);
-
-    // other user
-    const findMember = await this.usersRepository.findOne({
-      query: { _id: otherUserId },
-      select: 'name profileColor avatar username bio',
-    });
-
-    if (!findMember) {
-      throw new InternalServerErrorException('spaces.memberNotFound');
-    }
-
-    // Check if contact exists from both sides
-    const [senderContact, receivedContact] = await Promise.all([
-      this.contactsRepository.findOne({
-        query: {
-          me: userId,
-          contact: otherUserId,
-        },
-        select: 'name profileColor avatar',
-      }),
-      this.contactsRepository.findOne({
-        query: {
-          me: otherUserId,
-          contact: userId,
-        },
-        select: 'name profileColor avatar',
-      }),
-    ]);
-
-    // Determine which contact to use (prefer sender's contact, then receiver's)
-    const contactToUse = senderContact || receivedContact;
-
-    // Private space
-    const newSpace = {
-      status: ActivationStatus.ACTIVE,
-      type: SpaceTypes.PRIVATE,
-      createdBy: userId,
-      sender: userId,
-      received: otherUserId,
-      senderContact: senderContact?._id || null,
-      receivedContact: receivedContact?._id || null,
-      // For backward compatibility, you might want to add a virtual field
-    };
-
-    // Create space
-    const space = await this.spacesRepository.createOne({
-      dto: newSpace,
-    });
-
-    if (!space) {
-      throw new InternalServerErrorException('spaces.notCreated');
-    }
-
-    // Members
-    const members =
-      otherUserId?.toString() === userId?.toString()
-        ? [userId]
-        : [otherUserId, userId];
-
-    await Promise.all(
-      members.map((id) =>
-        this.membersRepository.createOne({
-          dto: {
-            user: id,
-            space: new Types.ObjectId(space._id.toString()),
-            role:
-              id.toString() === userId.toString()
-                ? SpaceMemberRole.OWNER
-                : SpaceMemberRole.MEMBER,
-            joinedAt: new Date(),
-            pin: false,
-            mute: false,
-            archive: false,
-          },
-        }),
-      ),
-    );
-
-    // Response
-    return {
-      ...space.toObject(),
-      profileColor: contactToUse?.profileColor ?? findMember.profileColor,
-      name: contactToUse?.name ?? findMember.name,
-      avatar: contactToUse?.avatar ?? findMember.avatar,
-      isContact: !!contactToUse,
-      received: {
-        _id: findMember._id,
-        name: findMember.name,
-        profileColor: findMember.profileColor,
-        avatar: findMember.avatar,
-        username: findMember.username,
-      },
-    };
-  }
-
-  public async createGroup({ dto, authUser }) {
-    const members = [
-      ...dto.members?.filter((id) => id !== authUser._id.toString()),
-      authUser._id.toString(),
-    ];
-
-    const newSpace = {
-      name: dto?.name,
-      settings: dto?.settings,
-      avatar: dto?.avatar,
-      profileColor: this.usersRepository.getRandomColor(),
-      bio: dto?.bio,
-      status: ActivationStatus.ACTIVE,
-      type: SpaceTypes.GROUP,
-      createdBy: new Types.ObjectId(authUser._id),
-      membersCount: members?.length,
-    };
-
-    const space = await this.spacesRepository.createOne({ dto: newSpace });
-    if (!space) throw new InternalServerErrorException('spaces.notCreated');
-
-    await Promise.all(
-      members.map((id) =>
-        this.membersRepository.createOne({
-          dto: {
-            user: new Types.ObjectId(id),
-            space: new Types.ObjectId(space._id?.toString()),
-            role:
-              authUser._id.toString() === id
-                ? SpaceMemberRole.OWNER
-                : SpaceMemberRole.MEMBER,
-            joinedAt: new Date(),
-            pin: false,
-            mute: false,
-            archive: false,
-          },
-        }),
-      ),
-    );
-
-    return space;
-  }
-
-  public async createChannel({ dto, authUser }) {
-    const newSpace = {
-      name: dto?.name,
-      avatar: dto?.avatar,
-      profileColor: this.usersRepository.getRandomColor(),
-      bio: dto?.bio,
-      archive: false,
-      status: ActivationStatus.ACTIVE,
-      type: SpaceTypes.CHANNEL,
-      createdBy: new Types.ObjectId(authUser._id),
-      membersCount: 1,
-      settings: dto?.settings,
-    };
-
-    const space = await this.spacesRepository.createOne({ dto: newSpace });
-    if (!space) throw new InternalServerErrorException('spaces.notCreated');
-
-    await this.membersRepository.createOne({
-      dto: {
-        user: new Types.ObjectId(authUser._id),
-        space: new Types.ObjectId(space._id?.toString()),
-        role: SpaceMemberRole.OWNER,
-        joinedAt: new Date(),
-        pin: false,
-        mute: false,
-        archive: false,
-      },
-    });
-
-    return space;
   }
 
   public async changeWallpaper({ spaceId, dto, authUser }) {

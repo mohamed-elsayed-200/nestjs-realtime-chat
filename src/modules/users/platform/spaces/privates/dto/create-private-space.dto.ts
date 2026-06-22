@@ -4,14 +4,14 @@ import {
   IsOptional,
   ValidateNested,
 } from 'class-validator';
-import { GroupSettingsDto } from '../create-group/group-settings.dto';
 import { Type } from 'class-transformer';
+import { PrivateSettingsDto } from './private-settings.dto';
 
 export class SpaceSettingsDto {
   @IsOptional()
   @ValidateNested()
-  @Type(() => GroupSettingsDto)
-  group?: GroupSettingsDto;
+  @Type(() => PrivateSettingsDto)
+  private?: PrivateSettingsDto;
 }
 
 export class CreatePrivateSpaceDto {

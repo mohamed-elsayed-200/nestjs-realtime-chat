@@ -1,4 +1,3 @@
-// group-settings.dto.ts
 import {
   IsBoolean,
   IsEnum,
