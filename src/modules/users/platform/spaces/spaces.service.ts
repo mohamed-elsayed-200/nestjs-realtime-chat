@@ -108,6 +108,7 @@ export class SpacesService {
       role: member.role,
       permissions: member.permissions,
       joinedAt: member.joinedAt,
+      wallpaper: member.wallpaper,
 
       // Space fields
       type: spaceData.type,
@@ -509,8 +510,8 @@ export class SpacesService {
           sender: userObjectId,
           messageType: MessageType.SYSTEM,
           status: MessageStatus.SENT,
-          content: `Wallpaper has ben changed to ${wallpaper}`,
-          text: `Wallpaper has ben changed to ${wallpaper}`,
+          content: `${authUser?.name} updated the chat wallpaper to "${dto?.wallpaper}"`,
+          text: `${authUser?.name} updated the chat wallpaper to "${dto?.wallpaper}`,
         },
       });
 

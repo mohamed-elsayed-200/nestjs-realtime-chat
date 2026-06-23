@@ -30,6 +30,10 @@ export class UpdateChannelDto {
   avatar?: string;
 
   @IsOptional()
+  @IsString({ message: 'spaces.validation.avatar.isString' })
+  wallpaper?: string;
+
+  @IsOptional()
   @IsString({ message: 'spaces.validation.profileColor.isString' })
   profileColor?: string;
 

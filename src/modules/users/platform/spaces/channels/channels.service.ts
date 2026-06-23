@@ -9,10 +9,13 @@ import { MembersRepository } from '../../../../../common/modules/platform/member
 import { UsersRepository } from '../../../../../common/modules/iam/users/users.repository';
 import {
   ActivationStatus,
+  MessageStatus,
+  MessageType,
   SpaceMemberPermission,
   SpaceMemberRole,
   SpaceTypes,
 } from '../../../../../common/types/enums';
+import { MessagesRepository } from '../../../../../common/modules/platform/messages/messages.repository';
 
 @Injectable()
 export class ChannelsService {
@@ -20,6 +23,7 @@ export class ChannelsService {
     private readonly spacesRepository: SpacesRepository,
     private readonly membersRepository: MembersRepository,
     private readonly usersRepository: UsersRepository,
+    private readonly messagesRepository: MessagesRepository,
   ) {}
 
   public async create({ dto, authUser }) {
@@ -68,6 +72,7 @@ export class ChannelsService {
   }
 
   public async update({ spaceId, dto, authUser }) {
+    const { wallpaper } = dto;
     const spaceObjectId = new Types.ObjectId(spaceId);
     const userObjectId = new Types.ObjectId(authUser?._id);
 
@@ -93,6 +98,52 @@ export class ChannelsService {
     });
 
     if (!space) throw new InternalServerErrorException('spaces.notUpdated');
+
+    // Update wallpaper
+    if (wallpaper) {
+      const updateWallpaper = await this.membersRepository.updateMany({
+        query: { space: spaceObjectId },
+        dto: { wallpaper, $inc: { unreadCount: 1 } },
+      });
+
+      const lastMessage = await this.messagesRepository.createOne({
+        dto: {
+          space: spaceObjectId,
+          sender: userObjectId,
+          messageType: MessageType.SYSTEM,
+          status: MessageStatus.SENT,
+          content: `${authUser?.name} updated the chat wallpaper to "${dto?.wallpaper}"`,
+          text: `${authUser?.name} updated the chat wallpaper to "${dto?.wallpaper}`,
+        },
+      });
+
+      await this.spacesRepository.updateOne({
+        query: { _id: spaceObjectId },
+        dto: {
+          lastMessage: lastMessage?._id,
+        },
+      });
+
+      if (!updateWallpaper)
+        new InternalServerErrorException('spaces.notUpdated');
+
+      return {
+        ...dto,
+        id: spaceId,
+        lastMessage: {
+          ...lastMessage.toObject(),
+          sender: {
+            name: authUser?.name,
+            id: authUser?.id,
+            username: authUser?.username,
+            avatar: authUser?.avatar,
+            profileColor: authUser?.profileColor,
+          },
+          isOutgoing:
+            lastMessage?.sender?.toString() === userObjectId?.toString(),
+        },
+      };
+    }
 
     return space;
   }
