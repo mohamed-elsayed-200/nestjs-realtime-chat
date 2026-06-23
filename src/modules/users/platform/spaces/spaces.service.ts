@@ -106,6 +106,7 @@ export class SpacesService {
       archive: member.archive,
       folder: member.folder || null,
       role: member.role,
+      permissions: member.permissions,
       joinedAt: member.joinedAt,
 
       // Space fields

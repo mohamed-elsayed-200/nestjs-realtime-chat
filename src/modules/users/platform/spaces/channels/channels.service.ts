@@ -48,6 +48,19 @@ export class ChannelsService {
         pin: false,
         mute: false,
         archive: false,
+        permissions: [
+          SpaceMemberPermission.ADD_STORIES,
+          SpaceMemberPermission.EDIT_STORIES,
+          SpaceMemberPermission.DELETE_STORIES,
+          SpaceMemberPermission.DELETE_MESSAGES,
+          SpaceMemberPermission.BAN_USERS,
+          SpaceMemberPermission.INVITE_USERS_VIA_LINK,
+          SpaceMemberPermission.PIN_MESSAGES,
+          SpaceMemberPermission.ADD_ADMIN,
+          SpaceMemberPermission.CHANGE_SPACE_INFO,
+          SpaceMemberPermission.EDIT_MEMBER_TAGS,
+          SpaceMemberPermission.MANAGE_LIVE_STREAMS,
+        ],
       },
     });
 
