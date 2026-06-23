@@ -55,6 +55,7 @@ export enum MessageType {
   STICKER = 'sticker',
   LOTTIE = 'lottie',
   SYSTEM = 'system',
+  LINK = 'link',
 }
 export enum MessageStatus {
   SENDING = 'sending',
