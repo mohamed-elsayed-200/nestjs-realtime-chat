@@ -22,7 +22,7 @@ export class ChannelsService {
     private readonly usersRepository: UsersRepository,
   ) {}
 
-  public async createChannel({ dto, authUser }) {
+  public async create({ dto, authUser }) {
     const newSpace = {
       name: dto?.name,
       avatar: dto?.avatar,
@@ -67,7 +67,7 @@ export class ChannelsService {
     return space;
   }
 
-  public async changeChannelInfo({ spaceId, dto, authUser }) {
+  public async update({ spaceId, dto, authUser }) {
     const spaceObjectId = new Types.ObjectId(spaceId);
     const userObjectId = new Types.ObjectId(authUser?._id);
 

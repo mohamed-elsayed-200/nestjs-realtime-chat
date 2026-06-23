@@ -358,6 +358,7 @@ export class SpacesService {
               mute: 1,
               archive: 1,
               permissions: 1,
+              role: 1,
               wallpaper: 1,
               folder: { $ifNull: ['$folder', null] },
 

@@ -4,6 +4,7 @@ import {
   IsMongoId,
   IsNumber,
   IsOptional,
+  IsString,
   Min,
 } from 'class-validator';
 import {
@@ -66,6 +67,10 @@ export class ChannelSettingsDto {
   @IsOptional()
   @IsMongoId()
   linkedDiscussionGroup?: string;
+
+  @IsOptional()
+  @IsString()
+  channelLink?: string;
 
   @IsOptional()
   @IsEnum(WhoCanComment)

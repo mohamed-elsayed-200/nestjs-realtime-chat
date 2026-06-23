@@ -8,7 +8,7 @@ import { GetUser } from '../../../../../common/decorators/get-user.decorator';
 import { ValidateObjectIdPipe } from '../../../../../common/pipes/validate-objectId.pipe';
 import { CreateChannelSpaceDto } from './dto/create-channel.dto';
 import { ChannelsService } from './channels.service';
-import { ChangeChannelInfoDto } from './dto/change-channel-info.dto';
+import { UpdateChannelDto } from './dto/update-channel.dto';
 
 @Controller('/users/spaces/channel')
 @UseGuards(AuthGuard, UserTypeGuard)
@@ -18,20 +18,20 @@ export class ChannelsController {
 
   @Post()
   @ResponseMeta({ message: 'spaces.created', statusCode: 201 })
-  public async createChannel(
+  public async create(
     @Body() dto: CreateChannelSpaceDto,
     @GetUser() authUser: any,
   ) {
-    return this.channelsService.createChannel({ dto, authUser });
+    return this.channelsService.create({ dto, authUser });
   }
 
-  @Put('/change-info/:spaceId')
+  @Put('/:spaceId')
   @ResponseMeta({ message: 'spaces.updated', statusCode: 201 })
-  public async changeChannelInfo(
+  public async update(
     @Param('spaceId', ValidateObjectIdPipe) spaceId: string,
-    @Body() dto: ChangeChannelInfoDto,
+    @Body() dto: UpdateChannelDto,
     @GetUser() authUser: any,
   ) {
-    return this.channelsService.changeChannelInfo({ spaceId, dto, authUser });
+    return this.channelsService.update({ spaceId, dto, authUser });
   }
 }

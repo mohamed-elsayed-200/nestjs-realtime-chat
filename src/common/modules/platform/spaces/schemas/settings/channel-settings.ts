@@ -58,4 +58,7 @@ export class ChannelSettings {
 
   @Prop({ default: false })
   commentsRestrictStickers: boolean;
+
+  @Prop()
+  channelLink: string;
 }
