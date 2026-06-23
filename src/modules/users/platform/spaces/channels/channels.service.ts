@@ -113,7 +113,7 @@ export class ChannelsService {
           messageType: MessageType.SYSTEM,
           status: MessageStatus.SENT,
           content: `${authUser?.name} updated the chat wallpaper to "${dto?.wallpaper}"`,
-          text: `${authUser?.name} updated the chat wallpaper to "${dto?.wallpaper}`,
+          text: `${authUser?.name} updated the chat wallpaper to "${dto?.wallpaper}"`,
         },
       });
 
