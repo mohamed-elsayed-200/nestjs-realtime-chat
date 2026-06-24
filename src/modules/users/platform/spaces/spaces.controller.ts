@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  Post,
   Put,
   Query,
   UseGuards,
@@ -18,6 +19,7 @@ import { UserTypes } from '../../../../common/decorators/user-type.decorator';
 import { QueryDto } from '../../../../common/modules/dto/query.dto';
 import { GetUser } from '../../../../common/decorators/get-user.decorator';
 import { ChangeWallpaperDto } from './dto/change-wallpaper.dto';
+import { OpenLinkDto } from './dto/open-space.dto';
 
 @Controller('/users/spaces')
 @UseGuards(AuthGuard, UserTypeGuard)
@@ -37,6 +39,12 @@ export class SpacesController {
     @GetUser() authUser: any,
   ) {
     return this.spacesService.getOne({ space, authUser });
+  }
+
+  @Post('/open-link')
+  @ResponseMeta({ message: 'spaces.opened', statusCode: 201 })
+  public async openLink(@GetUser() authUser: any, @Body() dto: OpenLinkDto) {
+    return this.spacesService.openLink({ dto, authUser });
   }
 
   @Put('/:spaceId/change-wallpaper')

@@ -63,3 +63,5 @@ SpaceSchema.index({ type: 1 });
 SpaceSchema.index({ lastMessage: 1 });
 SpaceSchema.index({ sender: 1 });
 SpaceSchema.index({ received: 1 });
+SpaceSchema.index({ 'settings.channel.channelLink': 1 });
+SpaceSchema.index({ 'settings.group.groupLink': 1 });

@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
@@ -8,7 +9,11 @@ import { SpacesRepository } from '../../../../common/modules/platform/spaces/spa
 import { MembersRepository } from '../../../../common/modules/platform/members/members.repository';
 import { ContactsRepository } from '../../../../common/modules/platform/contacts/contacts.repository';
 import { MessagesRepository } from '../../../../common/modules/platform/messages/messages.repository';
-import { MessageStatus, MessageType } from '../../../../common/types/enums';
+import {
+  MessageStatus,
+  MessageType,
+  SpaceTypes,
+} from '../../../../common/types/enums';
 
 @Injectable()
 export class SpacesService {
@@ -23,6 +28,10 @@ export class SpacesService {
     const userId = new Types.ObjectId(authUser._id);
     const spaceId = new Types.ObjectId(space);
 
+    const findSpace = await this.spacesRepository.findOne({
+      query: { _id: spaceId },
+    });
+    if (!findSpace) throw new NotFoundException('spaces.notFound');
     // 1. Find the member with populated space
     const member = await this.membersRepository.findOne({
       query: { space: spaceId, user: userId },
@@ -55,16 +64,14 @@ export class SpacesService {
       ],
     });
 
-    if (!member) throw new NotFoundException('spaces.notFound');
-
-    const spaceData: any = member.space;
-
+    const spaceData: any = member ? member.space : findSpace;
+    const isMember = Boolean(member?._id);
     // 2. Get user's contact for this space (if private chat)
     let userContact = null;
     let otherParty = null;
     let spaceContact = null;
 
-    if (spaceData.type === 'private') {
+    if (spaceData.type === SpaceTypes.PRIVATE) {
       // Get the other user
       if (spaceData.sender?._id.toString() === userId.toString()) {
         otherParty = spaceData.received;
@@ -96,19 +103,47 @@ export class SpacesService {
     }
 
     // 3. Format the response
+    const dataMember = isMember
+      ? {
+          unreadCount: member?.unreadCount || undefined,
+          pin: member?.pin || undefined,
+          mute: member?.mute || undefined,
+          archive: member?.archive || undefined,
+          folder: member?.folder || undefined,
+          role: member?.role || undefined,
+          permissions: member?.permissions || undefined,
+          joinedAt: member?.joinedAt || undefined,
+          wallpaper: member?.wallpaper || undefined,
+          received:
+            spaceData.type === 'private'
+              ? {
+                  _id: otherParty?._id,
+                  name: otherParty?.name,
+                  username: otherParty?.username,
+                  avatar: otherParty?.avatar,
+                  profileColor: otherParty?.profileColor,
+                  bio: otherParty?.bio,
+                }
+              : null,
+          lastMessage: spaceData.lastMessage
+            ? {
+                isOutgoing:
+                  spaceData.lastMessage.sender?._id?.toString() ===
+                  userId.toString(),
+                id: spaceData.lastMessage._id,
+                status: spaceData.lastMessage.status,
+                text: spaceData.lastMessage.text,
+                createdAt: spaceData.lastMessage.createdAt,
+              }
+            : null,
+        }
+      : { isMember: false };
+
     const response = {
       _id: spaceData._id,
 
       // Member fields
-      unreadCount: member.unreadCount,
-      pin: member.pin,
-      mute: member.mute,
-      archive: member.archive,
-      folder: member.folder || null,
-      role: member.role,
-      permissions: member.permissions,
-      joinedAt: member.joinedAt,
-      wallpaper: member.wallpaper,
+      ...dataMember,
 
       // Space fields
       type: spaceData.type,
@@ -118,19 +153,6 @@ export class SpacesService {
       membersCount: spaceData.membersCount,
       settings: spaceData.settings,
       bio: spaceData.bio,
-
-      // Last message
-      lastMessage: spaceData.lastMessage
-        ? {
-            isOutgoing:
-              spaceData.lastMessage.sender?._id?.toString() ===
-              userId.toString(),
-            id: spaceData.lastMessage._id,
-            status: spaceData.lastMessage.status,
-            text: spaceData.lastMessage.text,
-            createdAt: spaceData.lastMessage.createdAt,
-          }
-        : null,
 
       // Name
       name:
@@ -158,19 +180,6 @@ export class SpacesService {
 
       // isContact
       isContact: spaceData.type === 'private' ? !!userContact : false,
-
-      // Received user (for private chats)
-      received:
-        spaceData.type === 'private'
-          ? {
-              _id: otherParty?._id,
-              name: otherParty?.name,
-              username: otherParty?.username,
-              avatar: otherParty?.avatar,
-              profileColor: otherParty?.profileColor,
-              bio: otherParty?.bio,
-            }
-          : null,
     };
 
     return response;
@@ -648,5 +657,28 @@ export class SpacesService {
 
   public async markSpaceAsRead({ spaceId, authUser }) {
     await this.membersRepository.markUnreadCountAsRead({ spaceId, authUser });
+  }
+
+  public async openLink({ dto, authUser }) {
+    const { linkText, linkType } = dto;
+    let query: any = {};
+
+    if (linkType === SpaceTypes.CHANNEL) {
+      query = { 'settings.channel.channelLink': linkText };
+    } else if (linkType === SpaceTypes.GROUP) {
+      query = { 'settings.group.groupLink': linkText };
+    } else if (linkType === SpaceTypes.PRIVATE) {
+      query = { username: linkText };
+    } else {
+      throw new BadRequestException('spaces.invalidLinkType');
+    }
+
+    const findSpace = await this.spacesRepository.findOne({ query });
+    if (!findSpace) throw new NotFoundException('spaces.notFound');
+
+    const spaceId = new Types.ObjectId(findSpace._id);
+
+    // already a member → return full chat via getOne
+    return this.getOne({ space: spaceId, authUser });
   }
 }
