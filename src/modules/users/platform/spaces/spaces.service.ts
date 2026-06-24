@@ -114,6 +114,7 @@ export class SpacesService {
           permissions: member?.permissions || undefined,
           joinedAt: member?.joinedAt || undefined,
           wallpaper: member?.wallpaper || undefined,
+
           received:
             spaceData.type === 'private'
               ? {
@@ -137,7 +138,7 @@ export class SpacesService {
               }
             : null,
         }
-      : { isMember: false };
+      : {};
 
     const response = {
       _id: spaceData._id,

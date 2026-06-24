@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
@@ -146,5 +147,113 @@ export class ChannelsService {
     }
 
     return space;
+  }
+
+  public async join({ spaceId, authUser }) {
+    const spaceObjectId = new Types.ObjectId(spaceId);
+    const userObjectId = new Types.ObjectId(authUser._id);
+
+    const space = await this.spacesRepository.findOne({
+      query: { _id: spaceObjectId, type: SpaceTypes.CHANNEL },
+    });
+    if (!space) throw new NotFoundException('spaces.notFound');
+
+    const existingMember = await this.membersRepository.findOne({
+      query: { space: spaceObjectId, user: userObjectId },
+    });
+    if (existingMember) throw new BadRequestException('members.alreadyJoined');
+
+    await this.membersRepository.createOne({
+      dto: {
+        user: userObjectId,
+        space: spaceObjectId,
+        role: SpaceMemberRole.MEMBER,
+        joinedAt: new Date(),
+        pin: false,
+        mute: false,
+        archive: false,
+        permissions: [],
+      },
+    });
+
+    const lastMessage = await this.messagesRepository.createOne({
+      dto: {
+        space: spaceObjectId,
+        sender: userObjectId,
+        messageType: MessageType.SYSTEM,
+        status: MessageStatus.SENT,
+        content: `${authUser?.name} joined`,
+        text: `${authUser?.name} joined`,
+      },
+    });
+
+    const updatedSpace = await this.spacesRepository.updateOne({
+      query: { _id: spaceObjectId },
+      dto: { lastMessage: lastMessage?._id, $inc: { membersCount: 1 } },
+    });
+
+    return {
+      ...updatedSpace.toObject(),
+      lastMessage: {
+        ...lastMessage.toObject(),
+        sender: {
+          name: authUser?.name,
+          id: authUser?.id,
+          username: authUser?.username,
+          avatar: authUser?.avatar,
+          profileColor: authUser?.profileColor,
+        },
+        isOutgoing:
+          lastMessage?.sender?.toString() === userObjectId?.toString(),
+      },
+    };
+  }
+
+  public async leave({ spaceId, authUser }) {
+    const spaceObjectId = new Types.ObjectId(spaceId);
+    const userObjectId = new Types.ObjectId(authUser._id);
+
+    const member = await this.membersRepository.findOne({
+      query: { space: spaceObjectId, user: userObjectId },
+    });
+    if (!member) throw new NotFoundException('members.notFound');
+
+    if (member.role === SpaceMemberRole.OWNER)
+      throw new BadRequestException('members.ownerCannotLeave');
+
+    await this.membersRepository.deleteOne({
+      query: { space: spaceObjectId, user: userObjectId },
+    });
+
+    const lastMessage = await this.messagesRepository.createOne({
+      dto: {
+        space: spaceObjectId,
+        sender: userObjectId,
+        messageType: MessageType.SYSTEM,
+        status: MessageStatus.SENT,
+        content: `${authUser?.name} leaved`,
+        text: `${authUser?.name} leaved`,
+      },
+    });
+
+    const updatedSpace = await this.spacesRepository.updateOne({
+      query: { _id: spaceObjectId },
+      dto: { lastMessage: lastMessage?._id, $inc: { membersCount: -1 } },
+    });
+    return {
+      ...updatedSpace.toObject(),
+      lastMessage: {
+        ...lastMessage.toObject(),
+        sender: {
+          name: authUser?.name,
+          id: authUser?.id,
+          username: authUser?.username,
+          avatar: authUser?.avatar,
+          profileColor: authUser?.profileColor,
+        },
+        isOutgoing:
+          lastMessage?.sender?.toString() === userObjectId?.toString(),
+      },
+    };
   }
 }

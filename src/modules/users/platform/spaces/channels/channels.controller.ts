@@ -25,6 +25,24 @@ export class ChannelsController {
     return this.channelsService.create({ dto, authUser });
   }
 
+  @Post('/join/:spaceId')
+  @ResponseMeta({ message: 'spaces.joined', statusCode: 201 })
+  public async join(
+    @Param('spaceId', ValidateObjectIdPipe) spaceId: string,
+    @GetUser() authUser: any,
+  ) {
+    return this.channelsService.join({ spaceId, authUser });
+  }
+
+  @Post('/leave/:spaceId')
+  @ResponseMeta({ message: 'spaces.joined', statusCode: 201 })
+  public async leave(
+    @Param('spaceId', ValidateObjectIdPipe) spaceId: string,
+    @GetUser() authUser: any,
+  ) {
+    return this.channelsService.leave({ spaceId, authUser });
+  }
+
   @Put('/:spaceId')
   @ResponseMeta({ message: 'spaces.updated', statusCode: 201 })
   public async update(
