@@ -163,7 +163,7 @@ export class ChannelsService {
     });
     if (existingMember) throw new BadRequestException('members.alreadyJoined');
 
-    await this.membersRepository.createOne({
+    const member = await this.membersRepository.createOne({
       dto: {
         user: userObjectId,
         space: spaceObjectId,
@@ -194,6 +194,15 @@ export class ChannelsService {
 
     return {
       ...updatedSpace.toObject(),
+      unreadCount: member?.unreadCount,
+      pin: member?.pin,
+      mute: member?.mute,
+      archive: member?.archive,
+      folder: member?.folder,
+      role: member?.role,
+      permissions: member?.permissions,
+      joinedAt: member?.joinedAt,
+      wallpaper: member?.wallpaper,
       lastMessage: {
         ...lastMessage.toObject(),
         sender: {
@@ -242,6 +251,13 @@ export class ChannelsService {
     });
     return {
       ...updatedSpace.toObject(),
+      unreadCount: 0,
+      pin: false,
+      mute: false,
+      archive: false,
+      folder: false,
+      role: null,
+      permissions: [],
       lastMessage: {
         ...lastMessage.toObject(),
         sender: {
