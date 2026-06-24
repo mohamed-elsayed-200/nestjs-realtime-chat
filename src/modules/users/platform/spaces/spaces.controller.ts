@@ -32,13 +32,13 @@ export class SpacesController {
     return this.spacesService.getAll({ query, authUser });
   }
 
-  @Get('/:space')
+  @Get('/:spaceOrUserId')
   @ResponseMeta({ message: 'spaces.foundOne' })
   public async getOne(
-    @Param('space', ValidateObjectIdPipe) space: string,
+    @Param('spaceOrUserId', ValidateObjectIdPipe) spaceOrUserId: string,
     @GetUser() authUser: any,
   ) {
-    return this.spacesService.getOne({ space, authUser });
+    return this.spacesService.getOne({ spaceOrUserId, authUser });
   }
 
   @Post('/open-link')

@@ -1,3 +1,4 @@
+import { UsersRepository } from './../../../../common/modules/iam/users/users.repository';
 import {
   BadRequestException,
   Injectable,
@@ -22,168 +23,180 @@ export class SpacesService {
     private readonly membersRepository: MembersRepository,
     private readonly contactsRepository: ContactsRepository,
     private readonly messagesRepository: MessagesRepository,
+    private readonly usersRepository: UsersRepository,
   ) {}
 
-  public async getOne({ space, authUser }) {
+  public async getOne({ spaceOrUserId, authUser }) {
     const userId = new Types.ObjectId(authUser._id);
-    const spaceId = new Types.ObjectId(space);
+    const spaceId = new Types.ObjectId(spaceOrUserId);
 
     const findSpace = await this.spacesRepository.findOne({
       query: { _id: spaceId },
     });
-    if (!findSpace) throw new NotFoundException('spaces.notFound');
-    // 1. Find the member with populated space
-    const member = await this.membersRepository.findOne({
-      query: { space: spaceId, user: userId },
-      populate: [
-        {
-          path: 'space',
-          populate: [
-            {
-              path: 'sender',
-              select: '_id name username avatar profileColor bio',
-            },
-            {
-              path: 'received',
-              select: '_id name username avatar profileColor bio',
-            },
-            {
-              path: 'senderContact',
-              select: '_id name avatar profileColor',
-            },
-            {
-              path: 'receivedContact',
-              select: '_id name avatar profileColor',
-            },
-            {
-              path: 'lastMessage',
-              select: '_id sender status text createdAt',
-            },
-          ],
-        },
-      ],
-    });
+    if (findSpace) {
+      // 1. Find the member with populated space
+      const member = await this.membersRepository.findOne({
+        query: { space: spaceId, user: userId },
+        populate: [
+          {
+            path: 'space',
+            populate: [
+              {
+                path: 'sender',
+                select: '_id name username avatar profileColor bio',
+              },
+              {
+                path: 'received',
+                select: '_id name username avatar profileColor bio',
+              },
+              {
+                path: 'senderContact',
+                select: '_id name avatar profileColor',
+              },
+              {
+                path: 'receivedContact',
+                select: '_id name avatar profileColor',
+              },
+              {
+                path: 'lastMessage',
+                select: '_id sender status text createdAt',
+              },
+            ],
+          },
+        ],
+      });
 
-    const spaceData: any = member ? member.space : findSpace;
-    const isMember = Boolean(member?._id);
-    // 2. Get user's contact for this space (if private chat)
-    let userContact = null;
-    let otherParty = null;
-    let spaceContact = null;
+      const spaceData: any = member ? member.space : findSpace;
+      const isMember = Boolean(member?._id);
+      // 2. Get user's contact for this space (if private chat)
+      let userContact = null;
+      let otherParty = null;
 
-    if (spaceData.type === SpaceTypes.PRIVATE) {
-      // Get the other user
-      if (spaceData.sender?._id.toString() === userId.toString()) {
-        otherParty = spaceData.received;
-      } else {
-        otherParty = spaceData.sender;
+      if (spaceData.type === SpaceTypes.PRIVATE) {
+        // Get the other user
+        if (spaceData.sender?._id.toString() === userId.toString()) {
+          otherParty = spaceData.received;
+        } else {
+          otherParty = spaceData.sender;
+        }
+
+        // Get user's contact with the other person
+        userContact = await this.contactsRepository.findOne({
+          query: {
+            me: userId,
+            contact: otherParty?._id,
+          },
+          select: '_id name avatar profileColor',
+        });
       }
 
-      // Get user's contact with the other person
+      // 3. Format the response
+      const dataMember = isMember
+        ? {
+            unreadCount: member?.unreadCount || undefined,
+            pin: member?.pin || undefined,
+            mute: member?.mute || undefined,
+            archive: member?.archive || undefined,
+            folder: member?.folder || undefined,
+            role: member?.role || undefined,
+            permissions: member?.permissions || undefined,
+            joinedAt: member?.joinedAt || undefined,
+            wallpaper: member?.wallpaper || undefined,
+
+            received:
+              spaceData.type === SpaceTypes.PRIVATE
+                ? {
+                    _id: otherParty?._id,
+                    name: otherParty?.name,
+                    username: otherParty?.username,
+                    avatar: otherParty?.avatar,
+                    profileColor: otherParty?.profileColor,
+                    bio: otherParty?.bio,
+                  }
+                : null,
+            lastMessage: spaceData.lastMessage
+              ? {
+                  isOutgoing:
+                    spaceData.lastMessage.sender?._id?.toString() ===
+                    userId.toString(),
+                  id: spaceData.lastMessage._id,
+                  status: spaceData.lastMessage.status,
+                  text: spaceData.lastMessage.text,
+                  createdAt: spaceData.lastMessage.createdAt,
+                }
+              : null,
+          }
+        : {};
+
+      const response = {
+        _id: spaceData._id,
+
+        // Member fields
+        ...dataMember,
+
+        // Space fields
+        type: spaceData.type,
+        status: spaceData.status,
+        createdAt: spaceData.createdAt,
+        updatedAt: spaceData.updatedAt,
+        membersCount: spaceData.membersCount,
+        settings: spaceData.settings,
+        bio: spaceData?.bio || otherParty?.bio,
+
+        // Name
+        name:
+          spaceData.type === SpaceTypes.PRIVATE
+            ? userContact?.name || otherParty?.name || null
+            : spaceData.name,
+
+        // Avatar
+        avatar:
+          spaceData.type === SpaceTypes.PRIVATE
+            ? userContact?.avatar || otherParty?.avatar || null
+            : spaceData.avatar,
+
+        // Profile Color
+        profileColor:
+          spaceData.type === SpaceTypes.PRIVATE
+            ? userContact?.profileColor || otherParty?.profileColor || null
+            : spaceData.profileColor,
+
+        // isContact
+        isContact:
+          spaceData.type === SpaceTypes.PRIVATE ? !!userContact : false,
+      };
+
+      return response;
+    } else {
+      const user = await this.usersRepository.findOne({
+        query: { _id: spaceId },
+      });
+      let userContact = null;
+
       userContact = await this.contactsRepository.findOne({
         query: {
           me: userId,
-          contact: otherParty?._id,
+          contact: user?._id,
         },
         select: '_id name avatar profileColor',
       });
 
-      // Get contact from space
-      if (spaceData.senderContact) {
-        spaceContact = await this.contactsRepository.findOne({
-          query: { _id: spaceData.senderContact },
-          select: '_id name avatar profileColor',
-        });
-      } else if (spaceData.receivedContact) {
-        spaceContact = await this.contactsRepository.findOne({
-          query: { _id: spaceData.receivedContact },
-          select: '_id name avatar profileColor',
-        });
-      }
+      const response = {
+        _id: user._id,
+        unreadCount: 0,
+        pin: false,
+        mute: false,
+        archive: false,
+        type: SpaceTypes.PRIVATE,
+        bio: user.bio,
+        name: user?.name,
+        username: user?.username,
+        avatar: user?.avatar,
+        profileColor: user?.profileColor,
+        isContact: false,
+      };
+      return response;
     }
-
-    // 3. Format the response
-    const dataMember = isMember
-      ? {
-          unreadCount: member?.unreadCount || undefined,
-          pin: member?.pin || undefined,
-          mute: member?.mute || undefined,
-          archive: member?.archive || undefined,
-          folder: member?.folder || undefined,
-          role: member?.role || undefined,
-          permissions: member?.permissions || undefined,
-          joinedAt: member?.joinedAt || undefined,
-          wallpaper: member?.wallpaper || undefined,
-
-          received:
-            spaceData.type === 'private'
-              ? {
-                  _id: otherParty?._id,
-                  name: otherParty?.name,
-                  username: otherParty?.username,
-                  avatar: otherParty?.avatar,
-                  profileColor: otherParty?.profileColor,
-                  bio: otherParty?.bio,
-                }
-              : null,
-          lastMessage: spaceData.lastMessage
-            ? {
-                isOutgoing:
-                  spaceData.lastMessage.sender?._id?.toString() ===
-                  userId.toString(),
-                id: spaceData.lastMessage._id,
-                status: spaceData.lastMessage.status,
-                text: spaceData.lastMessage.text,
-                createdAt: spaceData.lastMessage.createdAt,
-              }
-            : null,
-        }
-      : {};
-
-    const response = {
-      _id: spaceData._id,
-
-      // Member fields
-      ...dataMember,
-
-      // Space fields
-      type: spaceData.type,
-      status: spaceData.status,
-      createdAt: spaceData.createdAt,
-      updatedAt: spaceData.updatedAt,
-      membersCount: spaceData.membersCount,
-      settings: spaceData.settings,
-      bio: spaceData.bio,
-
-      // Name
-      name:
-        spaceData.type === 'private'
-          ? userContact?.name || spaceContact?.name || otherParty?.name || null
-          : spaceData.name,
-
-      // Avatar
-      avatar:
-        spaceData.type === 'private'
-          ? userContact?.avatar ||
-            spaceContact?.avatar ||
-            otherParty?.avatar ||
-            null
-          : spaceData.avatar,
-
-      // Profile Color
-      profileColor:
-        spaceData.type === 'private'
-          ? userContact?.profileColor ||
-            spaceContact?.profileColor ||
-            otherParty?.profileColor ||
-            null
-          : spaceData.profileColor,
-
-      // isContact
-      isContact: spaceData.type === 'private' ? !!userContact : false,
-    };
-
-    return response;
   }
 
   public async getAll({ query, authUser }) {
@@ -668,8 +681,6 @@ export class SpacesService {
       query = { 'settings.channel.channelLink': linkText };
     } else if (linkType === SpaceTypes.GROUP) {
       query = { 'settings.group.groupLink': linkText };
-    } else if (linkType === SpaceTypes.PRIVATE) {
-      query = { username: linkText };
     } else {
       throw new BadRequestException('spaces.invalidLinkType');
     }
@@ -680,6 +691,6 @@ export class SpacesService {
     const spaceId = new Types.ObjectId(findSpace._id);
 
     // already a member → return full chat via getOne
-    return this.getOne({ space: spaceId, authUser });
+    return this.getOne({ spaceOrUserId: spaceId, authUser });
   }
 }

@@ -53,8 +53,21 @@ export class MembersService {
 
           {
             $project: {
-              space: 1,
-              user: 1,
+              space: {
+                id: '$space._id',
+                membersCount: '$space.membersCount',
+                name: '$space.name',
+                type: '$space.type',
+                profileColor: '$space.profileColor',
+                avatar: '$space.avatar',
+              },
+              user: {
+                id: '$user._id',
+                name: '$user.name',
+                username: '$user.username',
+                profileColor: '$user.profileColor',
+                avatar: '$user.avatar',
+              },
               role: 1,
               joinedAt: 1,
             },
