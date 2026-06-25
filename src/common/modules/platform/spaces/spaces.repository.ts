@@ -4,6 +4,8 @@ import { Injectable } from '@nestjs/common';
 import { Model, Types } from 'mongoose';
 import { aggregateQuery } from '../../data-access/aggregate-query';
 import { FindOneProps } from '../../../types/interfaces';
+import { JoinRequest } from '../join-requests/join-request.schema';
+import { JoinApproval } from 'src/common/types/enums';
 
 @Injectable()
 export class SpacesRepository {

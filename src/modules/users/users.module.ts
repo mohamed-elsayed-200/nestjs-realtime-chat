@@ -8,6 +8,7 @@ import { SpacesModule } from './platform/spaces/spaces.module';
 import { ContactsModule } from './platform/contacts/contacts.module';
 import { PeoplesModule } from './platform/peoples/peoples.module';
 import { FoldersModule } from './platform/folders/folders.module';
+import { JoinRequestsModule } from './platform/join-requests/join-requests.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { FoldersModule } from './platform/folders/folders.module';
     ContactsModule,
     PeoplesModule,
     FoldersModule,
+    JoinRequestsModule,
   ],
 })
 export class UsersModule {}
