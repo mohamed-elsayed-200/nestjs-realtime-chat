@@ -5,7 +5,7 @@ export type JoinRequestDocument = HydratedDocument<JoinRequest>;
 
 export enum JoinRequestStatus {
   PENDING = 'pending',
-  APPROVED = 'approved',
+  ACCEPTED = 'accepted',
   REJECTED = 'rejected',
   CANCELLED = 'cancelled',
 }

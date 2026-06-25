@@ -27,6 +27,87 @@ export class JoinRequestsService {
     private readonly joinRequestsRepository: JoinRequestsRepository,
   ) {}
 
+  public async getAll({ query, space, authUser }) {
+    const spaceObjectId = new Types.ObjectId(space);
+    const userObjectId = new Types.ObjectId(authUser?._id);
+
+    // check access get requests list
+    const findMember = await this.membersRepository.findOne({
+      query: { space: spaceObjectId, user: userObjectId },
+    });
+    const isOwner = findMember.role === SpaceMemberRole.OWNER;
+    const isAdmin = findMember.role === SpaceMemberRole.ADMIN;
+    let match = {};
+
+    if (isOwner || isAdmin) {
+      match = { space: spaceObjectId };
+    } else {
+      match = { user: userObjectId };
+    }
+
+    return await this.joinRequestsRepository.findAll({
+      query,
+      options: {
+        allowedSearchFields: [],
+        allowedFilterFields: ['status'],
+        pipelines: [
+          {
+            $match: match,
+          },
+          {
+            $lookup: {
+              from: 'users',
+              localField: 'user',
+              foreignField: '_id',
+              as: 'user',
+            },
+          },
+          {
+            $unwind: {
+              path: '$user',
+              preserveNullAndEmptyArrays: true,
+            },
+          },
+          {
+            $lookup: {
+              from: 'users',
+              localField: 'reviewedBy',
+              foreignField: '_id',
+              as: 'reviewedBy',
+            },
+          },
+          {
+            $unwind: {
+              path: '$reviewedBy',
+              preserveNullAndEmptyArrays: true,
+            },
+          },
+          {
+            $project: {
+              space: 1,
+              status: 1,
+              message: 1,
+              reviewedAt: 1,
+              rejectionReason: 1,
+              user: {
+                id: '$user._id',
+                name: '$user.name',
+                avatar: '$user.avatar',
+                profileColor: '$user.profileColor',
+              },
+              reviewedBy: {
+                id: '$reviewedBy._id',
+                name: '$reviewedBy.name',
+                avatar: '$reviewedBy.avatar',
+                profileColor: '$reviewedBy.profileColor',
+              },
+            },
+          },
+        ],
+      },
+    });
+  }
+
   public async sendRequest({ dto, authUser }) {
     const { space, message } = dto;
     const userObjectId = new Types.ObjectId(authUser?._id);
@@ -130,7 +211,7 @@ export class JoinRequestsService {
     const acceptRequest = await this.joinRequestsRepository.updateOne({
       query: { _id: requestObjectId },
       dto: {
-        status: JoinRequestStatus.APPROVED,
+        status: JoinRequestStatus.ACCEPTED,
         reviewedBy: userObjectId,
         reviewedAt: new Date(),
       },
