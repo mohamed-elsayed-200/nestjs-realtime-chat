@@ -10,6 +10,7 @@ import { MembersRepository } from '../../../../../common/modules/platform/member
 import { UsersRepository } from '../../../../../common/modules/iam/users/users.repository';
 import {
   ActivationStatus,
+  JoinApproval,
   MessageStatus,
   MessageType,
   SpaceMemberPermission,
@@ -153,16 +154,26 @@ export class ChannelsService {
     const spaceObjectId = new Types.ObjectId(spaceId);
     const userObjectId = new Types.ObjectId(authUser._id);
 
-    const space = await this.spacesRepository.findOne({
+    // check space already exist
+    const findSpace = await this.spacesRepository.findOne({
       query: { _id: spaceObjectId, type: SpaceTypes.CHANNEL },
     });
-    if (!space) throw new NotFoundException('spaces.notFound');
+    if (!findSpace) throw new NotFoundException('spaces.notFound');
 
+    // check is private channel
+    const settings = findSpace.settings.channel;
+    const inviteOnly = settings.joinApproval === JoinApproval.INVITE_ONLY;
+    const needApproval = settings.joinApproval === JoinApproval.NEED_APPROVAL;
+    const isPrivate = inviteOnly || needApproval;
+    if (isPrivate) throw new BadRequestException('spaces.isPrivate');
+
+    // check if member already joined
     const existingMember = await this.membersRepository.findOne({
       query: { space: spaceObjectId, user: userObjectId },
     });
     if (existingMember) throw new BadRequestException('members.alreadyJoined');
 
+    // create & join a new member
     const member = await this.membersRepository.createOne({
       dto: {
         user: userObjectId,
