@@ -3,7 +3,7 @@ import { IsBoolean, IsNumber, IsOptional, Min } from 'class-validator';
 export class PrivateSettingsDto {
   @IsOptional()
   @IsBoolean()
-  secretChat?: boolean;
+  secretSpace?: boolean;
 
   @IsOptional()
   @IsNumber()

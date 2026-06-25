@@ -7,7 +7,7 @@ import {
   Min,
 } from 'class-validator';
 import {
-  ChatHistory,
+  SpaceHistory,
   JoinApproval,
   WhoCanAddMembers,
   WhoCanChangeInfo,
@@ -22,8 +22,8 @@ export class GroupSettingsDto {
   joinApproval?: JoinApproval;
 
   @IsOptional()
-  @IsEnum(ChatHistory)
-  chatHistory?: ChatHistory;
+  @IsEnum(SpaceHistory)
+  spaceHistory?: SpaceHistory;
 
   @IsOptional()
   @IsBoolean()
@@ -102,7 +102,7 @@ export class GroupSettingsDto {
 
   @IsOptional()
   @IsBoolean()
-  enableVoiceChat?: boolean;
+  enableVoiceSpace?: boolean;
 
   @IsOptional()
   @IsString()

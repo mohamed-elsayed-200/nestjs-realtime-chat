@@ -1,5 +1,5 @@
 import { IsEnum, IsNotEmpty, IsString } from 'class-validator';
-import { SpaceTypes } from 'src/common/types/enums';
+import { SpaceTypes } from '../../../../../common/types/enums';
 
 export class OpenLinkDto {
   @IsString()

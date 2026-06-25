@@ -8,7 +8,7 @@ import {
   Min,
 } from 'class-validator';
 import {
-  ChatHistory,
+  SpaceHistory,
   JoinApproval,
   WhoCanComment,
 } from '../../../../../../common/types/enums';
@@ -19,8 +19,8 @@ export class ChannelSettingsDto {
   joinApproval?: JoinApproval;
 
   @IsOptional()
-  @IsEnum(ChatHistory)
-  chatHistory?: ChatHistory;
+  @IsEnum(SpaceHistory)
+  spaceHistory?: SpaceHistory;
 
   @IsOptional()
   @IsBoolean()

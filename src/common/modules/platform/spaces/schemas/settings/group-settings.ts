@@ -1,6 +1,6 @@
 import { Prop, Schema } from '@nestjs/mongoose';
 import {
-  ChatHistory,
+  SpaceHistory,
   JoinApproval,
   WhoCanAddMembers,
   WhoCanChangeInfo,
@@ -14,8 +14,8 @@ export class GroupSettings {
   @Prop({ enum: JoinApproval, default: JoinApproval.ANYONE_CAN_JOIN })
   joinApproval: JoinApproval;
 
-  @Prop({ enum: ChatHistory, default: ChatHistory.VISIBLE })
-  chatHistory: ChatHistory;
+  @Prop({ enum: SpaceHistory, default: SpaceHistory.VISIBLE })
+  spaceHistory: SpaceHistory;
 
   @Prop({ default: false })
   isSubscriptionRequired: boolean;
@@ -75,7 +75,7 @@ export class GroupSettings {
   enableSlowModeWarning: boolean;
 
   @Prop({ default: false })
-  enableVoiceChat: boolean;
+  enableVoiceSpace: boolean;
 
   @Prop({ default: null })
   groupLink: string;

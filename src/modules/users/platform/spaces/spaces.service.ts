@@ -68,7 +68,7 @@ export class SpacesService {
 
       const spaceData: any = member ? member.space : findSpace;
       const isMember = Boolean(member?._id);
-      // 2. Get user's contact for this space (if private chat)
+      // 2. Get user's contact for this space (if private space)
       let userContact = null;
       let otherParty = null;
 
@@ -227,7 +227,7 @@ export class SpacesService {
           },
           { $unwind: '$space' },
 
-          // 3. Lookup user details for private chats
+          // 3. Lookup user details for private spaces
           {
             $lookup: {
               from: 'users',
@@ -533,8 +533,8 @@ export class SpacesService {
           sender: userObjectId,
           messageType: MessageType.SYSTEM,
           status: MessageStatus.SENT,
-          content: `${authUser?.name} updated the chat wallpaper to "${dto?.wallpaper}"`,
-          text: `${authUser?.name} updated the chat wallpaper to "${dto?.wallpaper}"`,
+          content: `${authUser?.name} updated the space wallpaper to "${dto?.wallpaper}"`,
+          text: `${authUser?.name} updated the space wallpaper to "${dto?.wallpaper}"`,
         },
       });
 
@@ -690,7 +690,7 @@ export class SpacesService {
 
     const spaceId = new Types.ObjectId(findSpace._id);
 
-    // already a member → return full chat via getOne
+    // already a member → return full space via getOne
     return this.getOne({ spaceOrUserId: spaceId, authUser });
   }
 }

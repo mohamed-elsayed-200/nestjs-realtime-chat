@@ -113,8 +113,8 @@ export class ChannelsService {
           sender: userObjectId,
           messageType: MessageType.SYSTEM,
           status: MessageStatus.SENT,
-          content: `${authUser?.name} updated the chat wallpaper to "${dto?.wallpaper}"`,
-          text: `${authUser?.name} updated the chat wallpaper to "${dto?.wallpaper}"`,
+          content: `${authUser?.name} updated the space wallpaper to "${dto?.wallpaper}"`,
+          text: `${authUser?.name} updated the space wallpaper to "${dto?.wallpaper}"`,
         },
       });
 

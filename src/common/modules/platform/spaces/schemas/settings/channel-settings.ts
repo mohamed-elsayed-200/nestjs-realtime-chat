@@ -1,7 +1,7 @@
 import { Prop, Schema } from '@nestjs/mongoose';
 import { Types } from 'mongoose';
 import {
-  ChatHistory,
+  SpaceHistory,
   JoinApproval,
   WhoCanComment,
 } from '../../../../../types/enums';
@@ -11,8 +11,8 @@ export class ChannelSettings {
   @Prop({ enum: JoinApproval, default: JoinApproval.ANYONE_CAN_JOIN })
   joinApproval: JoinApproval;
 
-  @Prop({ enum: ChatHistory, default: ChatHistory.VISIBLE })
-  chatHistory: ChatHistory;
+  @Prop({ enum: SpaceHistory, default: SpaceHistory.VISIBLE })
+  spaceHistory: SpaceHistory;
 
   @Prop({ default: false })
   isSubscriptionRequired: boolean;

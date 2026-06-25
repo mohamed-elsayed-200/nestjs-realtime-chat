@@ -3,7 +3,7 @@ import { Prop, Schema } from '@nestjs/mongoose';
 @Schema({ _id: false })
 export class PrivateSettings {
   @Prop({ default: false })
-  secretChat: boolean;
+  secretSpace: boolean;
 
   @Prop({ default: 0 })
   autoDeleteDuration: number;

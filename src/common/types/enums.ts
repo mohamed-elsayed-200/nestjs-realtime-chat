@@ -110,7 +110,7 @@ export enum JoinApproval {
   INVITE_ONLY = 'invite-only',
 }
 
-export enum ChatHistory {
+export enum SpaceHistory {
   VISIBLE = 'visible',
   HIDDEN = 'hidden',
 }

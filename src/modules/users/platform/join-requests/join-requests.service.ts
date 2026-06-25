@@ -115,7 +115,7 @@ export class JoinRequestsService {
 
     // find channel space
     const findSpace = await this.spacesRepository.findOne({
-      query: { _id: spaceObjectId, type: SpaceTypes.CHANNEL },
+      query: { _id: spaceObjectId },
     });
     if (!findSpace) throw new NotFoundException('spaces.notFound');
 
@@ -127,7 +127,11 @@ export class JoinRequestsService {
       throw new BadRequestException('joinRequests.userAlreadyJoined');
 
     // check is channel space need to join request for access
-    const settings = findSpace.settings.channel;
+    const settings =
+      findSpace.type === SpaceTypes.CHANNEL
+        ? findSpace.settings.channel
+        : findSpace.settings.group;
+
     const inviteOnly = settings.joinApproval === JoinApproval.INVITE_ONLY;
     const needApproval = settings.joinApproval === JoinApproval.NEED_APPROVAL;
     const isPublic = !inviteOnly || !needApproval;
