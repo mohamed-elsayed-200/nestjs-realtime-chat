@@ -35,8 +35,8 @@ export class JoinRequestsService {
     const findMember = await this.membersRepository.findOne({
       query: { space: spaceObjectId, user: userObjectId },
     });
-    const isOwner = findMember.role === SpaceMemberRole.OWNER;
-    const isAdmin = findMember.role === SpaceMemberRole.ADMIN;
+    const isOwner = findMember?.role === SpaceMemberRole.OWNER;
+    const isAdmin = findMember?.role === SpaceMemberRole.ADMIN;
     let match = {};
 
     if (isOwner || isAdmin) {
@@ -132,9 +132,7 @@ export class JoinRequestsService {
         ? findSpace.settings.channel
         : findSpace.settings.group;
 
-    const inviteOnly = settings.joinApproval === JoinApproval.INVITE_ONLY;
-    const needApproval = settings.joinApproval === JoinApproval.NEED_APPROVAL;
-    const isPublic = !inviteOnly || !needApproval;
+    const isPublic = settings.joinApproval === JoinApproval.ANYONE_CAN_JOIN;
     if (isPublic) throw new BadRequestException('spaces.isPublic');
 
     // if find join request return the request existed
