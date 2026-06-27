@@ -136,16 +136,19 @@ export class JoinRequestsService {
     const findRequest = await this.joinRequestsRepository.findOne({
       query: { space: spaceObjectId, user: userObjectId },
     });
-    const isCancelled = findRequest?.status === JoinRequestStatus.CANCELLED;
-    if (findRequest && isCancelled) {
-      if (isCancelled) {
-        const updatedRequest = await this.joinRequestsRepository.updateOne({
-          query: { _id: findRequest._id },
-          dto: { status: JoinRequestStatus.PENDING },
-        });
-        return updatedRequest;
-      }
+    const isCancelled =
+      findRequest && findRequest?.status === JoinRequestStatus.CANCELLED;
+    const isPending =
+      findRequest && findRequest?.status === JoinRequestStatus.PENDING;
+
+    if (isPending) {
       return findRequest;
+    } else if (isCancelled) {
+      const updatedRequest = await this.joinRequestsRepository.updateOne({
+        query: { _id: findRequest._id },
+        dto: { status: JoinRequestStatus.PENDING },
+      });
+      return updatedRequest;
     } else {
       // create join request
       const newRequest = await this.joinRequestsRepository.createOne({
@@ -207,9 +210,8 @@ export class JoinRequestsService {
       throw new InternalServerErrorException('joinRequests.failedAccepted');
 
     // accept request
-    const acceptRequest = await this.joinRequestsRepository.updateOne({
+    const acceptRequest = await this.joinRequestsRepository.deleteOne({
       query: { _id: requestObjectId },
-      dto: { status: JoinRequestStatus.ACCEPTED },
     });
     if (!acceptRequest)
       throw new InternalServerErrorException('joinRequests.failedAccepted');

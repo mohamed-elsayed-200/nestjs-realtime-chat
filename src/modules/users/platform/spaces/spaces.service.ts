@@ -1,3 +1,4 @@
+import { JoinRequestStatus } from './../../../../common/modules/platform/join-requests/join-request.schema';
 import { UsersRepository } from './../../../../common/modules/iam/users/users.repository';
 import {
   BadRequestException,
@@ -15,6 +16,7 @@ import {
   MessageType,
   SpaceTypes,
 } from '../../../../common/types/enums';
+import { JoinRequestsRepository } from '../../../../common/modules/platform/join-requests/join-requests.repository';
 
 @Injectable()
 export class SpacesService {
@@ -24,6 +26,7 @@ export class SpacesService {
     private readonly contactsRepository: ContactsRepository,
     private readonly messagesRepository: MessagesRepository,
     private readonly usersRepository: UsersRepository,
+    private readonly joinRequestsRepository: JoinRequestsRepository,
   ) {}
 
   public async getOne({ spaceOrUserId, authUser }) {
@@ -689,8 +692,17 @@ export class SpacesService {
     if (!findSpace) throw new NotFoundException('spaces.notFound');
 
     const spaceId = new Types.ObjectId(findSpace._id);
+    const userId = new Types.ObjectId(authUser?._id);
+
+    const findRequest = await this.joinRequestsRepository.findOne({
+      query: { space: spaceId, user: userId },
+    });
+    const getSpace = await this.getOne({ spaceOrUserId: spaceId, authUser });
 
     // already a member → return full space via getOne
-    return this.getOne({ spaceOrUserId: spaceId, authUser });
+    return {
+      ...getSpace,
+      joinRequest: findRequest || undefined,
+    };
   }
 }

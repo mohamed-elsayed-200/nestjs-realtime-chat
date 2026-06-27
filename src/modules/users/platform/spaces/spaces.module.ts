@@ -7,6 +7,7 @@ import { BaseSpaceModule } from '../../../../common/modules/platform/spaces/spac
 import { BaseMemberModule } from '../../../../common/modules/platform/members/members.module';
 import { BaseContactModule } from '../../../../common/modules/platform/contacts/contacts.module';
 import { BaseMessageModule } from '../../../../common/modules/platform/messages/messages.module';
+import { BaseJoinRequests } from '../../../../common/modules/platform/join-requests/join-requests.module';
 import { ChannelsController } from './channels/channels.controller';
 import { PrivatesController } from './privates/privates.controller';
 import { GroupsController } from './groups/groups.controller';
@@ -21,6 +22,7 @@ import { GroupsService } from './groups/groups.service';
     BaseAuthModule,
     BaseContactModule,
     BaseMessageModule,
+    BaseJoinRequests,
   ],
   controllers: [
     SpacesController,
