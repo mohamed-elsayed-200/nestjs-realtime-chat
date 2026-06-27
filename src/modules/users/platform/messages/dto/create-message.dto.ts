@@ -54,10 +54,6 @@ export class CreateMessageDto {
   isEdited?: boolean;
 
   @IsOptional()
-  @IsBoolean()
-  isDeleted?: boolean;
-
-  @IsOptional()
   @IsString()
   mimeType?: string;
 

@@ -17,7 +17,7 @@ import {
   SpaceMemberRole,
   SpaceTypes,
 } from '../../../../../common/types/enums';
-import { MessagesRepository } from '../../../../../common/modules/platform/messages/repository/messages.repository';
+import { MessagesRepository } from '../../../../../common/modules/platform/messages/messages.repository';
 
 @Injectable()
 export class ChannelsService {

@@ -43,6 +43,9 @@ export class Member {
   @Prop({ default: false })
   deleted: boolean;
 
+  @Prop({ default: null })
+  deletedAt?: Date;
+
   @Prop({ default: false })
   archive: boolean;
 

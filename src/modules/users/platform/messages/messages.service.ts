@@ -5,7 +5,6 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Types } from 'mongoose';
-import { MessagesRepository } from '../../../../common/modules/platform/messages/repository/messages.repository';
 import { SpacesRepository } from '../../../../common/modules/platform/spaces/spaces.repository';
 import { MembersRepository } from '../../../../common/modules/platform/members/members.repository';
 import {
@@ -13,6 +12,7 @@ import {
   SpaceMemberRole,
   SpaceTypes,
 } from '../../../../common/types/enums';
+import { MessagesRepository } from '../../../../common/modules/platform/messages/messages.repository';
 
 @Injectable()
 export class MessagesService {
@@ -24,6 +24,9 @@ export class MessagesService {
 
   public async getAll({ query, spaceId, authUser }) {
     const userId = new Types.ObjectId(authUser?._id);
+    const member = await this.membersRepository.findOne({
+      query: { user: userId, space: new Types.ObjectId(spaceId) },
+    });
 
     return this.messagesRepository.findAll({
       query,
@@ -34,6 +37,10 @@ export class MessagesService {
           {
             $match: {
               space: new Types.ObjectId(spaceId),
+              isDeletedForMe: { $ne: true },
+              ...(member?.deletedAt && {
+                createdAt: { $gt: member.deletedAt },
+              }),
             },
           },
           {
@@ -305,7 +312,7 @@ export class MessagesService {
   }
 
   public async delete({ dto, authUser }) {
-    const { messageIds } = dto;
+    const { messageIds, everyone } = dto;
     const userId = new Types.ObjectId(authUser?._id);
 
     // Get messages BEFORE deleting

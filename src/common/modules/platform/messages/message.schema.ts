@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument, Types } from 'mongoose';
-import { MessageStatus, MessageType } from '../../../../types/enums';
+import { MessageStatus, MessageType } from '../../../types/enums';
 
 export type MessageDocument = HydratedDocument<Message>;
 
@@ -40,7 +40,7 @@ export class Message {
   isEdited?: boolean;
 
   @Prop({ default: false })
-  isDeleted?: boolean;
+  isDeletedForMe?: boolean;
 
   @Prop()
   mimeType?: string;

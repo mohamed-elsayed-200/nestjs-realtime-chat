@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { ReactionsRepository } from '../../../../common/modules/platform/reactions/reactions.repository';
-import { MessagesRepository } from '../../../../common/modules/platform/messages/repository/messages.repository';
+import { MessagesRepository } from '../../../../common/modules/platform/messages/messages.repository';
 import { Types } from 'mongoose';
 
 @Injectable()

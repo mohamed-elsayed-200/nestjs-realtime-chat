@@ -16,7 +16,7 @@ import { JoinRequestsRepository } from './../../../../common/modules/platform/jo
 import { SpacesRepository } from './../../../../common/modules/platform/spaces/spaces.repository';
 import { MembersRepository } from './../../../../common/modules/platform/members/members.repository';
 import { JoinRequestStatus } from '../../../../common/modules/platform/join-requests/join-request.schema';
-import { MessagesRepository } from '../../../../common/modules/platform/messages/repository/messages.repository';
+import { MessagesRepository } from '../../../../common/modules/platform/messages/messages.repository';
 
 @Injectable()
 export class JoinRequestsService {

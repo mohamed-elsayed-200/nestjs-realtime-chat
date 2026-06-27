@@ -1,9 +1,9 @@
 import { InjectModel } from '@nestjs/mongoose';
-import { Message } from '../schemas/message.schema';
+import { Message } from './message.schema';
 import { Injectable } from '@nestjs/common';
 import { Model, Types } from 'mongoose';
-import { aggregateQuery } from '../../../data-access/aggregate-query';
-import { FindManyProps, FindOneProps } from '../../../../types/interfaces';
+import { aggregateQuery } from '../../data-access/aggregate-query';
+import { FindManyProps, FindOneProps } from '../../../types/interfaces';
 
 @Injectable()
 export class MessagesRepository {
