@@ -6,6 +6,7 @@ import { aggregateQuery } from '../../data-access/aggregate-query';
 import {
   CreateOneProps,
   DeleteOneProps,
+  FindManyProps,
   FindOneProps,
 } from '../../../types/interfaces';
 
@@ -24,7 +25,12 @@ export class ContactsRepository {
       },
     });
   }
-
+  public async findMany({ query, sort, select }: FindManyProps) {
+    let base = this.contactModel.find(query);
+    if (sort) base.sort(sort);
+    if (select) base.select(select);
+    return await base.lean().exec();
+  }
   public async findOne({ query, populate, select }: FindOneProps) {
     const base = this.contactModel.findOne(query);
 

@@ -3,7 +3,11 @@ import { Member } from './member.schema';
 import { Injectable } from '@nestjs/common';
 import { Model, Types } from 'mongoose';
 import { aggregateQuery } from '../../data-access/aggregate-query';
-import { CreateOneProps, FindOneProps } from '../../../types/interfaces';
+import {
+  CreateOneProps,
+  FindManyProps,
+  FindOneProps,
+} from '../../../types/interfaces';
 import { Message } from '../messages/message.schema';
 import { MessageStatus } from '../../../types/enums';
 
@@ -23,14 +27,21 @@ export class MembersRepository {
       },
     });
   }
-
+  public async findMany({ query, sort, select }: FindManyProps) {
+    let base = this.memberModel.find(query);
+    if (sort) base.sort(sort);
+    if (select) base.select(select);
+    return await base.lean().exec();
+  }
   public async findOne({ query, populate, select }: FindOneProps) {
     const base = this.memberModel.findOne(query);
     if (select) base.select(select);
     if (populate) base.populate(populate);
     return await base.lean().exec();
   }
-
+  async insertMany({ documents }: { documents: any[] }) {
+    return this.memberModel.insertMany(documents);
+  }
   public async createOne({ dto, populate }: CreateOneProps) {
     if (dto?.space) dto.space = new Types.ObjectId(dto.space);
     if (dto?.user) dto.user = new Types.ObjectId(dto.user);

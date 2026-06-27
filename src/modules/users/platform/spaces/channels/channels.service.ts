@@ -18,6 +18,7 @@ import {
   SpaceTypes,
 } from '../../../../../common/types/enums';
 import { MessagesRepository } from '../../../../../common/modules/platform/messages/messages.repository';
+import { ContactsRepository } from '../../../../../common/modules/platform/contacts/contacts.repository';
 
 @Injectable()
 export class ChannelsService {
@@ -25,6 +26,7 @@ export class ChannelsService {
     private readonly spacesRepository: SpacesRepository,
     private readonly membersRepository: MembersRepository,
     private readonly usersRepository: UsersRepository,
+    private readonly contactsRepository: ContactsRepository,
     private readonly messagesRepository: MessagesRepository,
   ) {}
 
@@ -148,6 +150,77 @@ export class ChannelsService {
     }
 
     return space;
+  }
+
+  public async inviteContacts({ spaceId, dto, authUser }) {
+    const { contacts } = dto;
+    const spaceObjectId = new Types.ObjectId(spaceId);
+    const userObjectId = new Types.ObjectId(authUser._id);
+
+    const member = await this.membersRepository.findOne({
+      query: { space: spaceObjectId, user: userObjectId, deleted: false },
+    });
+    if (!member) throw new NotFoundException('members.notFound');
+
+    const isOwner = member.role === SpaceMemberRole.OWNER;
+    if (!isOwner) throw new BadRequestException('spaces.cantAddMembers');
+
+    const contactDocs = await this.contactsRepository.findMany({
+      query: {
+        _id: { $in: contacts.map((id) => new Types.ObjectId(id)) },
+        me: userObjectId,
+      },
+      select: 'contact',
+    });
+
+    if (contactDocs.length === 0)
+      throw new NotFoundException('contacts.notFound');
+
+    const userIdsToInvite = contactDocs.map((c) => c.contact);
+
+    const existingMembers = await this.membersRepository.findMany({
+      query: {
+        space: spaceObjectId,
+        user: { $in: userIdsToInvite },
+      },
+      select: 'user',
+    });
+
+    const existingMemberIds = new Set(
+      existingMembers.map((m) => m.user.toString()),
+    );
+
+    const newUserIds = userIdsToInvite.filter(
+      (id) => !existingMemberIds.has(id.toString()),
+    );
+
+    if (newUserIds.length === 0)
+      throw new BadRequestException('members.alreadyJoined');
+
+    await this.membersRepository.insertMany({
+      documents: newUserIds.map((userId) => ({
+        user: userId,
+        space: spaceObjectId,
+        role: SpaceMemberRole.MEMBER,
+        joinedAt: new Date(),
+        pin: false,
+        mute: false,
+        archive: false,
+        permissions: [],
+      })),
+    });
+
+    await this.spacesRepository.updateOne({
+      query: { _id: spaceObjectId },
+      dto: {
+        $inc: { membersCount: newUserIds.length },
+      },
+    });
+
+    return {
+      addedCount: newUserIds.length,
+      skippedCount: existingMemberIds.size,
+    };
   }
 
   public async join({ spaceId, authUser }) {

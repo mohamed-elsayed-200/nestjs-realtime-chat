@@ -9,6 +9,7 @@ import { ValidateObjectIdPipe } from '../../../../../common/pipes/validate-objec
 import { CreateChannelSpaceDto } from './dto/create-channel.dto';
 import { ChannelsService } from './channels.service';
 import { UpdateChannelDto } from './dto/update-channel.dto';
+import { InviteContactsDto } from './dto/invite-contacts.dto';
 
 @Controller('/users/spaces/channel')
 @UseGuards(AuthGuard, UserTypeGuard)
@@ -23,6 +24,16 @@ export class ChannelsController {
     @GetUser() authUser: any,
   ) {
     return this.channelsService.create({ dto, authUser });
+  }
+
+  @Post('/invite-contacts/:spaceId')
+  @ResponseMeta({ message: 'spaces.joined', statusCode: 201 })
+  public async inviteContacts(
+    @Param('spaceId', ValidateObjectIdPipe) spaceId: string,
+    @GetUser() authUser: any,
+    @Body() dto: InviteContactsDto,
+  ) {
+    return this.channelsService.inviteContacts({ spaceId, dto, authUser });
   }
 
   @Post('/join/:spaceId')
