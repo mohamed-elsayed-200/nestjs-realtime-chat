@@ -40,6 +40,6 @@ export class JoinRequest {
 
 export const JoinRequestSchema = SchemaFactory.createForClass(JoinRequest);
 
+JoinRequestSchema.index({ user: 1 });
 JoinRequestSchema.index({ space: 1, status: 1 });
-JoinRequestSchema.index({ user: 1, space: 1 }, { unique: true });
 JoinRequestSchema.index({ createdAt: -1 });

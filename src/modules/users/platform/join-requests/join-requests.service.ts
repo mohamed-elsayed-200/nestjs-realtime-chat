@@ -7,8 +7,6 @@ import {
 } from '@nestjs/common';
 import {
   JoinApproval,
-  MessageStatus,
-  MessageType,
   SpaceMemberRole,
   SpaceTypes,
 } from './../../../../common/types/enums';
@@ -23,7 +21,6 @@ export class JoinRequestsService {
   constructor(
     private readonly spacesRepository: SpacesRepository,
     private readonly membersRepository: MembersRepository,
-    private readonly messagesRepository: MessagesRepository,
     private readonly joinRequestsRepository: JoinRequestsRepository,
   ) {}
 
@@ -109,7 +106,7 @@ export class JoinRequestsService {
   }
 
   public async sendRequest({ dto, authUser }) {
-    const { space, message } = dto;
+    const { space } = dto;
     const userObjectId = new Types.ObjectId(authUser?._id);
     const spaceObjectId = new Types.ObjectId(space);
 
@@ -139,11 +136,11 @@ export class JoinRequestsService {
     const findRequest = await this.joinRequestsRepository.findOne({
       query: { space: spaceObjectId, user: userObjectId },
     });
-    if (findRequest) {
-      const isCancelled = findRequest.status === JoinRequestStatus.CANCELLED;
+    const isCancelled = findRequest?.status === JoinRequestStatus.CANCELLED;
+    if (findRequest && isCancelled) {
       if (isCancelled) {
         const updatedRequest = await this.joinRequestsRepository.updateOne({
-          query: {},
+          query: { _id: findRequest._id },
           dto: { status: JoinRequestStatus.PENDING },
         });
         return updatedRequest;
@@ -156,7 +153,7 @@ export class JoinRequestsService {
           user: userObjectId,
           space: spaceObjectId,
           status: JoinRequestStatus.PENDING,
-          message,
+          message: dto?.message,
         },
       });
       if (!newRequest)
@@ -212,56 +209,17 @@ export class JoinRequestsService {
     // accept request
     const acceptRequest = await this.joinRequestsRepository.updateOne({
       query: { _id: requestObjectId },
-      dto: {
-        status: JoinRequestStatus.ACCEPTED,
-        reviewedBy: userObjectId,
-        reviewedAt: new Date(),
-      },
+      dto: { status: JoinRequestStatus.ACCEPTED },
     });
     if (!acceptRequest)
       throw new InternalServerErrorException('joinRequests.failedAccepted');
 
-    // send system message for users a new join
-    const lastMessage = await this.messagesRepository.createOne({
-      dto: {
-        space: spaceObjectId,
-        sender: userObjectId,
-        messageType: MessageType.SYSTEM,
-        status: MessageStatus.SENT,
-        content: `${authUser?.name} joined`,
-        text: `${authUser?.name} joined`,
-      },
-    });
-
-    const updatedSpace = await this.spacesRepository.updateOne({
+    await this.spacesRepository.updateOne({
       query: { _id: spaceObjectId },
-      dto: { lastMessage: lastMessage?._id, $inc: { membersCount: 1 } },
+      dto: { $inc: { membersCount: 1 } },
     });
 
-    return {
-      ...updatedSpace.toObject(),
-      unreadCount: newMember?.unreadCount,
-      pin: newMember?.pin,
-      mute: newMember?.mute,
-      archive: newMember?.archive,
-      folder: newMember?.folder,
-      role: newMember?.role,
-      permissions: newMember?.permissions,
-      joinedAt: newMember?.joinedAt,
-      wallpaper: newMember?.wallpaper,
-      lastMessage: {
-        ...lastMessage.toObject(),
-        sender: {
-          name: authUser?.name,
-          id: authUser?.id,
-          username: authUser?.username,
-          avatar: authUser?.avatar,
-          profileColor: authUser?.profileColor,
-        },
-        isOutgoing:
-          lastMessage?.sender?.toString() === userObjectId?.toString(),
-      },
-    };
+    return findRequest;
   }
 
   public async rejectRequest({ dto, authUser }) {
