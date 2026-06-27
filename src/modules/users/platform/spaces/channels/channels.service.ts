@@ -228,8 +228,14 @@ export class ChannelsService {
     const userObjectId = new Types.ObjectId(authUser._id);
 
     // check space already exist
-    const findSpace = await this.spacesRepository.findOne({
+    const findSpace: any = await this.spacesRepository.findOne({
       query: { _id: spaceObjectId, type: SpaceTypes.CHANNEL },
+      populate: [
+        {
+          path: 'lastMessage',
+          model: 'Message',
+        },
+      ],
     });
     if (!findSpace) throw new NotFoundException('spaces.notFound');
 
@@ -260,20 +266,9 @@ export class ChannelsService {
       },
     });
 
-    const lastMessage = await this.messagesRepository.createOne({
-      dto: {
-        space: spaceObjectId,
-        sender: userObjectId,
-        messageType: MessageType.SYSTEM,
-        status: MessageStatus.SENT,
-        content: `${authUser?.name} joined`,
-        text: `${authUser?.name} joined`,
-      },
-    });
-
     const updatedSpace = await this.spacesRepository.updateOne({
       query: { _id: spaceObjectId },
-      dto: { lastMessage: lastMessage?._id, $inc: { membersCount: 1 } },
+      dto: { $inc: { membersCount: 1 } },
     });
 
     return {
@@ -288,7 +283,10 @@ export class ChannelsService {
       joinedAt: member?.joinedAt,
       wallpaper: member?.wallpaper,
       lastMessage: {
-        ...lastMessage.toObject(),
+        ...findSpace?.lastMessage,
+        isOutgoing:
+          findSpace?.lastMessage?.sender?.toString() ===
+          userObjectId?.toString(),
         sender: {
           name: authUser?.name,
           id: authUser?.id,
@@ -296,8 +294,6 @@ export class ChannelsService {
           avatar: authUser?.avatar,
           profileColor: authUser?.profileColor,
         },
-        isOutgoing:
-          lastMessage?.sender?.toString() === userObjectId?.toString(),
       },
     };
   }
