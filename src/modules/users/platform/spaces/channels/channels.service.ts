@@ -167,7 +167,7 @@ export class ChannelsService {
 
     const contactDocs = await this.contactsRepository.findMany({
       query: {
-        _id: { $in: contacts.map((id) => new Types.ObjectId(id)) },
+        contact: { $in: contacts.map((id) => new Types.ObjectId(id)) },
         me: userObjectId,
       },
       select: 'contact',
@@ -194,8 +194,11 @@ export class ChannelsService {
       (id) => !existingMemberIds.has(id.toString()),
     );
 
-    if (newUserIds.length === 0)
-      throw new BadRequestException('members.alreadyJoined');
+    if (newUserIds.length === 0) {
+      return await this.spacesRepository.findOne({
+        query: { _id: spaceObjectId },
+      });
+    }
 
     await this.membersRepository.insertMany({
       documents: newUserIds.map((userId) => ({
@@ -210,17 +213,14 @@ export class ChannelsService {
       })),
     });
 
-    await this.spacesRepository.updateOne({
+    const updateSpace = await this.spacesRepository.updateOne({
       query: { _id: spaceObjectId },
       dto: {
         $inc: { membersCount: newUserIds.length },
       },
     });
 
-    return {
-      addedCount: newUserIds.length,
-      skippedCount: existingMemberIds.size,
-    };
+    return updateSpace;
   }
 
   public async join({ spaceId, authUser }) {
