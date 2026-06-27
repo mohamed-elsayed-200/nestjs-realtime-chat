@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Types } from 'mongoose';
-import { MessagesRepository } from '../../../../common/modules/platform/messages/messages.repository';
+import { MessagesRepository } from '../../../../common/modules/platform/messages/repository/messages.repository';
 import { SpacesRepository } from '../../../../common/modules/platform/spaces/spaces.repository';
 import { MembersRepository } from '../../../../common/modules/platform/members/members.repository';
 import {

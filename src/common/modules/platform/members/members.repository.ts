@@ -4,7 +4,7 @@ import { Injectable } from '@nestjs/common';
 import { Model, Types } from 'mongoose';
 import { aggregateQuery } from '../../data-access/aggregate-query';
 import { CreateOneProps, FindOneProps } from '../../../types/interfaces';
-import { Message } from '../messages/message.schema';
+import { Message } from '../messages/schemas/message.schema';
 import { MessageStatus } from '../../../types/enums';
 
 @Injectable()

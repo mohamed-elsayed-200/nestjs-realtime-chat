@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument, Types } from 'mongoose';
-import { MessageStatus, MessageType } from '../../../types/enums';
+import { MessageStatus, MessageType } from '../../../../types/enums';
 
 export type MessageDocument = HydratedDocument<Message>;
 
@@ -68,3 +68,7 @@ export class Message {
 }
 
 export const MessageSchema = SchemaFactory.createForClass(Message);
+
+MessageSchema.index({ sender: 1, space: 1 });
+MessageSchema.index({ sender: 1 });
+MessageSchema.index({ space: 1 });

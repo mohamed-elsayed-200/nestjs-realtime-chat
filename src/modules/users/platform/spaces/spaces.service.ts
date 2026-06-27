@@ -10,7 +10,7 @@ import { Types } from 'mongoose';
 import { SpacesRepository } from '../../../../common/modules/platform/spaces/spaces.repository';
 import { MembersRepository } from '../../../../common/modules/platform/members/members.repository';
 import { ContactsRepository } from '../../../../common/modules/platform/contacts/contacts.repository';
-import { MessagesRepository } from '../../../../common/modules/platform/messages/messages.repository';
+import { MessagesRepository } from '../../../../common/modules/platform/messages/repository/messages.repository';
 import {
   MessageStatus,
   MessageType,

@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Member, MemberSchema } from './member.schema';
 import { MembersRepository } from './members.repository';
-import { Message, MessageSchema } from '../messages/message.schema';
+import { Message, MessageSchema } from '../messages/schemas/message.schema';
 
 @Module({
   imports: [
