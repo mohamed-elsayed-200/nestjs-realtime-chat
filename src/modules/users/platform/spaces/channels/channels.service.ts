@@ -245,42 +245,10 @@ export class ChannelsService {
       query: { space: spaceObjectId, user: userObjectId },
     });
 
-    const lastMessage = await this.messagesRepository.createOne({
-      dto: {
-        space: spaceObjectId,
-        sender: userObjectId,
-        messageType: MessageType.SYSTEM,
-        status: MessageStatus.SENT,
-        content: `${authUser?.name} leaved`,
-        text: `${authUser?.name} leaved`,
-      },
-    });
-
     const updatedSpace = await this.spacesRepository.updateOne({
       query: { _id: spaceObjectId },
-      dto: { lastMessage: lastMessage?._id, $inc: { membersCount: -1 } },
+      dto: { $inc: { membersCount: -1 } },
     });
-    return {
-      ...updatedSpace.toObject(),
-      unreadCount: 0,
-      pin: false,
-      mute: false,
-      archive: false,
-      folder: false,
-      role: null,
-      permissions: [],
-      lastMessage: {
-        ...lastMessage.toObject(),
-        sender: {
-          name: authUser?.name,
-          id: authUser?.id,
-          username: authUser?.username,
-          avatar: authUser?.avatar,
-          profileColor: authUser?.profileColor,
-        },
-        isOutgoing:
-          lastMessage?.sender?.toString() === userObjectId?.toString(),
-      },
-    };
+    return updatedSpace;
   }
 }

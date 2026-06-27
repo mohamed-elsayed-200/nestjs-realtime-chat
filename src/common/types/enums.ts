@@ -23,6 +23,7 @@ export enum SpaceTypes {
   GROUP = 'group',
   CHANNEL = 'channel',
   COMMUNITY = 'community',
+  BOT = 'bot',
 }
 export enum SpaceMemberRole {
   OWNER = 'owner',

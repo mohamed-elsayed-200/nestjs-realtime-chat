@@ -7,14 +7,16 @@ import {
 } from '@nestjs/common';
 import {
   JoinApproval,
+  MessageStatus,
+  MessageType,
   SpaceMemberRole,
   SpaceTypes,
 } from './../../../../common/types/enums';
 import { JoinRequestsRepository } from './../../../../common/modules/platform/join-requests/join-requests.repository';
 import { SpacesRepository } from './../../../../common/modules/platform/spaces/spaces.repository';
 import { MembersRepository } from './../../../../common/modules/platform/members/members.repository';
-import { MessagesRepository } from './../../../../common/modules/platform/messages/messages.repository';
 import { JoinRequestStatus } from '../../../../common/modules/platform/join-requests/join-request.schema';
+import { MessagesRepository } from '../../../../common/modules/platform/messages/messages.repository';
 
 @Injectable()
 export class JoinRequestsService {
@@ -22,6 +24,7 @@ export class JoinRequestsService {
     private readonly spacesRepository: SpacesRepository,
     private readonly membersRepository: MembersRepository,
     private readonly joinRequestsRepository: JoinRequestsRepository,
+    private readonly messagesRepository: MessagesRepository,
   ) {}
 
   public async getAll({ query, space, authUser }) {

@@ -20,6 +20,7 @@ import { QueryDto } from '../../../../common/modules/dto/query.dto';
 import { GetUser } from '../../../../common/decorators/get-user.decorator';
 import { ChangeWallpaperDto } from './dto/change-wallpaper.dto';
 import { OpenLinkDto } from './dto/open-space.dto';
+import { DeleteSpaceDto } from './dto/delete-space.dto';
 
 @Controller('/users/spaces')
 @UseGuards(AuthGuard, UserTypeGuard)
@@ -98,7 +99,8 @@ export class SpacesController {
   public async delete(
     @Param('spaceId', ValidateObjectIdPipe) spaceId: string,
     @GetUser() authUser: any,
+    @Body() dto: DeleteSpaceDto,
   ) {
-    return this.spacesService.delete({ spaceId, authUser });
+    return this.spacesService.delete({ spaceId, dto, authUser });
   }
 }

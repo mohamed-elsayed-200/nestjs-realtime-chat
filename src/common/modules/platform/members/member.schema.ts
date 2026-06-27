@@ -41,6 +41,9 @@ export class Member {
   bannedReason: string;
 
   @Prop({ default: false })
+  deleted: boolean;
+
+  @Prop({ default: false })
   archive: boolean;
 
   @Prop({ default: false })

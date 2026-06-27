@@ -83,4 +83,7 @@ export class MembersRepository {
   public async deleteMany({ query }) {
     return this.memberModel.deleteMany(query);
   }
+  public async count({ query }) {
+    return this.memberModel.countDocuments(query);
+  }
 }
