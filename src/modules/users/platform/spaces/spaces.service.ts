@@ -36,6 +36,13 @@ export class SpacesService {
 
     const findSpace = await this.spacesRepository.findOne({
       query: { _id: spaceId },
+      populate: [
+        {
+          path: 'createdBy',
+          model: 'User',
+          select: 'name avatar profileColor username',
+        },
+      ],
     });
     if (findSpace) {
       // 1. Find the member with populated space
@@ -146,6 +153,7 @@ export class SpacesService {
         membersCount: spaceData.membersCount,
         settings: spaceData.settings,
         bio: spaceData?.bio || otherParty?.bio,
+        createdBy: findSpace?.createdBy || undefined,
 
         // Name
         name:
