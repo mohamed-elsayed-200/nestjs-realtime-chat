@@ -8,6 +8,8 @@ import { Types } from 'mongoose';
 import { SpacesRepository } from '../../../../../common/modules/platform/spaces/spaces.repository';
 import { MembersRepository } from '../../../../../common/modules/platform/members/members.repository';
 import { UsersRepository } from '../../../../../common/modules/iam/users/users.repository';
+import { MessagesRepository } from '../../../../../common/modules/platform/messages/messages.repository';
+import { ContactsRepository } from '../../../../../common/modules/platform/contacts/contacts.repository';
 import {
   ActivationStatus,
   JoinApproval,
@@ -17,8 +19,6 @@ import {
   SpaceMemberRole,
   SpaceTypes,
 } from '../../../../../common/types/enums';
-import { MessagesRepository } from '../../../../../common/modules/platform/messages/messages.repository';
-import { ContactsRepository } from '../../../../../common/modules/platform/contacts/contacts.repository';
 
 @Injectable()
 export class ChannelsService {
@@ -29,6 +29,48 @@ export class ChannelsService {
     private readonly contactsRepository: ContactsRepository,
     private readonly messagesRepository: MessagesRepository,
   ) {}
+
+  public async addAdmin({ spaceId, dto, authUser }) {
+    const { permissions, memberId, adminTag } = dto;
+    const spaceObjectId = new Types.ObjectId(spaceId);
+    const userObjectId = new Types.ObjectId(authUser._id);
+    const memberObjectId = new Types.ObjectId(memberId);
+
+    const authMember = await this.membersRepository.findOne({
+      query: { space: spaceObjectId, user: userObjectId },
+    });
+
+    if (!authMember) throw new NotFoundException('members.notFound');
+
+    const isOwner = authMember.role === SpaceMemberRole.OWNER;
+    const isAdmin =
+      authMember.role === SpaceMemberRole.ADMIN &&
+      authMember.permissions?.includes(SpaceMemberPermission.ADD_ADMIN);
+    const canAddAdmin = isOwner || isAdmin;
+    if (!canAddAdmin) throw new BadRequestException('members.noPermission');
+
+    const targetMember = await this.membersRepository.findOne({
+      query: { space: spaceObjectId, user: memberObjectId },
+    });
+
+    if (!targetMember) throw new NotFoundException('members.notFound');
+
+    if (targetMember.role === SpaceMemberRole.OWNER)
+      throw new BadRequestException('members.cannotModifyOwner');
+
+    const updated = await this.membersRepository.updateOne({
+      query: { space: spaceObjectId, user: memberObjectId },
+      dto: {
+        role: SpaceMemberRole.ADMIN,
+        permissions: permissions ?? [],
+        adminTag: adminTag ?? 'Admin',
+      },
+    });
+
+    if (!updated) throw new InternalServerErrorException('members.notUpdated');
+
+    return updated;
+  }
 
   public async create({ dto, authUser }) {
     const newSpace = {

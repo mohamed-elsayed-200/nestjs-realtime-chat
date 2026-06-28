@@ -34,6 +34,9 @@ export class Member {
   @Prop()
   joinedAt: Date;
 
+  @Prop()
+  adminTag: string;
+
   @Prop({ default: false })
   banned: boolean;
 
