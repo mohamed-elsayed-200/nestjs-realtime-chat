@@ -32,24 +32,19 @@ export class Member {
   permissions: SpaceMemberPermission[];
 
   @Prop()
-  joinedAt: Date;
-
-  @Prop()
   adminTag: string;
+
   @Prop()
   adminTagColor: string;
 
   @Prop({ default: false })
   banned: boolean;
 
-  @Prop({ default: null })
+  @Prop()
   bannedReason: string;
 
   @Prop({ default: false })
   deleted: boolean;
-
-  @Prop({ default: null })
-  deletedAt?: Date;
 
   @Prop({ default: false })
   archive: boolean;
@@ -62,6 +57,19 @@ export class Member {
 
   @Prop({ type: Number, default: 0 })
   unreadCount: number;
+
+  // Dates
+  @Prop()
+  deletedAt?: Date;
+
+  @Prop()
+  mutedAt?: Date;
+
+  @Prop()
+  bannedAt?: Date;
+
+  @Prop()
+  joinedAt: Date;
 }
 
 export const MemberSchema = SchemaFactory.createForClass(Member);

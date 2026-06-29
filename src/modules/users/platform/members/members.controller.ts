@@ -19,6 +19,8 @@ import { QueryDto } from '../../../../common/modules/dto/query.dto';
 import { GetUser } from '../../../../common/decorators/get-user.decorator';
 import { PromoteAdminDto } from './dto/promote-admin.dto';
 import { DismissAdminDto } from './dto/dismiss-admin.dto';
+import { ToggleMuteDto } from './dto/toggle-mute-member.dto';
+import { TransferOwnershipDto } from './dto/transfer-ownership.dto';
 
 @Controller('/users/members')
 @UseGuards(AuthGuard, UserTypeGuard)
@@ -51,6 +53,24 @@ export class MembersController {
     @Body() dto: DismissAdminDto,
   ) {
     return this.membersService.dismissAdmin({ dto, authUser });
+  }
+
+  @Post('/transfer-ownership')
+  @ResponseMeta({ message: 'members.transferred', statusCode: 201 })
+  public async transferOwnership(
+    @GetUser() authUser: any,
+    @Body() dto: TransferOwnershipDto,
+  ) {
+    return this.membersService.transferOwnership({ dto, authUser });
+  }
+
+  @Post('/toggle-mute')
+  @ResponseMeta({ message: 'members.toggled', statusCode: 201 })
+  public async toggleMute(
+    @GetUser() authUser: any,
+    @Body() dto: ToggleMuteDto,
+  ) {
+    return this.membersService.toggleMute({ dto, authUser });
   }
 
   @Get('/:memberId')

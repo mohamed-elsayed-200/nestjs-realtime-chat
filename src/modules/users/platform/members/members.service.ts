@@ -138,6 +138,95 @@ export class MembersService {
     return updated;
   }
 
+  public async transferOwnership({ dto, authUser }) {
+    const { member, space } = dto;
+    const spaceObjectId = new Types.ObjectId(space);
+    const userObjectId = new Types.ObjectId(authUser._id);
+    const memberObjectId = new Types.ObjectId(member);
+
+    const authMember = await this.membersRepository.findOne({
+      query: { space: spaceObjectId, user: userObjectId },
+    });
+
+    if (!authMember) throw new NotFoundException('members.noPermission');
+    if (authMember.role !== SpaceMemberRole.OWNER)
+      throw new BadRequestException('members.noPermission');
+
+    const targetMember = await this.membersRepository.findOne({
+      query: { space: spaceObjectId, _id: memberObjectId },
+    });
+
+    if (!targetMember) throw new NotFoundException('members.notFound');
+    if (targetMember.role === SpaceMemberRole.OWNER)
+      throw new BadRequestException('members.alreadyOwner');
+
+    const demoted = await this.membersRepository.updateOne({
+      query: { space: spaceObjectId, _id: authMember._id },
+      dto: {
+        role: SpaceMemberRole.ADMIN,
+        permissions: [],
+        adminTag: 'Admin',
+        adminTagColor: '#3b82f6',
+      },
+    });
+
+    if (!demoted) throw new InternalServerErrorException('members.notUpdated');
+
+    const promoted = await this.membersRepository.updateOne({
+      query: { space: spaceObjectId, _id: memberObjectId },
+      dto: {
+        role: SpaceMemberRole.OWNER,
+        permissions: [],
+        adminTag: null,
+        adminTagColor: null,
+      },
+    });
+
+    if (!promoted) throw new InternalServerErrorException('members.notUpdated');
+
+    return promoted;
+  }
+
+  public async toggleMute({ dto, authUser }) {
+    const { member, space } = dto;
+    const spaceObjectId = new Types.ObjectId(space);
+    const userObjectId = new Types.ObjectId(authUser._id);
+    const memberObjectId = new Types.ObjectId(member);
+
+    const authMember = await this.membersRepository.findOne({
+      query: { space: spaceObjectId, user: userObjectId },
+    });
+
+    if (!authMember) throw new NotFoundException('members.noPermission');
+
+    const isOwner = authMember.role === SpaceMemberRole.OWNER;
+    const isAdmin = authMember.role === SpaceMemberRole.ADMIN;
+    if (!isOwner && !isAdmin)
+      throw new BadRequestException('members.noPermission');
+
+    const targetMember = await this.membersRepository.findOne({
+      query: { space: spaceObjectId, _id: memberObjectId },
+    });
+
+    if (!targetMember) throw new NotFoundException('members.notFound');
+    if (targetMember.role === SpaceMemberRole.OWNER)
+      throw new BadRequestException('members.cannotModifyOwner');
+
+    const isMuted = targetMember.mute;
+
+    const updated = await this.membersRepository.updateOne({
+      query: { space: spaceObjectId, _id: memberObjectId },
+      dto: {
+        mute: !isMuted,
+        mutedAt: isMuted ? null : new Date(),
+      },
+    });
+
+    if (!updated) throw new InternalServerErrorException('members.notUpdated');
+
+    return updated;
+  }
+
   public async dismissAdmin({ dto, authUser }) {
     const { member, space } = dto;
     const spaceObjectId = new Types.ObjectId(space);
