@@ -82,6 +82,7 @@ export class MembersService {
               adminTag: 1,
               adminTagColor: 1,
               permissions: 1,
+              mute: 1,
             },
           },
         ],
@@ -178,6 +179,7 @@ export class MembersService {
         permissions: [],
         adminTag: null,
         adminTagColor: null,
+        mute: false,
       },
     });
 
@@ -190,6 +192,7 @@ export class MembersService {
         permissions: [],
         adminTag: 'Owner',
         adminTagColor: '#22c55e',
+        mute: false,
       },
     });
 
