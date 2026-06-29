@@ -44,10 +44,11 @@ export class SpacesService {
         },
       ],
     });
+
     if (findSpace) {
       // 1. Find the member with populated space
       const member = await this.membersRepository.findOne({
-        query: { space: spaceId, user: userId },
+        query: { space: spaceId, user: userId, deleted: false },
         populate: [
           {
             path: 'space',
@@ -183,9 +184,8 @@ export class SpacesService {
       const user = await this.usersRepository.findOne({
         query: { _id: spaceId },
       });
-      let userContact = null;
 
-      userContact = await this.contactsRepository.findOne({
+      const findContact = await this.contactsRepository.findOne({
         query: {
           me: userId,
           contact: user?._id,
@@ -194,18 +194,18 @@ export class SpacesService {
       });
 
       const response = {
-        _id: user._id,
+        _id: user?._id,
         unreadCount: 0,
         pin: false,
         mute: false,
         archive: false,
         type: SpaceTypes.PRIVATE,
         bio: user.bio,
-        name: user?.name,
+        name: findContact?.name || user?.name,
         username: user?.username,
-        avatar: user?.avatar,
-        profileColor: user?.profileColor,
-        isContact: false,
+        avatar: findContact?.avatar || user?.avatar,
+        profileColor: findContact?.profileColor || user?.profileColor,
+        isContact: findContact?._id ? true : false,
       };
       return response;
     }

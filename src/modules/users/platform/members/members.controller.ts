@@ -19,8 +19,9 @@ import { QueryDto } from '../../../../common/modules/dto/query.dto';
 import { GetUser } from '../../../../common/decorators/get-user.decorator';
 import { PromoteAdminDto } from './dto/promote-admin.dto';
 import { DismissAdminDto } from './dto/dismiss-admin.dto';
-import { ToggleMuteDto } from './dto/toggle-mute-member.dto';
+import { ToggleMuteMemberDto } from './dto/toggle-mute-member.dto';
 import { TransferOwnershipDto } from './dto/transfer-ownership.dto';
+import { ToggleBanMemberDto } from './dto/toggle-ban-member.dto';
 
 @Controller('/users/members')
 @UseGuards(AuthGuard, UserTypeGuard)
@@ -68,9 +69,18 @@ export class MembersController {
   @ResponseMeta({ message: 'members.toggled', statusCode: 201 })
   public async toggleMute(
     @GetUser() authUser: any,
-    @Body() dto: ToggleMuteDto,
+    @Body() dto: ToggleMuteMemberDto,
   ) {
     return this.membersService.toggleMute({ dto, authUser });
+  }
+
+  @Post('/toggle-ban')
+  @ResponseMeta({ message: 'members.toggled', statusCode: 201 })
+  public async toggleBan(
+    @GetUser() authUser: any,
+    @Body() dto: ToggleBanMemberDto,
+  ) {
+    return this.membersService.toggleBan({ dto, authUser });
   }
 
   @Get('/:memberId')
@@ -79,13 +89,5 @@ export class MembersController {
     @Param('memberId', ValidateObjectIdPipe) memberId: string,
   ) {
     return this.membersService.getOne({ memberId });
-  }
-
-  @Delete(':memberId')
-  @ResponseMeta({ message: 'members.deleted' })
-  public async delete(
-    @Param('memberId', ValidateObjectIdPipe) memberId: string,
-  ) {
-    return this.membersService.delete({ memberId });
   }
 }

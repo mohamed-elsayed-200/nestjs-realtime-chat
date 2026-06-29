@@ -1,6 +1,6 @@
 import { IsMongoId, IsNotEmpty } from 'class-validator';
 
-export class ToggleMuteDto {
+export class ToggleMuteMemberDto {
   @IsNotEmpty()
   @IsMongoId()
   member: string;

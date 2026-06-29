@@ -29,6 +29,7 @@ export class MembersService {
           {
             $match: {
               space: new Types.ObjectId(spaceId),
+              deleted: false,
             },
           },
           {
@@ -83,6 +84,7 @@ export class MembersService {
               adminTagColor: 1,
               permissions: 1,
               mute: 1,
+              deleted: 1,
             },
           },
         ],
@@ -298,13 +300,63 @@ export class MembersService {
     return updated;
   }
 
-  public async delete({ memberId }) {
-    const item = await this.membersRepository.deleteOne({
-      query: { _id: memberId },
+  public async toggleBan({ dto, authUser }) {
+    const { member, space, bannedReason } = dto;
+    const spaceObjectId = new Types.ObjectId(space);
+    const userObjectId = new Types.ObjectId(authUser._id);
+    const memberObjectId = new Types.ObjectId(member);
+
+    const authMember = await this.membersRepository.findOne({
+      query: { space: spaceObjectId, user: userObjectId },
     });
 
-    if (!item) throw new NotFoundException('members.notDeleted');
+    if (!authMember) throw new NotFoundException('members.noPermission');
 
-    return item;
+    const isOwner = authMember.role === SpaceMemberRole.OWNER;
+    const isAdmin =
+      authMember.role === SpaceMemberRole.ADMIN &&
+      authMember.permissions?.includes(SpaceMemberPermission.BAN_USERS);
+    const canBan = isOwner || isAdmin;
+    if (!canBan) throw new BadRequestException('members.noPermission');
+
+    const targetMember = await this.membersRepository.findOne({
+      query: { space: spaceObjectId, _id: memberObjectId },
+    });
+
+    if (!targetMember) throw new NotFoundException('members.notFound');
+    if (targetMember.role === SpaceMemberRole.OWNER)
+      throw new BadRequestException('members.cannotModifyOwner');
+    if (targetMember.role === SpaceMemberRole.ADMIN && !isOwner)
+      throw new BadRequestException('members.noPermission');
+
+    const isBanned = targetMember.banned;
+
+    await this.spacesRepository.updateOne({
+      query: { _id: spaceObjectId },
+      dto: { $inc: { membersCount: isBanned ? 1 : -1 } },
+    });
+
+    const updated = await this.membersRepository.updateOne({
+      query: { space: spaceObjectId, _id: memberObjectId },
+      dto: isBanned
+        ? {
+            banned: false,
+            bannedReason: null,
+            bannedAt: null,
+            deleted: false,
+            deletedAt: null,
+          }
+        : {
+            banned: true,
+            bannedReason: bannedReason ?? null,
+            bannedAt: new Date(),
+            deleted: true,
+            deletedAt: null,
+          },
+    });
+
+    if (!updated) throw new InternalServerErrorException('members.notUpdated');
+
+    return updated;
   }
 }
