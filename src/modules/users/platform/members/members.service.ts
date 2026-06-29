@@ -77,6 +77,7 @@ export class MembersService {
               joinedAt: 1,
               adminTag: 1,
               adminTagColor: 1,
+              permissions: 1,
             },
           },
         ],
