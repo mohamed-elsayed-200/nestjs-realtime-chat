@@ -10,10 +10,14 @@ import {
   SpaceMemberPermission,
   SpaceMemberRole,
 } from '../../../../common/types/enums';
+import { SpacesRepository } from '../../../../common/modules/platform/spaces/spaces.repository';
 
 @Injectable()
 export class MembersService {
-  constructor(private readonly membersRepository: MembersRepository) {}
+  constructor(
+    private readonly membersRepository: MembersRepository,
+    private readonly spacesRepository: SpacesRepository,
+  ) {}
 
   public async getAll({ query, spaceId }) {
     return this.membersRepository.findAll({
@@ -154,6 +158,13 @@ export class MembersService {
 
     const targetMember = await this.membersRepository.findOne({
       query: { space: spaceObjectId, _id: memberObjectId },
+      populate: [
+        {
+          path: 'user',
+          model: 'User',
+          select: 'name profileColor avatar username',
+        },
+      ],
     });
 
     if (!targetMember) throw new NotFoundException('members.notFound');
@@ -163,10 +174,10 @@ export class MembersService {
     const demoted = await this.membersRepository.updateOne({
       query: { space: spaceObjectId, _id: authMember._id },
       dto: {
-        role: SpaceMemberRole.ADMIN,
+        role: SpaceMemberRole.MEMBER,
         permissions: [],
-        adminTag: 'Admin',
-        adminTagColor: '#3b82f6',
+        adminTag: null,
+        adminTagColor: null,
       },
     });
 
@@ -177,14 +188,25 @@ export class MembersService {
       dto: {
         role: SpaceMemberRole.OWNER,
         permissions: [],
-        adminTag: null,
-        adminTagColor: null,
+        adminTag: 'Owner',
+        adminTagColor: '#22c55e',
+      },
+    });
+
+    await this.spacesRepository.updateOne({
+      query: { _id: spaceObjectId },
+      dto: {
+        createdBy: new Types.ObjectId(promoted?.user?.toString()),
       },
     });
 
     if (!promoted) throw new InternalServerErrorException('members.notUpdated');
 
-    return promoted;
+    return {
+      transferredTo: promoted,
+      spaceCreatedBy: targetMember.user,
+      transferredFrom: demoted,
+    };
   }
 
   public async toggleMute({ dto, authUser }) {
