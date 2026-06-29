@@ -6,16 +6,24 @@ import {
   IsOptional,
   IsString,
 } from 'class-validator';
-import { SpaceMemberPermission } from '../../../../../../common/types/enums';
+import { SpaceMemberPermission } from '../../../../../common/types/enums';
 
-export class AddAdminDto {
+export class PromoteAdminDto {
   @IsOptional()
   @IsString()
   adminTag?: string;
 
+  @IsOptional()
+  @IsString()
+  adminTagColor?: string;
+
   @IsNotEmpty()
   @IsMongoId()
-  memberId: string;
+  member: string;
+
+  @IsNotEmpty()
+  @IsMongoId()
+  space: string;
 
   @IsArray()
   @IsEnum(SpaceMemberPermission, { each: true })

@@ -10,7 +10,6 @@ import { CreateChannelSpaceDto } from './dto/create-channel.dto';
 import { ChannelsService } from './channels.service';
 import { UpdateChannelDto } from './dto/update-channel.dto';
 import { InviteContactsDto } from './dto/invite-contacts.dto';
-import { AddAdminDto } from './dto/add-admin.dto';
 
 @Controller('/users/spaces/channel')
 @UseGuards(AuthGuard, UserTypeGuard)
@@ -27,24 +26,14 @@ export class ChannelsController {
     return this.channelsService.create({ dto, authUser });
   }
 
-  @Post('/add-admin/:spaceId')
+  @Post('/add-subscribes/:spaceId')
   @ResponseMeta({ message: 'spaces.joined', statusCode: 201 })
-  public async addAdmin(
-    @Param('spaceId', ValidateObjectIdPipe) spaceId: string,
-    @GetUser() authUser: any,
-    @Body() dto: AddAdminDto,
-  ) {
-    return this.channelsService.addAdmin({ spaceId, dto, authUser });
-  }
-
-  @Post('/invite-contacts/:spaceId')
-  @ResponseMeta({ message: 'spaces.joined', statusCode: 201 })
-  public async inviteContacts(
+  public async addSubscribes(
     @Param('spaceId', ValidateObjectIdPipe) spaceId: string,
     @GetUser() authUser: any,
     @Body() dto: InviteContactsDto,
   ) {
-    return this.channelsService.inviteContacts({ spaceId, dto, authUser });
+    return this.channelsService.addSubscribes({ spaceId, dto, authUser });
   }
 
   @Post('/join/:spaceId')

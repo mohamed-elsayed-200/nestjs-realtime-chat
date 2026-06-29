@@ -30,48 +30,6 @@ export class ChannelsService {
     private readonly messagesRepository: MessagesRepository,
   ) {}
 
-  public async addAdmin({ spaceId, dto, authUser }) {
-    const { permissions, memberId, adminTag } = dto;
-    const spaceObjectId = new Types.ObjectId(spaceId);
-    const userObjectId = new Types.ObjectId(authUser._id);
-    const memberObjectId = new Types.ObjectId(memberId);
-
-    const authMember = await this.membersRepository.findOne({
-      query: { space: spaceObjectId, user: userObjectId },
-    });
-
-    if (!authMember) throw new NotFoundException('members.notFound');
-
-    const isOwner = authMember.role === SpaceMemberRole.OWNER;
-    const isAdmin =
-      authMember.role === SpaceMemberRole.ADMIN &&
-      authMember.permissions?.includes(SpaceMemberPermission.ADD_ADMIN);
-    const canAddAdmin = isOwner || isAdmin;
-    if (!canAddAdmin) throw new BadRequestException('members.noPermission');
-
-    const targetMember = await this.membersRepository.findOne({
-      query: { space: spaceObjectId, user: memberObjectId },
-    });
-
-    if (!targetMember) throw new NotFoundException('members.notFound');
-
-    if (targetMember.role === SpaceMemberRole.OWNER)
-      throw new BadRequestException('members.cannotModifyOwner');
-
-    const updated = await this.membersRepository.updateOne({
-      query: { space: spaceObjectId, user: memberObjectId },
-      dto: {
-        role: SpaceMemberRole.ADMIN,
-        permissions: permissions ?? [],
-        adminTag: adminTag ?? 'Admin',
-      },
-    });
-
-    if (!updated) throw new InternalServerErrorException('members.notUpdated');
-
-    return updated;
-  }
-
   public async create({ dto, authUser }) {
     const newSpace = {
       name: dto?.name,
@@ -194,7 +152,7 @@ export class ChannelsService {
     return space;
   }
 
-  public async inviteContacts({ spaceId, dto, authUser }) {
+  public async addSubscribes({ spaceId, dto, authUser }) {
     const { contacts } = dto;
     const spaceObjectId = new Types.ObjectId(spaceId);
     const userObjectId = new Types.ObjectId(authUser._id);

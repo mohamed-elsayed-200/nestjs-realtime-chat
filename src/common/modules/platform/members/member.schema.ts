@@ -36,6 +36,8 @@ export class Member {
 
   @Prop()
   adminTag: string;
+  @Prop()
+  adminTagColor: string;
 
   @Prop({ default: false })
   banned: boolean;

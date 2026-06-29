@@ -1,10 +1,15 @@
 import {
+  BadRequestException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { MembersRepository } from '../../../../common/modules/platform/members/members.repository';
 import { Types } from 'mongoose';
+import {
+  SpaceMemberPermission,
+  SpaceMemberRole,
+} from '../../../../common/types/enums';
 
 @Injectable()
 export class MembersService {
@@ -70,6 +75,8 @@ export class MembersService {
               },
               role: 1,
               joinedAt: 1,
+              adminTag: 1,
+              adminTagColor: 1,
             },
           },
         ],
@@ -87,22 +94,93 @@ export class MembersService {
     return member;
   }
 
-  public async create({ dto }) {
-    const member = await this.membersRepository.createOne({ dto });
+  public async promoteAdmin({ dto, authUser }) {
+    const { permissions, member, adminTag, adminTagColor, space } = dto;
+    const spaceObjectId = new Types.ObjectId(space);
+    const userObjectId = new Types.ObjectId(authUser._id);
+    const memberObjectId = new Types.ObjectId(member);
 
-    if (!member) throw new InternalServerErrorException('members.notCreated');
+    const authMember = await this.membersRepository.findOne({
+      query: { space: spaceObjectId, user: userObjectId },
+    });
 
-    return member;
+    if (!authMember) throw new NotFoundException('members.noPermission');
+
+    const isOwner = authMember.role === SpaceMemberRole.OWNER;
+    const isAdmin =
+      authMember.role === SpaceMemberRole.ADMIN &&
+      authMember.permissions?.includes(SpaceMemberPermission.ADD_ADMIN);
+    const canAddAdmin = isOwner || isAdmin;
+    if (!canAddAdmin) throw new BadRequestException('members.noPermission');
+
+    const targetMember = await this.membersRepository.findOne({
+      query: { space: spaceObjectId, _id: memberObjectId },
+    });
+
+    if (!targetMember) throw new NotFoundException('members.notFound');
+
+    if (targetMember.role === SpaceMemberRole.OWNER)
+      throw new BadRequestException('members.cannotModifyOwner');
+
+    const updated = await this.membersRepository.updateOne({
+      query: { space: spaceObjectId, _id: memberObjectId },
+      dto: {
+        role: SpaceMemberRole.ADMIN,
+        permissions: permissions ?? [],
+        adminTag: adminTag ?? 'Admin',
+        adminTagColor: adminTagColor ?? '#3b82f6',
+      },
+    });
+
+    if (!updated) throw new InternalServerErrorException('members.notUpdated');
+
+    return updated;
   }
 
-  public async update({ memberId, dto }) {
-    const member = await this.membersRepository.updateOne({
-      query: { _id: memberId },
-      dto,
-    });
-    if (!member) throw new NotFoundException('members.notUpdated');
+  public async dismissAdmin({ dto, authUser }) {
+    const { member, space } = dto;
+    const spaceObjectId = new Types.ObjectId(space);
+    const userObjectId = new Types.ObjectId(authUser._id);
+    const memberObjectId = new Types.ObjectId(member);
 
-    return member;
+    const authMember = await this.membersRepository.findOne({
+      query: { space: spaceObjectId, user: userObjectId },
+    });
+
+    if (!authMember) throw new NotFoundException('members.noPermission');
+
+    const isOwner = authMember.role === SpaceMemberRole.OWNER;
+    const isAdmin =
+      authMember.role === SpaceMemberRole.ADMIN &&
+      authMember.permissions?.includes(SpaceMemberPermission.ADD_ADMIN);
+    const canDeleteAdmin = isOwner || isAdmin;
+    if (!canDeleteAdmin) throw new BadRequestException('members.noPermission');
+
+    const targetMember = await this.membersRepository.findOne({
+      query: { space: spaceObjectId, _id: memberObjectId },
+    });
+
+    if (!targetMember) throw new NotFoundException('members.notFound');
+
+    if (targetMember.role === SpaceMemberRole.OWNER)
+      throw new BadRequestException('members.cannotModifyOwner');
+
+    if (targetMember.role !== SpaceMemberRole.ADMIN)
+      throw new BadRequestException('members.notAdmin');
+
+    const updated = await this.membersRepository.updateOne({
+      query: { space: spaceObjectId, _id: memberObjectId },
+      dto: {
+        role: SpaceMemberRole.MEMBER,
+        permissions: [],
+        adminTag: null,
+        adminTagColor: null,
+      },
+    });
+
+    if (!updated) throw new InternalServerErrorException('members.notUpdated');
+
+    return updated;
   }
 
   public async delete({ memberId }) {
