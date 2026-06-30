@@ -211,6 +211,36 @@ export class SpacesService {
     }
   }
 
+  public async openLink({ dto, authUser }) {
+    const { linkText, linkType } = dto;
+    let query: any = {};
+
+    if (linkType === SpaceTypes.CHANNEL) {
+      query = { 'settings.channel.channelLink': linkText };
+    } else if (linkType === SpaceTypes.GROUP) {
+      query = { 'settings.group.groupLink': linkText };
+    } else {
+      throw new BadRequestException('spaces.invalidLinkType');
+    }
+
+    const findSpace = await this.spacesRepository.findOne({ query });
+    if (!findSpace) throw new NotFoundException('spaces.notFound');
+
+    const spaceId = new Types.ObjectId(findSpace._id);
+    const userId = new Types.ObjectId(authUser?._id);
+
+    const findRequest = await this.joinRequestsRepository.findOne({
+      query: { space: spaceId, user: userId },
+    });
+    const getSpace = await this.getOne({ spaceOrUserId: spaceId, authUser });
+
+    // already a member → return full space via getOne
+    return {
+      ...getSpace,
+      joinRequest: findRequest || undefined,
+    };
+  }
+
   public async getAll({ query, authUser }) {
     const userId = new Types.ObjectId(authUser._id);
 
@@ -724,35 +754,5 @@ export class SpacesService {
 
   public async markSpaceAsRead({ spaceId, authUser }) {
     await this.membersRepository.markUnreadCountAsRead({ spaceId, authUser });
-  }
-
-  public async openLink({ dto, authUser }) {
-    const { linkText, linkType } = dto;
-    let query: any = {};
-
-    if (linkType === SpaceTypes.CHANNEL) {
-      query = { 'settings.channel.channelLink': linkText };
-    } else if (linkType === SpaceTypes.GROUP) {
-      query = { 'settings.group.groupLink': linkText };
-    } else {
-      throw new BadRequestException('spaces.invalidLinkType');
-    }
-
-    const findSpace = await this.spacesRepository.findOne({ query });
-    if (!findSpace) throw new NotFoundException('spaces.notFound');
-
-    const spaceId = new Types.ObjectId(findSpace._id);
-    const userId = new Types.ObjectId(authUser?._id);
-
-    const findRequest = await this.joinRequestsRepository.findOne({
-      query: { space: spaceId, user: userId },
-    });
-    const getSpace = await this.getOne({ spaceOrUserId: spaceId, authUser });
-
-    // already a member → return full space via getOne
-    return {
-      ...getSpace,
-      joinRequest: findRequest || undefined,
-    };
   }
 }
