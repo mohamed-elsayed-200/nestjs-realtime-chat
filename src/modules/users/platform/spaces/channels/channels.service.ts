@@ -250,22 +250,30 @@ export class ChannelsService {
     const existingMember = await this.membersRepository.findOne({
       query: { space: spaceObjectId, user: userObjectId },
     });
-    if (existingMember) throw new BadRequestException('members.alreadyJoined');
 
-    // create & join a new member
-    const member = await this.membersRepository.createOne({
-      dto: {
-        user: userObjectId,
-        space: spaceObjectId,
-        role: SpaceMemberRole.MEMBER,
-        joinedAt: new Date(),
-        pin: false,
-        mute: false,
-        archive: false,
-        permissions: [],
-      },
-    });
-
+    let member: any;
+    if (existingMember) {
+      member = await this.membersRepository.updateOne({
+        query: { _id: existingMember?._id },
+        dto: {
+          deleted: false,
+          deletedAt: null,
+        },
+      });
+    } else {
+      member = await this.membersRepository.createOne({
+        dto: {
+          user: userObjectId,
+          space: spaceObjectId,
+          role: SpaceMemberRole.MEMBER,
+          joinedAt: new Date(),
+          pin: false,
+          mute: false,
+          archive: false,
+          permissions: [],
+        },
+      });
+    }
     const updatedSpace = await this.spacesRepository.updateOne({
       query: { _id: spaceObjectId },
       dto: { $inc: { membersCount: 1 } },
@@ -310,8 +318,9 @@ export class ChannelsService {
     if (member.role === SpaceMemberRole.OWNER)
       throw new BadRequestException('members.ownerCannotLeave');
 
-    await this.membersRepository.deleteOne({
+    await this.membersRepository.updateOne({
       query: { space: spaceObjectId, user: userObjectId },
+      dto: { deleted: true, deletedAt: null },
     });
 
     const updatedSpace = await this.spacesRepository.updateOne({

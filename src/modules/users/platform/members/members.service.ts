@@ -24,7 +24,7 @@ export class MembersService {
       query,
       options: {
         allowedSearchFields: ['name', 'bio'],
-        allowedFilterFields: ['status'],
+        allowedFilterFields: ['status', 'banned'],
         pipelines: [
           {
             $match: {
@@ -343,15 +343,11 @@ export class MembersService {
             banned: false,
             bannedReason: null,
             bannedAt: null,
-            deleted: false,
-            deletedAt: null,
           }
         : {
             banned: true,
             bannedReason: bannedReason ?? null,
             bannedAt: new Date(),
-            deleted: true,
-            deletedAt: null,
           },
     });
 
