@@ -23,8 +23,7 @@ export class MembersService {
     return this.membersRepository.findAll({
       query,
       options: {
-        allowedSearchFields: ['name', 'bio'],
-        allowedFilterFields: ['status', 'banned'],
+        allowedFilterFields: ['banned'],
         pipelines: [
           {
             $match: {
@@ -84,7 +83,8 @@ export class MembersService {
               adminTagColor: 1,
               permissions: 1,
               mute: 1,
-              deleted: 1,
+              banned: 1,
+              bannedAt: 1,
             },
           },
         ],
