@@ -9,6 +9,7 @@ import { SpacesRepository } from '../../../../common/modules/platform/spaces/spa
 import { MembersRepository } from '../../../../common/modules/platform/members/members.repository';
 import {
   MessageStatus,
+  SpaceHistory,
   SpaceMemberRole,
   SpaceTypes,
 } from '../../../../common/types/enums';
@@ -23,10 +24,53 @@ export class MessagesService {
   ) {}
 
   public async getAll({ query, spaceId, authUser }) {
-    const userId = new Types.ObjectId(authUser?._id);
-    const member = await this.membersRepository.findOne({
-      query: { user: userId, space: new Types.ObjectId(spaceId) },
+    const userObjectId = new Types.ObjectId(authUser?._id);
+    let spaceObjectId = new Types.ObjectId(spaceId);
+    const findMember = await this.membersRepository.findOne({
+      query: {
+        user: userObjectId,
+        space: new Types.ObjectId(spaceId),
+        isBanned: false,
+      },
     });
+    const findSpace = await this.spacesRepository.findOne({
+      query: { _id: spaceObjectId },
+    });
+
+    let hideMessagesFromDate: Date | null = null;
+    let blockAllMessages = false; // ← فلاج لو joinedAt null
+
+    const isChannel = findSpace.type === SpaceTypes.CHANNEL;
+    const isPrivate = findSpace.type === SpaceTypes.PRIVATE;
+
+    if (isChannel) {
+      const settings = findSpace.settings.channel;
+      const hideMessages = settings.spaceHistory === SpaceHistory.HIDDEN;
+      if (hideMessages) {
+        if (findMember?.joinedAt) {
+          hideMessagesFromDate = findMember.joinedAt;
+        } else {
+          blockAllMessages = true; // ← joinedAt null → ميرجعش حاجة
+        }
+      }
+    }
+
+    if (blockAllMessages) {
+      return this.messagesRepository.findAll({
+        query,
+        options: {
+          allowedSearchFields: [],
+          allowedFilterFields: [],
+          pipelines: [
+            {
+              $match: {
+                _id: { $exists: false }, // ← مش هيرجع أي نتيجة
+              },
+            },
+          ],
+        },
+      });
+    }
 
     return this.messagesRepository.findAll({
       query,
@@ -36,11 +80,15 @@ export class MessagesService {
         pipelines: [
           {
             $match: {
-              space: new Types.ObjectId(spaceId),
+              space: spaceObjectId,
               isDeletedForMe: { $ne: true },
-              ...(member?.deletedAt && {
-                createdAt: { $gt: member.deletedAt },
+              ...(hideMessagesFromDate && {
+                createdAt: { $gte: hideMessagesFromDate },
               }),
+              ...(isPrivate &&
+                findMember?.deletedAt && {
+                  createdAt: { $gt: findMember.deletedAt },
+                }),
             },
           },
           {
@@ -137,7 +185,11 @@ export class MessagesService {
                     },
                     hasUserReacted: {
                       $sum: {
-                        $cond: [{ $eq: ['$userDetails._id', userId] }, 1, 0],
+                        $cond: [
+                          { $eq: ['$userDetails._id', userObjectId] },
+                          1,
+                          0,
+                        ],
                       },
                     },
                   },
@@ -191,7 +243,7 @@ export class MessagesService {
               isPinned: 1,
               isOutgoing: {
                 $cond: {
-                  if: { $eq: ['$sender._id', userId] },
+                  if: { $eq: ['$sender._id', userObjectId] },
                   then: true,
                   else: false,
                 },
@@ -230,7 +282,7 @@ export class MessagesService {
                     },
                     isOutgoing: {
                       $cond: {
-                        if: { $eq: ['$replyTo.sender._id', userId] },
+                        if: { $eq: ['$replyTo.sender._id', userObjectId] },
                         then: true,
                         else: false,
                       },
@@ -271,6 +323,7 @@ export class MessagesService {
     await this.membersRepository.updateMany({
       query: {
         space: spaceId,
+        type: SpaceTypes.PRIVATE,
         user: { $ne: senderId },
       },
       dto: {

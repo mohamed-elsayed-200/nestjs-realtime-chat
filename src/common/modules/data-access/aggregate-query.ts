@@ -157,3 +157,15 @@ export async function aggregateQuery({ options, query }: AggregateQueryProps) {
     items,
   };
 }
+
+export const emptyAggregateQuery = {
+  pagination: {
+    page: 0,
+    pageSize: 0,
+    totalItems: 0,
+    totalPages: 0,
+    hasNextPage: false,
+    hasPrevPage: false,
+  },
+  items: [],
+};

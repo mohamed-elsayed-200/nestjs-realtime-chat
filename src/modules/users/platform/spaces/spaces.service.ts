@@ -147,7 +147,7 @@ export class SpacesService {
         ...dataMember,
 
         // Space fields
-        isBanned: member?.isDeleted || undefined,
+        isBanned: member?.isBanned || undefined,
         bannedAt: member?.bannedAt || undefined,
         type: spaceData.type,
         status: spaceData.status,

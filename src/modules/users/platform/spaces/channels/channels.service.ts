@@ -260,6 +260,7 @@ export class ChannelsService {
         dto: {
           isDeleted: false,
           deletedAt: null,
+          joinedAt: new Date(),
         },
       });
     } else {
@@ -328,7 +329,13 @@ export class ChannelsService {
 
     await this.membersRepository.updateOne({
       query: { space: spaceObjectId, user: userObjectId },
-      dto: { isDeleted: true, deletedAt: null },
+      dto: {
+        isDeleted: true,
+        deletedAt: new Date(),
+        joinedAt: null,
+        role: SpaceMemberRole.MEMBER,
+        permission: [],
+      },
     });
 
     const updatedSpace = await this.spacesRepository.updateOne({
