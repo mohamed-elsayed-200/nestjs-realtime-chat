@@ -37,23 +37,26 @@ export class Member {
   @Prop()
   adminTagColor: string;
 
-  @Prop({ default: false })
-  banned: boolean;
-
   @Prop()
   bannedReason: string;
 
   @Prop({ default: false })
-  deleted: boolean;
+  isBanned: boolean;
 
   @Prop({ default: false })
-  archive: boolean;
+  isDeleted: boolean;
 
   @Prop({ default: false })
-  pin: boolean;
+  isArchived: boolean;
 
   @Prop({ default: false })
-  mute: boolean;
+  isRestricted: boolean;
+
+  @Prop({ default: false })
+  isPined: boolean;
+
+  @Prop({ default: false })
+  isMuted: boolean;
 
   @Prop({ type: Number, default: 0 })
   unreadCount: number;
@@ -61,6 +64,9 @@ export class Member {
   // Dates
   @Prop()
   deletedAt?: Date;
+
+  @Prop()
+  restrictedAt?: Date;
 
   @Prop()
   mutedAt?: Date;

@@ -79,7 +79,7 @@ export class SpacesService {
       });
 
       const spaceData: any = member ? member.space : findSpace;
-      const isMember = Boolean(member?._id) && !member?.deleted;
+      const isMember = Boolean(member?._id) && !member?.isDeleted;
       // 2. Get user's contact for this space (if private space)
       let userContact = null;
       let otherParty = null;
@@ -106,9 +106,9 @@ export class SpacesService {
       const dataMember = isMember
         ? {
             unreadCount: member?.unreadCount || undefined,
-            pin: member?.pin || undefined,
-            mute: member?.mute || undefined,
-            archive: member?.archive || undefined,
+            isPined: member?.isPined || undefined,
+            isMuted: member?.isMuted || undefined,
+            isArchived: member?.isArchived || undefined,
             folder: member?.folder || undefined,
             role: member?.role || undefined,
             permissions: member?.permissions || undefined,
@@ -147,7 +147,7 @@ export class SpacesService {
         ...dataMember,
 
         // Space fields
-        banned: member?.banned || undefined,
+        isBanned: member?.isDeleted || undefined,
         bannedAt: member?.bannedAt || undefined,
         type: spaceData.type,
         status: spaceData.status,
@@ -198,9 +198,9 @@ export class SpacesService {
       const response = {
         _id: user?._id,
         unreadCount: 0,
-        pin: false,
-        mute: false,
-        archive: false,
+        isPined: false,
+        isMuted: false,
+        isArchived: false,
         type: SpaceTypes.PRIVATE,
         bio: user.bio,
         name: findContact?.name || user?.name,
@@ -423,9 +423,9 @@ export class SpacesService {
             $project: {
               _id: '$space._id',
               unreadCount: 1,
-              pin: 1,
-              mute: 1,
-              archive: 1,
+              isPined: 1,
+              isMuted: 1,
+              isArchived: 1,
               permissions: 1,
               role: 1,
               wallpaper: 1,
@@ -635,12 +635,12 @@ export class SpacesService {
         space: new Types.ObjectId(spaceId),
         user: new Types.ObjectId(authUser._id),
       },
-      dto: { pin: !findMember.pin },
+      dto: { isPined: !findMember.isPined },
     });
 
     if (!member) throw new InternalServerErrorException('spaces.notUpdated');
 
-    return { pin: member.pin };
+    return { isPined: member.isPined };
   }
 
   public async toggleMute({ spaceId, authUser }) {
@@ -657,12 +657,12 @@ export class SpacesService {
         space: new Types.ObjectId(spaceId),
         user: new Types.ObjectId(authUser._id),
       },
-      dto: { mute: !findMember.mute },
+      dto: { isMuted: !findMember.isMuted },
     });
 
     if (!member) throw new InternalServerErrorException('spaces.notUpdated');
 
-    return { mute: member.mute };
+    return { isMuted: member.isMuted };
   }
 
   public async toggleArchive({ spaceId, authUser }) {
@@ -679,12 +679,12 @@ export class SpacesService {
         space: new Types.ObjectId(spaceId),
         user: new Types.ObjectId(authUser._id),
       },
-      dto: { archive: !findMember.archive },
+      dto: { isArchived: !findMember.isArchived },
     });
 
     if (!member) throw new InternalServerErrorException('spaces.notUpdated');
 
-    return { archive: member.archive };
+    return { isArchived: member.isArchived };
   }
 
   public async delete({ spaceId, dto, authUser }) {

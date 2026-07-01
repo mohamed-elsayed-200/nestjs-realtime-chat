@@ -36,7 +36,7 @@ export class ChannelsService {
       avatar: dto?.avatar,
       profileColor: this.usersRepository.getRandomColor(),
       bio: dto?.bio,
-      archive: false,
+      isArchived: false,
       status: ActivationStatus.ACTIVE,
       type: SpaceTypes.CHANNEL,
       createdBy: new Types.ObjectId(authUser._id),
@@ -53,9 +53,9 @@ export class ChannelsService {
         space: new Types.ObjectId(space._id?.toString()),
         role: SpaceMemberRole.OWNER,
         joinedAt: new Date(),
-        pin: false,
-        mute: false,
-        archive: false,
+        isPined: false,
+        isMuted: false,
+        isArchived: false,
         permissions: [
           SpaceMemberPermission.ADD_STORIES,
           SpaceMemberPermission.EDIT_STORIES,
@@ -206,9 +206,9 @@ export class ChannelsService {
         space: spaceObjectId,
         role: SpaceMemberRole.MEMBER,
         joinedAt: new Date(),
-        pin: false,
-        mute: false,
-        archive: false,
+        isPined: false,
+        isMuted: false,
+        isArchived: false,
         permissions: [],
       })),
     });
@@ -250,7 +250,7 @@ export class ChannelsService {
     const existingMember = await this.membersRepository.findOne({
       query: { space: spaceObjectId, user: userObjectId },
     });
-    if (existingMember && existingMember?.banned)
+    if (existingMember && existingMember?.isBanned)
       throw new BadRequestException('spaces.isPrivate');
 
     let member: any;
@@ -269,15 +269,15 @@ export class ChannelsService {
           space: spaceObjectId,
           role: SpaceMemberRole.MEMBER,
           joinedAt: new Date(),
-          pin: false,
-          mute: false,
-          archive: false,
+          isPined: false,
+          isMuted: false,
+          isArchived: false,
           permissions: [],
         },
       });
     }
 
-    const wasInactive = !existingMember || existingMember.deleted;
+    const wasInactive = !existingMember || existingMember.isDeleted;
     let updatedSpace = findSpace;
     if (wasInactive) {
       const s = await this.spacesRepository.updateOne({
@@ -290,9 +290,9 @@ export class ChannelsService {
     return {
       ...updatedSpace,
       unreadCount: member?.unreadCount,
-      pin: member?.pin,
-      mute: member?.mute,
-      archive: member?.archive,
+      isPined: member?.isPined,
+      isMuted: member?.isMuted,
+      isArchived: member?.isArchived,
       folder: member?.folder,
       role: member?.role,
       permissions: member?.permissions,

@@ -204,9 +204,10 @@ export class JoinRequestsService {
         role: SpaceMemberRole.MEMBER,
         permissions: [],
         joinedAt: new Date(),
-        pin: false,
-        mute: false,
-        archive: false,
+
+        isPined: false,
+        isMuted: false,
+        isArchived: false,
       },
     });
     if (!newMember)

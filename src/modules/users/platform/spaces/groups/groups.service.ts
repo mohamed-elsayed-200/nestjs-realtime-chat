@@ -49,9 +49,9 @@ export class GroupsService {
                 ? SpaceMemberRole.OWNER
                 : SpaceMemberRole.MEMBER,
             joinedAt: new Date(),
-            pin: false,
-            mute: false,
-            archive: false,
+            isPined: false,
+            isMuted: false,
+            isArchived: false,
           },
         }),
       ),

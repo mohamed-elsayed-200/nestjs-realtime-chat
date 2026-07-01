@@ -81,8 +81,8 @@ export class MembersService {
               adminTag: 1,
               adminTagColor: 1,
               permissions: 1,
-              mute: 1,
-              banned: 1,
+              isMuted: 1,
+              isBanned: 1,
               bannedAt: 1,
             },
           },
@@ -99,7 +99,7 @@ export class MembersService {
           {
             $match: {
               space: new Types.ObjectId(spaceId),
-              banned: true,
+              isBanned: true,
             },
           },
           {
@@ -153,8 +153,8 @@ export class MembersService {
               adminTag: 1,
               adminTagColor: 1,
               permissions: 1,
-              mute: 1,
-              banned: 1,
+              isMuted: 1,
+              isBanned: 1,
               bannedAt: 1,
               bannedReason: 1,
             },
@@ -253,7 +253,6 @@ export class MembersService {
         permissions: [],
         adminTag: null,
         adminTagColor: null,
-        mute: false,
       },
     });
 
@@ -266,7 +265,6 @@ export class MembersService {
         permissions: [],
         adminTag: 'Owner',
         adminTagColor: '#22c55e',
-        mute: false,
       },
     });
 
@@ -311,12 +309,11 @@ export class MembersService {
     if (targetMember.role === SpaceMemberRole.OWNER)
       throw new BadRequestException('members.cannotModifyOwner');
 
-    const isMuted = targetMember.mute;
-
+    const isMuted = targetMember.isMuted;
     const updated = await this.membersRepository.updateOne({
       query: { space: spaceObjectId, _id: memberObjectId },
       dto: {
-        mute: !isMuted,
+        isMuted: !isMuted,
         mutedAt: isMuted ? null : new Date(),
       },
     });
@@ -401,7 +398,7 @@ export class MembersService {
     if (targetMember.role === SpaceMemberRole.ADMIN && !isOwner)
       throw new BadRequestException('members.noPermission');
 
-    const isBanned = targetMember.banned;
+    const isBanned = targetMember.isBanned;
 
     if (!isBanned) {
       await this.spacesRepository.updateOne({
@@ -414,12 +411,12 @@ export class MembersService {
       query: { space: spaceObjectId, _id: memberObjectId },
       dto: isBanned
         ? {
-            banned: false,
+            isBanned: false,
             bannedReason: null,
             bannedAt: null,
           }
         : {
-            banned: true,
+            isBanned: true,
             bannedReason: bannedReason ?? null,
             bannedAt: new Date(),
             deleted: true,
