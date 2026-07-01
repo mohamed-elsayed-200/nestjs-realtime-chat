@@ -250,6 +250,8 @@ export class ChannelsService {
     const existingMember = await this.membersRepository.findOne({
       query: { space: spaceObjectId, user: userObjectId },
     });
+    if (existingMember && existingMember?.banned)
+      throw new BadRequestException('spaces.isPrivate');
 
     let member: any;
     if (existingMember) {
@@ -274,13 +276,19 @@ export class ChannelsService {
         },
       });
     }
-    const updatedSpace = await this.spacesRepository.updateOne({
-      query: { _id: spaceObjectId },
-      dto: { $inc: { membersCount: 1 } },
-    });
+
+    const wasInactive = !existingMember || existingMember.deleted;
+    let updatedSpace = findSpace;
+    if (wasInactive) {
+      const s = await this.spacesRepository.updateOne({
+        query: { _id: spaceObjectId },
+        dto: { $inc: { membersCount: 1 } },
+      });
+      updatedSpace = s?.toObject();
+    }
 
     return {
-      ...updatedSpace.toObject(),
+      ...updatedSpace,
       unreadCount: member?.unreadCount,
       pin: member?.pin,
       mute: member?.mute,

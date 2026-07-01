@@ -38,6 +38,15 @@ export class MembersController {
     return this.membersService.getAll({ query, spaceId });
   }
 
+  @Get('/blocked/:spaceId')
+  @ResponseMeta({ message: 'members.foundAll' })
+  public async getBlockedBySpace(
+    @Param('spaceId', ValidateObjectIdPipe) spaceId: string,
+    @Query() query: QueryDto,
+  ) {
+    return this.membersService.getBlockedBySpace({ query, spaceId });
+  }
+
   @Post('/promote-admin')
   @ResponseMeta({ message: 'members.promoted', statusCode: 201 })
   public async addAdmin(

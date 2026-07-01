@@ -48,7 +48,7 @@ export class SpacesService {
     if (findSpace) {
       // 1. Find the member with populated space
       const member = await this.membersRepository.findOne({
-        query: { space: spaceId, user: userId, deleted: false },
+        query: { space: spaceId, user: userId },
         populate: [
           {
             path: 'space',
@@ -79,7 +79,7 @@ export class SpacesService {
       });
 
       const spaceData: any = member ? member.space : findSpace;
-      const isMember = Boolean(member?._id);
+      const isMember = Boolean(member?._id) && !member?.deleted;
       // 2. Get user's contact for this space (if private space)
       let userContact = null;
       let otherParty = null;
@@ -147,6 +147,8 @@ export class SpacesService {
         ...dataMember,
 
         // Space fields
+        banned: member?.banned || undefined,
+        bannedAt: member?.bannedAt || undefined,
         type: spaceData.type,
         status: spaceData.status,
         createdAt: spaceData.createdAt,

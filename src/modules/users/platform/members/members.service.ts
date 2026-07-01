@@ -23,12 +23,83 @@ export class MembersService {
     return this.membersRepository.findAll({
       query,
       options: {
-        allowedFilterFields: ['banned'],
         pipelines: [
           {
             $match: {
               space: new Types.ObjectId(spaceId),
               deleted: false,
+            },
+          },
+          {
+            $lookup: {
+              from: 'spaces',
+              localField: 'space',
+              foreignField: '_id',
+              as: 'space',
+            },
+          },
+          {
+            $unwind: {
+              path: '$space',
+              preserveNullAndEmptyArrays: true,
+            },
+          },
+          {
+            $lookup: {
+              from: 'users',
+              localField: 'user',
+              foreignField: '_id',
+              as: 'user',
+            },
+          },
+          {
+            $unwind: {
+              path: '$user',
+              preserveNullAndEmptyArrays: true,
+            },
+          },
+
+          {
+            $project: {
+              space: {
+                id: '$space._id',
+                membersCount: '$space.membersCount',
+                name: '$space.name',
+                type: '$space.type',
+                profileColor: '$space.profileColor',
+                avatar: '$space.avatar',
+              },
+              user: {
+                id: '$user._id',
+                name: '$user.name',
+                username: '$user.username',
+                profileColor: '$user.profileColor',
+                avatar: '$user.avatar',
+              },
+              role: 1,
+              joinedAt: 1,
+              adminTag: 1,
+              adminTagColor: 1,
+              permissions: 1,
+              mute: 1,
+              banned: 1,
+              bannedAt: 1,
+            },
+          },
+        ],
+      },
+    });
+  }
+
+  public async getBlockedBySpace({ query, spaceId }) {
+    return this.membersRepository.findAll({
+      query,
+      options: {
+        pipelines: [
+          {
+            $match: {
+              space: new Types.ObjectId(spaceId),
+              banned: true,
             },
           },
           {
@@ -331,10 +402,12 @@ export class MembersService {
 
     const isBanned = targetMember.banned;
 
-    await this.spacesRepository.updateOne({
-      query: { _id: spaceObjectId },
-      dto: { $inc: { membersCount: isBanned ? 1 : -1 } },
-    });
+    if (!isBanned) {
+      await this.spacesRepository.updateOne({
+        query: { _id: spaceObjectId },
+        dto: { $inc: { membersCount: -1 } },
+      });
+    }
 
     const updated = await this.membersRepository.updateOne({
       query: { space: spaceObjectId, _id: memberObjectId },
@@ -348,6 +421,7 @@ export class MembersService {
             banned: true,
             bannedReason: bannedReason ?? null,
             bannedAt: new Date(),
+            deleted: true,
           },
     });
 
