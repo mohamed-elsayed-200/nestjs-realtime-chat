@@ -158,7 +158,7 @@ export class ChannelsService {
     const userObjectId = new Types.ObjectId(authUser._id);
 
     const member = await this.membersRepository.findOne({
-      query: { space: spaceObjectId, user: userObjectId, deleted: false },
+      query: { space: spaceObjectId, user: userObjectId, isDeleted: false },
     });
     if (!member) throw new NotFoundException('members.notFound');
 
@@ -258,7 +258,7 @@ export class ChannelsService {
       member = await this.membersRepository.updateOne({
         query: { _id: existingMember?._id },
         dto: {
-          deleted: false,
+          isDeleted: false,
           deletedAt: null,
         },
       });
@@ -328,7 +328,7 @@ export class ChannelsService {
 
     await this.membersRepository.updateOne({
       query: { space: spaceObjectId, user: userObjectId },
-      dto: { deleted: true, deletedAt: null },
+      dto: { isDeleted: true, deletedAt: null },
     });
 
     const updatedSpace = await this.spacesRepository.updateOne({

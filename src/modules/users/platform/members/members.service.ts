@@ -27,7 +27,7 @@ export class MembersService {
           {
             $match: {
               space: new Types.ObjectId(spaceId),
-              deleted: false,
+              isDeleted: false,
             },
           },
           {
@@ -419,7 +419,7 @@ export class MembersService {
             isBanned: true,
             bannedReason: bannedReason ?? null,
             bannedAt: new Date(),
-            deleted: true,
+            isDeleted: true,
           },
     });
 

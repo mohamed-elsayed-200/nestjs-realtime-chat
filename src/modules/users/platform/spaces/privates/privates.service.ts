@@ -49,7 +49,7 @@ export class PrivatesService {
           space: existingSpace._id,
           user: userId,
         },
-        dto: { deleted: false },
+        dto: { isDeleted: false },
       });
 
       const [senderContact, receivedContact] = await Promise.all([

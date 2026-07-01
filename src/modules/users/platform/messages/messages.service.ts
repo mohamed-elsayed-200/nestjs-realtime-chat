@@ -274,7 +274,7 @@ export class MessagesService {
         user: { $ne: senderId },
       },
       dto: {
-        deleted: false,
+        isDeleted: false,
         $inc: { unreadCount: 1 },
       },
     });

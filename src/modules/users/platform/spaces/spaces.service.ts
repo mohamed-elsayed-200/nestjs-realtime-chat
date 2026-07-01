@@ -257,7 +257,7 @@ export class SpacesService {
           {
             $match: {
               user: userId,
-              deleted: false,
+              isDeleted: false,
             },
           },
 
@@ -716,7 +716,7 @@ export class SpacesService {
       throw new BadRequestException('spaces.notDeleted');
     if (isGroup && !isOwner) throw new BadRequestException('spaces.notDeleted');
     const remainingMembers = await this.membersRepository.count({
-      query: { space: spaceObjectId, deleted: false },
+      query: { space: spaceObjectId, isDeleted: false },
     });
 
     if (
@@ -743,7 +743,7 @@ export class SpacesService {
     } else {
       await this.membersRepository.updateOne({
         query: { user: userObjectId, space: spaceObjectId },
-        dto: { deleted: true, deletedAt: new Date() },
+        dto: { isDeleted: true, deletedAt: new Date() },
       });
 
       const item = await this.spacesRepository.findOne({
