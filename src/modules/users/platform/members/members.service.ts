@@ -81,6 +81,7 @@ export class MembersService {
               adminTag: 1,
               adminTagColor: 1,
               permissions: 1,
+              isRestricted: 1,
               isMuted: 1,
               isBanned: 1,
               bannedAt: 1,
@@ -153,6 +154,7 @@ export class MembersService {
               adminTag: 1,
               adminTagColor: 1,
               permissions: 1,
+              isRestricted: 1,
               isMuted: 1,
               isBanned: 1,
               bannedAt: 1,
@@ -284,7 +286,7 @@ export class MembersService {
     };
   }
 
-  public async toggleMute({ dto, authUser }) {
+  public async toggleRestrict({ dto, authUser }) {
     const { member, space } = dto;
     const spaceObjectId = new Types.ObjectId(space);
     const userObjectId = new Types.ObjectId(authUser._id);
@@ -309,12 +311,12 @@ export class MembersService {
     if (targetMember.role === SpaceMemberRole.OWNER)
       throw new BadRequestException('members.cannotModifyOwner');
 
-    const isMuted = targetMember.isMuted;
+    const isRestricted = targetMember.isRestricted;
     const updated = await this.membersRepository.updateOne({
       query: { space: spaceObjectId, _id: memberObjectId },
       dto: {
-        isMuted: !isMuted,
-        mutedAt: isMuted ? null : new Date(),
+        isRestricted: !isRestricted,
+        restrictedAt: isRestricted ? null : new Date(),
       },
     });
 

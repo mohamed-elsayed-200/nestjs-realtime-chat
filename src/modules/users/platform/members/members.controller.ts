@@ -19,7 +19,7 @@ import { QueryDto } from '../../../../common/modules/dto/query.dto';
 import { GetUser } from '../../../../common/decorators/get-user.decorator';
 import { PromoteAdminDto } from './dto/promote-admin.dto';
 import { DismissAdminDto } from './dto/dismiss-admin.dto';
-import { ToggleMuteMemberDto } from './dto/toggle-mute-member.dto';
+import { ToggleRestrictedMemberDto } from './dto/toggle-mute-member.dto';
 import { TransferOwnershipDto } from './dto/transfer-ownership.dto';
 import { ToggleBanMemberDto } from './dto/toggle-ban-member.dto';
 
@@ -74,13 +74,13 @@ export class MembersController {
     return this.membersService.transferOwnership({ dto, authUser });
   }
 
-  @Post('/toggle-mute')
+  @Post('/toggle-restrict')
   @ResponseMeta({ message: 'members.toggled', statusCode: 201 })
-  public async toggleMute(
+  public async toggleRestrict(
     @GetUser() authUser: any,
-    @Body() dto: ToggleMuteMemberDto,
+    @Body() dto: ToggleRestrictedMemberDto,
   ) {
-    return this.membersService.toggleMute({ dto, authUser });
+    return this.membersService.toggleRestrict({ dto, authUser });
   }
 
   @Post('/toggle-ban')
