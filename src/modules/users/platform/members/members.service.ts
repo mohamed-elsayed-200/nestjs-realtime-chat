@@ -91,7 +91,7 @@ export class MembersService {
     });
   }
 
-  public async getBlockedBySpace({ query, spaceId }) {
+  public async getBannedBySpace({ query, spaceId }) {
     return this.membersRepository.findAll({
       query,
       options: {
@@ -156,6 +156,7 @@ export class MembersService {
               mute: 1,
               banned: 1,
               bannedAt: 1,
+              bannedReason: 1,
             },
           },
         ],

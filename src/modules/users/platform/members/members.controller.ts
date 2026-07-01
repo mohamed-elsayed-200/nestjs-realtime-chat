@@ -38,13 +38,13 @@ export class MembersController {
     return this.membersService.getAll({ query, spaceId });
   }
 
-  @Get('/blocked/:spaceId')
+  @Get('/banned/:spaceId')
   @ResponseMeta({ message: 'members.foundAll' })
-  public async getBlockedBySpace(
+  public async getBannedBySpace(
     @Param('spaceId', ValidateObjectIdPipe) spaceId: string,
     @Query() query: QueryDto,
   ) {
-    return this.membersService.getBlockedBySpace({ query, spaceId });
+    return this.membersService.getBannedBySpace({ query, spaceId });
   }
 
   @Post('/promote-admin')
