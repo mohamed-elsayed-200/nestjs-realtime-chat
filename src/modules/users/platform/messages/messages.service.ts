@@ -38,19 +38,19 @@ export class MessagesService {
     });
 
     let hideMessagesFromDate: Date | null = null;
-    let blockAllMessages = false; // ← فلاج لو joinedAt null
+    let blockAllMessages = false;
 
-    const isChannel = findSpace.type === SpaceTypes.CHANNEL;
-    const isPrivate = findSpace.type === SpaceTypes.PRIVATE;
+    const isChannel = findSpace?.type === SpaceTypes.CHANNEL;
+    const isPrivate = findSpace?.type === SpaceTypes.PRIVATE;
 
     if (isChannel) {
-      const settings = findSpace.settings.channel;
-      const hideMessages = settings.spaceHistory === SpaceHistory.HIDDEN;
+      const settings = findSpace?.settings?.channel;
+      const hideMessages = settings?.spaceHistory === SpaceHistory.HIDDEN;
       if (hideMessages) {
         if (findMember?.joinedAt) {
-          hideMessagesFromDate = findMember.joinedAt;
+          hideMessagesFromDate = findMember?.joinedAt;
         } else {
-          blockAllMessages = true; // ← joinedAt null → ميرجعش حاجة
+          blockAllMessages = true;
         }
       }
     }
@@ -64,7 +64,7 @@ export class MessagesService {
           pipelines: [
             {
               $match: {
-                _id: { $exists: false }, // ← مش هيرجع أي نتيجة
+                _id: { $exists: false },
               },
             },
           ],
@@ -521,7 +521,7 @@ export class MessagesService {
     });
 
     if (
-      findSpace.type === SpaceTypes.CHANNEL &&
+      findSpace?.type === SpaceTypes.CHANNEL &&
       member.role === SpaceMemberRole.MEMBER
     ) {
       throw new ForbiddenException('messages.noPermissionToPin');
