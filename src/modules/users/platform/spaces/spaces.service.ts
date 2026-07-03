@@ -105,8 +105,8 @@ export class SpacesService {
             role: member?.role || undefined,
             permissions: member?.permissions || undefined,
             joinedAt: member?.joinedAt || undefined,
-            wallpaper: member?.wallpaper || undefined,
-
+            isBanned: member?.isBanned || undefined,
+            bannedAt: member?.bannedAt || undefined,
             received:
               findSpace?.type === SpaceTypes.PRIVATE
                 ? {
@@ -130,19 +130,11 @@ export class SpacesService {
                 }
               : null,
           }
-        : {
-            wallpaper: findSpace?.wallpaper,
-          };
+        : {};
 
       const response = {
-        _id: findSpace?._id,
-
-        // Member fields
-        ...dataMember,
-
         // Space fields
-        isBanned: member?.isBanned || undefined,
-        bannedAt: member?.bannedAt || undefined,
+        _id: findSpace?._id,
         type: findSpace?.type,
         status: findSpace?.status,
         createdAt: findSpace?.createdAt,
@@ -151,7 +143,7 @@ export class SpacesService {
         settings: findSpace?.settings,
         bio: findSpace?.bio || otherParty?.bio,
         createdBy: findSpace?.createdBy || undefined,
-
+        wallpaper: findSpace?.wallpaper || member?.wallpaper || undefined,
         // Name
         name:
           findSpace?.type === SpaceTypes.PRIVATE
@@ -173,6 +165,9 @@ export class SpacesService {
         // isContact
         isContact:
           findSpace?.type === SpaceTypes.PRIVATE ? !!userContact : false,
+
+        // Member fields
+        ...dataMember,
       };
 
       return response;
