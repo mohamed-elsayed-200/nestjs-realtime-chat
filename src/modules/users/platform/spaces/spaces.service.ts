@@ -34,13 +34,33 @@ export class SpacesService {
     const userId = new Types.ObjectId(authUser._id);
     const spaceId = new Types.ObjectId(spaceOrUserId);
 
-    const findSpace = await this.spacesRepository.findOne({
+    const findSpace: any = await this.spacesRepository.findOne({
       query: { _id: spaceId },
       populate: [
         {
           path: 'createdBy',
           model: 'User',
           select: 'name avatar profileColor username',
+        },
+        {
+          path: 'sender',
+          select: '_id name username avatar profileColor bio',
+        },
+        {
+          path: 'received',
+          select: '_id name username avatar profileColor bio',
+        },
+        {
+          path: 'senderContact',
+          select: '_id name avatar profileColor',
+        },
+        {
+          path: 'receivedContact',
+          select: '_id name avatar profileColor',
+        },
+        {
+          path: 'lastMessage',
+          select: '_id sender status text createdAt',
         },
       ],
     });
@@ -49,47 +69,19 @@ export class SpacesService {
       // 1. Find the member with populated space
       const member = await this.membersRepository.findOne({
         query: { space: spaceId, user: userId },
-        populate: [
-          {
-            path: 'space',
-            populate: [
-              {
-                path: 'sender',
-                select: '_id name username avatar profileColor bio',
-              },
-              {
-                path: 'received',
-                select: '_id name username avatar profileColor bio',
-              },
-              {
-                path: 'senderContact',
-                select: '_id name avatar profileColor',
-              },
-              {
-                path: 'receivedContact',
-                select: '_id name avatar profileColor',
-              },
-              {
-                path: 'lastMessage',
-                select: '_id sender status text createdAt',
-              },
-            ],
-          },
-        ],
       });
 
-      const spaceData: any = member ? member.space : findSpace;
       const isMember = Boolean(member?._id) && !member?.isDeleted;
       // 2. Get user's contact for this space (if private space)
       let userContact = null;
       let otherParty = null;
 
-      if (spaceData.type === SpaceTypes.PRIVATE) {
+      if (findSpace?.type === SpaceTypes.PRIVATE) {
         // Get the other user
-        if (spaceData.sender?._id.toString() === userId.toString()) {
-          otherParty = spaceData.received;
+        if (findSpace?.sender?._id.toString() === userId.toString()) {
+          otherParty = findSpace?.received;
         } else {
-          otherParty = spaceData.sender;
+          otherParty = findSpace?.sender;
         }
 
         // Get user's contact with the other person
@@ -116,7 +108,7 @@ export class SpacesService {
             wallpaper: member?.wallpaper || undefined,
 
             received:
-              spaceData.type === SpaceTypes.PRIVATE
+              findSpace?.type === SpaceTypes.PRIVATE
                 ? {
                     _id: otherParty?._id,
                     name: otherParty?.name,
@@ -126,22 +118,24 @@ export class SpacesService {
                     bio: otherParty?.bio,
                   }
                 : null,
-            lastMessage: spaceData.lastMessage
+            lastMessage: findSpace?.lastMessage
               ? {
                   isOutgoing:
-                    spaceData.lastMessage.sender?._id?.toString() ===
+                    findSpace?.lastMessage.sender?._id?.toString() ===
                     userId.toString(),
-                  id: spaceData.lastMessage._id,
-                  status: spaceData.lastMessage.status,
-                  text: spaceData.lastMessage.text,
-                  createdAt: spaceData.lastMessage.createdAt,
+                  id: findSpace?.lastMessage._id,
+                  status: findSpace?.lastMessage.status,
+                  text: findSpace?.lastMessage.text,
+                  createdAt: findSpace?.lastMessage.createdAt,
                 }
               : null,
           }
-        : {};
+        : {
+            wallpaper: findSpace?.wallpaper,
+          };
 
       const response = {
-        _id: spaceData._id,
+        _id: findSpace?._id,
 
         // Member fields
         ...dataMember,
@@ -149,36 +143,36 @@ export class SpacesService {
         // Space fields
         isBanned: member?.isBanned || undefined,
         bannedAt: member?.bannedAt || undefined,
-        type: spaceData.type,
-        status: spaceData.status,
-        createdAt: spaceData.createdAt,
-        updatedAt: spaceData.updatedAt,
-        membersCount: spaceData.membersCount,
-        settings: spaceData.settings,
-        bio: spaceData?.bio || otherParty?.bio,
+        type: findSpace?.type,
+        status: findSpace?.status,
+        createdAt: findSpace?.createdAt,
+        updatedAt: findSpace?.updatedAt,
+        membersCount: findSpace?.membersCount,
+        settings: findSpace?.settings,
+        bio: findSpace?.bio || otherParty?.bio,
         createdBy: findSpace?.createdBy || undefined,
 
         // Name
         name:
-          spaceData.type === SpaceTypes.PRIVATE
+          findSpace?.type === SpaceTypes.PRIVATE
             ? userContact?.name || otherParty?.name || null
-            : spaceData.name,
+            : findSpace?.name,
 
         // Avatar
         avatar:
-          spaceData.type === SpaceTypes.PRIVATE
+          findSpace?.type === SpaceTypes.PRIVATE
             ? userContact?.avatar || otherParty?.avatar || null
-            : spaceData.avatar,
+            : findSpace?.avatar,
 
         // Profile Color
         profileColor:
-          spaceData.type === SpaceTypes.PRIVATE
+          findSpace?.type === SpaceTypes.PRIVATE
             ? userContact?.profileColor || otherParty?.profileColor || null
-            : spaceData.profileColor,
+            : findSpace?.profileColor,
 
         // isContact
         isContact:
-          spaceData.type === SpaceTypes.PRIVATE ? !!userContact : false,
+          findSpace?.type === SpaceTypes.PRIVATE ? !!userContact : false,
       };
 
       return response;
@@ -228,7 +222,7 @@ export class SpacesService {
     const findSpace = await this.spacesRepository.findOne({ query });
     if (!findSpace) throw new NotFoundException('spaces.notFound');
 
-    const spaceId = new Types.ObjectId(findSpace._id);
+    const spaceId = new Types.ObjectId(findSpace?._id);
     const userId = new Types.ObjectId(authUser?._id);
 
     const findRequest = await this.joinRequestsRepository.findOne({
@@ -428,7 +422,6 @@ export class SpacesService {
               isArchived: 1,
               permissions: 1,
               role: 1,
-              wallpaper: 1,
               folder: { $ifNull: ['$folder', null] },
 
               // Space fields - use $space.fieldName directly
@@ -461,6 +454,20 @@ export class SpacesService {
                     },
                   },
                   else: false,
+                },
+              },
+
+              // FIXED: wallpaper
+              wallpaper: {
+                $cond: {
+                  if: {
+                    $and: [
+                      { $ne: ['$space.wallpaper', null] },
+                      { $ne: ['$space.wallpaper', ''] },
+                    ],
+                  },
+                  then: '$space.wallpaper',
+                  else: '$wallpaper',
                 },
               },
 

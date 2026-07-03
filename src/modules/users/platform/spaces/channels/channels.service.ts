@@ -73,6 +73,8 @@ export class ChannelsService {
         isPined: false,
         isMuted: false,
         isArchived: false,
+        adminTag: 'Owner',
+        adminTagColor: '#22c55e',
         permissions: [
           SpaceMemberPermission.ADD_STORIES,
           SpaceMemberPermission.EDIT_STORIES,

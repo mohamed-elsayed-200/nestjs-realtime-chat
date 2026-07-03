@@ -21,6 +21,9 @@ export class Space {
   @Prop()
   avatar: string;
 
+  @Prop()
+  wallpaper: string;
+
   @Prop({ type: Types.ObjectId, ref: 'User' })
   createdBy: Types.ObjectId;
 
