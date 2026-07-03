@@ -33,6 +33,14 @@ export class CreateChannelSpaceDto {
   avatar?: string;
 
   @IsOptional()
+  @IsString({ message: 'spaces.validation.profileColor.isString' })
+  profileColor?: string;
+
+  @IsOptional()
+  @IsString({ message: 'spaces.validation.wallpaper.isString' })
+  wallpaper?: string;
+
+  @IsOptional()
   @ValidateNested()
   @Type(() => SpaceSettingsDto)
   settings?: Partial<SpaceSettingsDto>;

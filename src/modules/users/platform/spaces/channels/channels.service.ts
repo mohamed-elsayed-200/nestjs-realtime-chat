@@ -33,16 +33,33 @@ export class ChannelsService {
   public async create({ dto, authUser }) {
     const newSpace = {
       name: dto?.name,
-      avatar: dto?.avatar,
-      profileColor: this.usersRepository.getRandomColor(),
       bio: dto?.bio,
+      avatar: dto?.avatar,
+      profileColor: dto?.profileColor || this.usersRepository.getRandomColor(),
+      wallpaper: dto?.wallpaper || undefined,
+      settings: dto?.settings,
+
       isArchived: false,
       status: ActivationStatus.ACTIVE,
       type: SpaceTypes.CHANNEL,
       createdBy: new Types.ObjectId(authUser._id),
       membersCount: 1,
-      settings: dto?.settings,
     };
+
+    const findSpace = await this.spacesRepository.findOne({
+      query: {
+        $or: [
+          {
+            'settings.channel.channelLink': dto?.settings?.channel?.channelLink,
+          },
+          {
+            'settings.group.groupLink': dto?.settings?.channel?.channelLink,
+          },
+        ],
+      },
+    });
+    if (findSpace)
+      throw new BadRequestException('spaces.channelLinkAlreadyUsed');
 
     const space = await this.spacesRepository.createOne({ dto: newSpace });
     if (!space) throw new InternalServerErrorException('spaces.notCreated');

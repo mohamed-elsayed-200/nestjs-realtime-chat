@@ -202,7 +202,7 @@ export class SpacesService {
         isMuted: false,
         isArchived: false,
         type: SpaceTypes.PRIVATE,
-        bio: user.bio,
+        bio: user?.bio,
         name: findContact?.name || user?.name,
         username: user?.username,
         avatar: findContact?.avatar || user?.avatar,
