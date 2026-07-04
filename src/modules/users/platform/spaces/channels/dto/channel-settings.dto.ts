@@ -62,6 +62,10 @@ export class ChannelSettingsDto {
 
   @IsOptional()
   @IsBoolean()
+  hideSubscribersList?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
   protectContent?: boolean;
 
   @IsOptional()

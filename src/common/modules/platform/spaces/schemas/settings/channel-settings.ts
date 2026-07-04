@@ -42,6 +42,9 @@ export class ChannelSettings {
   hideSubscribersCount: boolean;
 
   @Prop({ default: false })
+  hideSubscribersList: boolean;
+
+  @Prop({ default: false })
   protectContent: boolean;
 
   @Prop({ default: false })

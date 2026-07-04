@@ -57,6 +57,9 @@ export class GroupSettings {
   hideMembersList: boolean;
 
   @Prop({ default: false })
+  hideMembersCount: boolean;
+
+  @Prop({ default: false })
   restrictSendingUrls: boolean;
 
   @Prop({ default: false })
