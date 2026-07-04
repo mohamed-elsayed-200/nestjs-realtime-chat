@@ -18,6 +18,9 @@ export class ChannelSettings {
   isSubscriptionRequired: boolean;
 
   @Prop({ default: true })
+  enableReactions: boolean;
+
+  @Prop({ default: true })
   allowCustomNotifications: boolean;
 
   @Prop({ default: true })
@@ -39,7 +42,7 @@ export class ChannelSettings {
   hideSubscribersCount: boolean;
 
   @Prop({ default: false })
-  preventForwarding: boolean;
+  protectContent: boolean;
 
   @Prop({ default: false })
   enableComments: boolean;

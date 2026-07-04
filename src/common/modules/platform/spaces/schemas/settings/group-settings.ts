@@ -79,4 +79,7 @@ export class GroupSettings {
 
   @Prop({ default: null })
   groupLink: string;
+
+  @Prop({ default: true })
+  enableReactions: boolean;
 }

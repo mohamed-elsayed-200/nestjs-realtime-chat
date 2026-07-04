@@ -39,6 +39,10 @@ export class ChannelSettingsDto {
   enablePolls?: boolean;
 
   @IsOptional()
+  @IsBoolean()
+  enableReactions?: boolean;
+
+  @IsOptional()
   @IsNumber()
   @Min(0)
   maxMembers?: number;
@@ -58,7 +62,7 @@ export class ChannelSettingsDto {
 
   @IsOptional()
   @IsBoolean()
-  preventForwarding?: boolean;
+  protectContent?: boolean;
 
   @IsOptional()
   @IsBoolean()
