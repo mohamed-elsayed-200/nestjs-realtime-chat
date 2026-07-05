@@ -9,6 +9,7 @@ import { ContactsModule } from './platform/contacts/contacts.module';
 import { PeoplesModule } from './platform/peoples/peoples.module';
 import { FoldersModule } from './platform/folders/folders.module';
 import { JoinRequestsModule } from './platform/join-requests/join-requests.module';
+import { CommentsModule } from './platform/comments/comments.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { JoinRequestsModule } from './platform/join-requests/join-requests.modul
     PeoplesModule,
     FoldersModule,
     JoinRequestsModule,
+    CommentsModule,
   ],
 })
 export class UsersModule {}

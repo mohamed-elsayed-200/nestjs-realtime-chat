@@ -8,6 +8,9 @@ export class Reaction {
   @Prop({ type: Types.ObjectId, ref: 'Message' })
   message: Types.ObjectId;
 
+  @Prop({ type: Types.ObjectId, ref: 'Comment' })
+  comment: Types.ObjectId;
+
   @Prop({ type: Types.ObjectId, ref: 'User' })
   user: Types.ObjectId;
 
