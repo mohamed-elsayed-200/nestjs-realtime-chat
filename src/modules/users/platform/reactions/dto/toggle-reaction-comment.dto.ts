@@ -1,9 +1,9 @@
 import { IsString, IsMongoId, IsNotEmpty } from 'class-validator';
 
-export class ToggleReactionDto {
+export class ToggleReactionCommentDto {
   @IsMongoId()
   @IsNotEmpty()
-  message: string;
+  comment: string;
 
   @IsString()
   @IsNotEmpty()

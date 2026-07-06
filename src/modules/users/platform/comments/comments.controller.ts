@@ -33,8 +33,9 @@ export class CommentsController {
   public async getAll(
     @Query() query: QueryDto,
     @Param('messageId') messageId: string,
+    @GetUser() authUser: any,
   ) {
-    return this.commentsService.getAll({ query, messageId });
+    return this.commentsService.getAll({ query, messageId, authUser });
   }
 
   @Get('/replies/:parentId')
@@ -42,8 +43,9 @@ export class CommentsController {
   public async getReplies(
     @Query() query: QueryDto,
     @Param('parentId') parentId: string,
+    @GetUser() authUser: any,
   ) {
-    return this.commentsService.getReplies({ query, parentId });
+    return this.commentsService.getReplies({ query, parentId, authUser });
   }
 
   @Get('/:commentId')

@@ -6,8 +6,9 @@ import { ResponseMeta } from '../../../../common/decorators/response.decorator';
 import { UserTypeGuard } from '../../../../common/guards/user-type.guard';
 import { UserType } from '../../../../common/types/enums';
 import { UserTypes } from '../../../../common/decorators/user-type.decorator';
-import { ToggleReactionDto } from './dto/toggle-reaction.dto';
 import { GetUser } from '../../../../common/decorators/get-user.decorator';
+import { ToggleReactionMessageDto } from './dto/toggle-reaction-message.dto';
+import { ToggleReactionCommentDto } from './dto/toggle-reaction-comment.dto';
 
 @Controller('/users/reactions')
 @UseGuards(AuthGuard, PermissionsGuard, UserTypeGuard)
@@ -15,12 +16,20 @@ import { GetUser } from '../../../../common/decorators/get-user.decorator';
 export class ReactionsController {
   constructor(private readonly reactionsService: ReactionsService) {}
 
-  @Post('toggle')
+  @Post('toggle-message')
   @ResponseMeta({ message: 'reactions.toggled' })
-  public async toggleReaction(
+  public async toggleReactionMessage(
     @GetUser() authUser: any,
-    @Body() dto: ToggleReactionDto,
+    @Body() dto: ToggleReactionMessageDto,
   ) {
-    return this.reactionsService.toggleReaction({ dto, authUser });
+    return this.reactionsService.toggleReactionMessage({ dto, authUser });
+  }
+  @Post('toggle-comment')
+  @ResponseMeta({ message: 'reactions.toggled' })
+  public async toggleReactionComment(
+    @GetUser() authUser: any,
+    @Body() dto: ToggleReactionCommentDto,
+  ) {
+    return this.reactionsService.toggleReactionComment({ dto, authUser });
   }
 }

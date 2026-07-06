@@ -22,9 +22,10 @@ export class CommentsService {
     private readonly messagesRepository: MessagesRepository,
   ) {}
 
-  // get all top-level comments for a message (replies are fetched separately)
-  public async getAll({ query, messageId }) {
+  public async getAll({ query, messageId, authUser }) {
     const messageObjectId = new Types.ObjectId(messageId);
+    const userObjectId = new Types.ObjectId(authUser?._id);
+
     return this.commentsRepository.findAll({
       query,
       options: {
@@ -50,25 +51,104 @@ export class CommentsService {
           },
           { $unwind: { path: '$author', preserveNullAndEmptyArrays: true } },
           {
+            $lookup: {
+              from: 'reactions',
+              let: { commentId: '$_id' },
+              pipeline: [
+                {
+                  $match: {
+                    $expr: { $eq: ['$comment', '$$commentId'] },
+                  },
+                },
+                {
+                  $lookup: {
+                    from: 'users',
+                    localField: 'user',
+                    foreignField: '_id',
+                    as: 'userDetails',
+                  },
+                },
+                {
+                  $unwind: '$userDetails',
+                },
+                {
+                  $sort: { createdAt: -1 },
+                },
+                {
+                  $group: {
+                    _id: '$emoji',
+                    count: { $sum: 1 },
+                    users: {
+                      $push: {
+                        id: '$userDetails._id',
+                        name: '$userDetails.name',
+                        avatar: '$userDetails.avatar',
+                        profileColor: '$userDetails.profileColor',
+                      },
+                    },
+                    hasUserReacted: {
+                      $sum: {
+                        $cond: [
+                          { $eq: ['$userDetails._id', userObjectId] },
+                          1,
+                          0,
+                        ],
+                      },
+                    },
+                  },
+                },
+                {
+                  $project: {
+                    _id: 0,
+                    emoji: '$_id',
+                    count: 1,
+                    hasUserReacted: { $gt: ['$hasUserReacted', 0] },
+                    recentUsers: { $slice: ['$users', 3] },
+                  },
+                },
+              ],
+              as: 'reactions',
+            },
+          },
+          {
+            $addFields: {
+              reactionsMap: {
+                $arrayToObject: {
+                  $map: {
+                    input: '$reactions',
+                    as: 'reaction',
+                    in: {
+                      k: '$$reaction.emoji',
+                      v: {
+                        count: '$$reaction.count',
+                        hasUserReacted: '$$reaction.hasUserReacted',
+                        recentUsers: '$$reaction.recentUsers',
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          {
             $project: {
               author: 1,
               content: 1,
               parent: 1,
-              reactionsCount: 1,
               repliesCount: 1,
               isEdited: 1,
               editedAt: 1,
               createdAt: 1,
+              reactions: '$reactionsMap',
             },
           },
-          { $sort: { createdAt: -1 } },
         ],
       },
     });
   }
-
   // get replies for a specific parent comment
-  public async getReplies({ query, parentId }) {
+  public async getReplies({ query, parentId, authUser }) {
+    const userObjectId = new Types.ObjectId(authUser?._id);
     const parentObjectId = new Types.ObjectId(parentId);
     return this.commentsRepository.findAll({
       query,
@@ -94,18 +174,98 @@ export class CommentsService {
             },
           },
           { $unwind: { path: '$author', preserveNullAndEmptyArrays: true } },
+          { $unwind: { path: '$author', preserveNullAndEmptyArrays: true } },
+          {
+            $lookup: {
+              from: 'reactions',
+              let: { commentId: '$_id' },
+              pipeline: [
+                {
+                  $match: {
+                    $expr: { $eq: ['$comment', '$$commentId'] },
+                  },
+                },
+                {
+                  $lookup: {
+                    from: 'users',
+                    localField: 'user',
+                    foreignField: '_id',
+                    as: 'userDetails',
+                  },
+                },
+                {
+                  $unwind: '$userDetails',
+                },
+                {
+                  $sort: { createdAt: -1 },
+                },
+                {
+                  $group: {
+                    _id: '$emoji',
+                    count: { $sum: 1 },
+                    users: {
+                      $push: {
+                        id: '$userDetails._id',
+                        name: '$userDetails.name',
+                        avatar: '$userDetails.avatar',
+                        profileColor: '$userDetails.profileColor',
+                      },
+                    },
+                    hasUserReacted: {
+                      $sum: {
+                        $cond: [
+                          { $eq: ['$userDetails._id', userObjectId] },
+                          1,
+                          0,
+                        ],
+                      },
+                    },
+                  },
+                },
+                {
+                  $project: {
+                    _id: 0,
+                    emoji: '$_id',
+                    count: 1,
+                    hasUserReacted: { $gt: ['$hasUserReacted', 0] },
+                    recentUsers: { $slice: ['$users', 3] },
+                  },
+                },
+              ],
+              as: 'reactions',
+            },
+          },
+          {
+            $addFields: {
+              reactionsMap: {
+                $arrayToObject: {
+                  $map: {
+                    input: '$reactions',
+                    as: 'reaction',
+                    in: {
+                      k: '$$reaction.emoji',
+                      v: {
+                        count: '$$reaction.count',
+                        hasUserReacted: '$$reaction.hasUserReacted',
+                        recentUsers: '$$reaction.recentUsers',
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
           {
             $project: {
               author: 1,
               content: 1,
               parent: 1,
-              reactionsCount: 1,
               isEdited: 1,
               editedAt: 1,
               createdAt: 1,
+              reactions: '$reactionsMap',
             },
           },
-          { $sort: { createdAt: 1 } }, // replies read oldest -> newest
         ],
       },
     });

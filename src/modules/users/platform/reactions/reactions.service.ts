@@ -1,16 +1,18 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { ReactionsRepository } from '../../../../common/modules/platform/reactions/reactions.repository';
 import { MessagesRepository } from '../../../../common/modules/platform/messages/messages.repository';
+import { CommentsRepository } from '../../../../common/modules/platform/comments/comments.repository';
 import { Types } from 'mongoose';
 
 @Injectable()
 export class ReactionsService {
   constructor(
     private readonly reactionsRepository: ReactionsRepository,
+    private readonly commentsRepository: CommentsRepository,
     private readonly messagesRepository: MessagesRepository,
   ) {}
 
-  public async toggleReaction({ dto, authUser }) {
+  public async toggleReactionMessage({ dto, authUser }) {
     const { message, emoji } = dto;
 
     const messageId = new Types.ObjectId(message);
@@ -61,6 +63,62 @@ export class ReactionsService {
 
     return {
       messageId: messageId.toString(),
+      emoji,
+      action,
+    };
+  }
+
+  public async toggleReactionComment({ dto, authUser }) {
+    const { comment, emoji } = dto;
+
+    const commentId = new Types.ObjectId(comment);
+    const userId = new Types.ObjectId(authUser._id);
+
+    const findMessage = await this.commentsRepository.findOne({
+      query: { _id: commentId },
+    });
+
+    if (!findMessage) throw new NotFoundException('comments.notFound');
+
+    // Use findOneAndUpdate with upsert for atomic operation
+    const existingReaction = await this.reactionsRepository.findOne({
+      query: {
+        comment: commentId,
+        user: userId,
+      },
+    });
+
+    let action = 'added';
+
+    if (existingReaction) {
+      if (existingReaction.emoji === emoji) {
+        // Same emoji -> delete
+        await this.reactionsRepository.deleteOne({
+          query: { _id: existingReaction._id },
+        });
+        action = 'removed';
+      } else {
+        // Different emoji -> update
+        await this.reactionsRepository.updateOne({
+          query: { _id: existingReaction._id },
+          dto: { emoji },
+        });
+        action = 'updated';
+      }
+    } else {
+      // Create new reaction
+      await this.reactionsRepository.createOne({
+        dto: {
+          comment: commentId,
+          user: userId,
+          emoji,
+        },
+      });
+      action = 'added';
+    }
+
+    return {
+      commentId: commentId.toString(),
       emoji,
       action,
     };
