@@ -241,6 +241,7 @@ export class MessagesService {
               createdAt: 1,
               reactions: '$reactionsMap',
               isPinned: 1,
+              commentsCount: 1,
               isOutgoing: {
                 $cond: {
                   if: { $eq: ['$sender._id', userObjectId] },

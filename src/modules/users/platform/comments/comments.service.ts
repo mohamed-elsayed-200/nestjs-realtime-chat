@@ -312,6 +312,11 @@ export class CommentsService {
       });
     }
 
+    await this.messagesRepository.updateOne({
+      query: { _id: dto.message },
+      dto: { $inc: { commentsCount: 1 } },
+    });
+
     return newComment;
   }
 
@@ -363,13 +368,17 @@ export class CommentsService {
       throw new ForbiddenException('comments.notAllowed');
     }
 
-    // top-level comment: wipe its replies too, so nothing is left orphaned
+    // how many comment documents this delete actually removes —
+    // 1 for a lone comment/reply, or 1 + repliesCount for a thread with replies
+    let removedCount = 1;
+
     if (!comment.parent) {
       const replies = await this.commentsRepository.findMany({
         query: { parent: comment._id },
         select: '_id',
       });
       const replyIds = replies.map((r) => r._id);
+      removedCount += replyIds.length;
 
       await this.commentsRepository.deleteMany({
         query: { parent: comment._id },
@@ -396,6 +405,11 @@ export class CommentsService {
       query: { _id: commentId },
     });
     if (!deleted) throw new NotFoundException('comments.notDeleted');
+
+    await this.messagesRepository.updateOne({
+      query: { _id: comment.message },
+      dto: { $inc: { commentsCount: -removedCount } },
+    });
 
     return deleted;
   }

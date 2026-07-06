@@ -24,6 +24,9 @@ export class Message {
   @Prop({ type: String, trim: true })
   text: string;
 
+  @Prop({ type: Number })
+  commentsCount: number;
+
   @Prop({ type: Types.ObjectId, ref: 'Message', default: null })
   replyTo?: Types.ObjectId;
 
