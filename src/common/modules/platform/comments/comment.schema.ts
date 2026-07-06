@@ -23,6 +23,9 @@ export class Comment {
   @Prop({ type: Number, default: 0, min: 0 })
   reactionsCount: number;
 
+  @Prop({ type: Number, default: 0, min: 0 })
+  repliesCount: number;
+
   @Prop({ type: Boolean, default: false })
   isEdited: boolean;
 
