@@ -28,9 +28,6 @@ export class Comment {
 
   @Prop({ type: Date, default: null })
   editedAt: Date | null;
-
-  @Prop({ type: Boolean, default: false })
-  isDeleted: boolean;
 }
 
 export const CommentSchema = SchemaFactory.createForClass(Comment);

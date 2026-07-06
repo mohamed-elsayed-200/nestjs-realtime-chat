@@ -30,6 +30,79 @@ export class CommentsService {
               message: messageObjectId,
             },
           },
+          {
+            $lookup: {
+              from: 'users',
+              localField: 'author',
+              foreignField: '_id',
+              as: 'author',
+              pipeline: [
+                {
+                  $project: {
+                    name: 1,
+                    username: 1,
+                    profileColor: 1,
+                    avatar: 1,
+                  },
+                },
+              ],
+            },
+          },
+          { $unwind: { path: '$author', preserveNullAndEmptyArrays: true } },
+          {
+            $project: {
+              author: 1,
+              content: 1,
+              parent: 1,
+              reactionsCount: 1,
+              isEdited: 1,
+              editedAt: 1,
+              createdAt: 1,
+            },
+          },
+        ],
+      },
+    });
+  }
+
+  // get all replies
+  public async getReplies({ query, parentId }) {
+    const parentObjectId = new Types.ObjectId(parentId);
+    return this.commentsRepository.findAll({
+      query,
+      options: {
+        pipelines: [
+          { $match: { parent: parentObjectId } },
+          {
+            $lookup: {
+              from: 'users',
+              localField: 'author',
+              foreignField: '_id',
+              as: 'author',
+              pipeline: [
+                {
+                  $project: {
+                    name: 1,
+                    username: 1,
+                    profileColor: 1,
+                    avatar: 1,
+                  },
+                },
+              ],
+            },
+          },
+          { $unwind: { path: '$author', preserveNullAndEmptyArrays: true } },
+          {
+            $project: {
+              author: 1,
+              content: 1,
+              parent: 1,
+              reactionsCount: 1,
+              isEdited: 1,
+              editedAt: 1,
+              createdAt: 1,
+            },
+          },
         ],
       },
     });

@@ -37,6 +37,15 @@ export class CommentsController {
     return this.commentsService.getAll({ query, messageId });
   }
 
+  @Get('/replies/:parentId')
+  @ResponseMeta({ message: 'comments.foundAll' })
+  public async getReplies(
+    @Query() query: QueryDto,
+    @Param('parentId') parentId: string,
+  ) {
+    return this.commentsService.getReplies({ query, parentId });
+  }
+
   @Get('/:commentId')
   @ResponseMeta({ message: 'comments.foundOne' })
   public async getOne(
