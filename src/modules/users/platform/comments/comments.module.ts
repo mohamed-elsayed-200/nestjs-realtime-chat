@@ -5,6 +5,7 @@ import { CommentsService } from './comments.service';
 import { BaseCommentsModule } from '../../../../common/modules/platform/comments/comments.module';
 import { BaseMemberModule } from '../../../../common/modules/platform/members/members.module';
 import { BaseMessageModule } from '../../../../common/modules/platform/messages/messages.module';
+import { BaseReactionModule } from '../../../../common/modules/platform/reactions/reactions.module';
 
 @Module({
   imports: [
@@ -12,6 +13,7 @@ import { BaseMessageModule } from '../../../../common/modules/platform/messages/
     BaseCommentsModule,
     BaseMemberModule,
     BaseMessageModule,
+    BaseReactionModule,
   ],
   controllers: [CommentsController],
   providers: [CommentsService],

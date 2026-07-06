@@ -13,6 +13,7 @@ import {
   SpaceMemberPermission,
   SpaceMemberRole,
 } from '../../../../common/types/enums';
+import { ReactionsRepository } from '../../../../common/modules/platform/reactions/reactions.repository';
 
 @Injectable()
 export class CommentsService {
@@ -20,6 +21,7 @@ export class CommentsService {
     private readonly commentsRepository: CommentsRepository,
     private readonly membersRepository: MembersRepository,
     private readonly messagesRepository: MessagesRepository,
+    private readonly reactionsRepository: ReactionsRepository,
   ) {}
 
   public async getAll({ query, messageId, authUser }) {
@@ -50,6 +52,7 @@ export class CommentsService {
             },
           },
           { $unwind: { path: '$author', preserveNullAndEmptyArrays: true } },
+          // Lookup reactions for this comment
           {
             $lookup: {
               from: 'reactions',
@@ -68,12 +71,9 @@ export class CommentsService {
                     as: 'userDetails',
                   },
                 },
-                {
-                  $unwind: '$userDetails',
-                },
-                {
-                  $sort: { createdAt: -1 },
-                },
+                { $unwind: '$userDetails' },
+                { $sort: { createdAt: -1 } },
+                // Group by emoji
                 {
                   $group: {
                     _id: '$emoji',
@@ -86,6 +86,7 @@ export class CommentsService {
                         profileColor: '$userDetails.profileColor',
                       },
                     },
+                    // Check if current user reacted with this emoji
                     hasUserReacted: {
                       $sum: {
                         $cond: [
@@ -110,6 +111,7 @@ export class CommentsService {
               as: 'reactions',
             },
           },
+          // Convert reactions array to object keyed by emoji
           {
             $addFields: {
               reactionsMap: {
@@ -139,7 +141,8 @@ export class CommentsService {
               isEdited: 1,
               editedAt: 1,
               createdAt: 1,
-              reactions: '$reactionsMap',
+              // Use $ifNull to ensure reactions is always an object, never null
+              reactions: { $ifNull: ['$reactionsMap', {}] },
             },
           },
         ],
@@ -174,7 +177,7 @@ export class CommentsService {
             },
           },
           { $unwind: { path: '$author', preserveNullAndEmptyArrays: true } },
-          { $unwind: { path: '$author', preserveNullAndEmptyArrays: true } },
+          // Lookup reactions for this comment
           {
             $lookup: {
               from: 'reactions',
@@ -193,12 +196,9 @@ export class CommentsService {
                     as: 'userDetails',
                   },
                 },
-                {
-                  $unwind: '$userDetails',
-                },
-                {
-                  $sort: { createdAt: -1 },
-                },
+                { $unwind: '$userDetails' },
+                { $sort: { createdAt: -1 } },
+                // Group by emoji
                 {
                   $group: {
                     _id: '$emoji',
@@ -211,6 +211,7 @@ export class CommentsService {
                         profileColor: '$userDetails.profileColor',
                       },
                     },
+                    // Check if current user reacted with this emoji
                     hasUserReacted: {
                       $sum: {
                         $cond: [
@@ -235,6 +236,7 @@ export class CommentsService {
               as: 'reactions',
             },
           },
+          // Convert reactions array to object keyed by emoji
           {
             $addFields: {
               reactionsMap: {
@@ -263,7 +265,8 @@ export class CommentsService {
               isEdited: 1,
               editedAt: 1,
               createdAt: 1,
-              reactions: '$reactionsMap',
+              // Use $ifNull to ensure reactions is always an object, never null
+              reactions: { $ifNull: ['$reactionsMap', {}] },
             },
           },
         ],
@@ -362,14 +365,30 @@ export class CommentsService {
 
     // top-level comment: wipe its replies too, so nothing is left orphaned
     if (!comment.parent) {
+      const replies = await this.commentsRepository.findMany({
+        query: { parent: comment._id },
+        select: '_id',
+      });
+      const replyIds = replies.map((r) => r._id);
+
       await this.commentsRepository.deleteMany({
         query: { parent: comment._id },
+      });
+
+      // clean up reactions for the comment itself AND every reply that got cascaded away
+      await this.reactionsRepository.deleteMany({
+        query: { comment: { $in: [comment._id, ...replyIds] } },
       });
     } else {
       // it's a reply: free up a slot on its parent's counter
       await this.commentsRepository.updateOne({
         query: { _id: comment.parent },
         dto: { $inc: { repliesCount: -1 } },
+      });
+
+      // only this reply's own reactions should be removed — never touch the parent's
+      await this.reactionsRepository.deleteMany({
+        query: { comment: comment._id },
       });
     }
 

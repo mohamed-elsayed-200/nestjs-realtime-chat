@@ -39,7 +39,7 @@ export class CommentsController {
   }
 
   @Get('/replies/:parentId')
-  @ResponseMeta({ message: 'comments.foundAll' })
+  @ResponseMeta({ message: 'comments.repliesFoundAll' })
   public async getReplies(
     @Query() query: QueryDto,
     @Param('parentId') parentId: string,

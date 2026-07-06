@@ -19,4 +19,12 @@ export class Reaction {
 }
 
 export const ReactionSchema = SchemaFactory.createForClass(Reaction);
-ReactionSchema.index({ message: 1, user: 1 }, { unique: true });
+
+ReactionSchema.index(
+  { message: 1, user: 1 },
+  { unique: true, partialFilterExpression: { message: { $exists: true } } },
+);
+ReactionSchema.index(
+  { comment: 1, user: 1 },
+  { unique: true, partialFilterExpression: { comment: { $exists: true } } },
+);

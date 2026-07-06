@@ -21,6 +21,13 @@ export class CommentsRepository {
     });
   }
 
+  public async findMany({ query, populate, select, sort }: FindOneProps) {
+    const base = this.commentModel.find(query);
+    if (select) base.select(select);
+    if (sort) base.sort(sort);
+    if (populate) base.populate(populate);
+    return await base.lean().exec();
+  }
   public async findOne({ query, populate, select, sort }: FindOneProps) {
     const base = this.commentModel.findOne(query);
     if (select) base.select(select);
