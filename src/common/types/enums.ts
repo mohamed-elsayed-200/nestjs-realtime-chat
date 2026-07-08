@@ -45,6 +45,19 @@ export enum SpaceMemberPermission {
   MANAGE_LIVE_STREAMS = 'manage-live-streams',
 }
 
+export enum CommentType {
+  TEXT = 'text',
+  IMAGE = 'image',
+  VIDEO = 'video',
+  AUDIO = 'audio',
+  VOICE = 'voice',
+  FILE = 'file',
+  GIF = 'gif',
+  STICKER = 'sticker',
+  LOTTIE = 'lottie',
+  SYSTEM = 'system',
+  LINK = 'link',
+}
 export enum MessageType {
   TEXT = 'text',
   IMAGE = 'image',

@@ -55,9 +55,6 @@ export class Message {
   @Prop()
   stickerId?: string;
 
-  @Prop({ default: false })
-  isLottie?: boolean;
-
   // GIF specific fields
   @Prop()
   gifId?: string;

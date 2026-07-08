@@ -66,10 +66,6 @@ export class CreateMessageDto {
   stickerId?: string;
 
   @IsOptional()
-  @IsBoolean()
-  isLottie?: boolean;
-
-  @IsOptional()
   @IsString()
   gifId?: string;
 

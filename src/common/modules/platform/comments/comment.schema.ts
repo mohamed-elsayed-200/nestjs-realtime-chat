@@ -1,5 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument, Types } from 'mongoose';
+import { CommentType } from '../../../../common/types/enums';
 
 export type CommentDocument = HydratedDocument<Comment>;
 
@@ -15,6 +16,9 @@ export class Comment {
   author: Types.ObjectId;
 
   @Prop({ type: String, required: true, trim: true, maxlength: 2000 })
+  text: string;
+
+  @Prop({ type: String, required: true, trim: true, maxlength: 2000 })
   content: string;
 
   @Prop({ type: Types.ObjectId, ref: 'Comment', default: null, index: true })
@@ -28,6 +32,26 @@ export class Comment {
 
   @Prop({ type: Date, default: null })
   editedAt: Date | null;
+
+  @Prop({ required: true, enum: CommentType, default: CommentType.TEXT })
+  commentType: CommentType;
+
+  // Sticker specific fields
+  @Prop()
+  stickerPack?: string;
+
+  @Prop()
+  stickerId?: string;
+  // GIF specific fields
+  @Prop()
+  gifId?: string;
+
+  @Prop()
+  gifPack?: string;
+
+  // File fields
+  @Prop()
+  duration?: number;
 }
 
 export const CommentSchema = SchemaFactory.createForClass(Comment);
