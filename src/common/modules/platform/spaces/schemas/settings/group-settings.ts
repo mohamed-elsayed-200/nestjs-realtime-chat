@@ -35,7 +35,7 @@ export class GroupSettings {
   @Prop({ default: 0 })
   messageExpiryDuration: number;
 
-  @Prop({ enum: WhoCanSendMessages, default: WhoCanSendMessages.EVERYONE })
+  @Prop({ enum: WhoCanSendMessages, default: WhoCanSendMessages.EVERYBODY })
   whoCanSendMessages: WhoCanSendMessages;
 
   @Prop({ enum: WhoCanAddMembers, default: WhoCanAddMembers.ADMIN })

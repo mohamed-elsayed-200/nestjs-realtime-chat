@@ -690,7 +690,7 @@ export class SpacesService {
   }
 
   public async delete({ spaceId, dto, authUser }) {
-    const { everyone } = dto;
+    const { everybody } = dto;
     const spaceObjectId = new Types.ObjectId(spaceId);
     const userObjectId = new Types.ObjectId(authUser?._id);
     const findMember: any = await this.membersRepository.findOne({
@@ -722,7 +722,7 @@ export class SpacesService {
     });
 
     if (
-      everyone ||
+      everybody ||
       isChannel ||
       isGroup ||
       (isPrivate && remainingMembers <= 1)

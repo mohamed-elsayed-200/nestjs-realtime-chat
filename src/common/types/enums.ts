@@ -79,41 +79,42 @@ export enum MessageStatus {
 
 // space settings
 export enum WhoCanSendMessages {
-  EVERYONE = 'everyone',
+  EVERYBODY = 'everybody',
   OWNER = 'owner',
   ADMIN = 'admin',
   MEMBER = 'member',
 }
 
 export enum WhoCanAddMembers {
-  EVERYONE = 'everyone',
+  EVERYBODY = 'everybody',
   OWNER = 'owner',
   ADMIN = 'admin',
   MEMBER = 'member',
 }
 
 export enum WhoCanChangeInfo {
-  EVERYONE = 'everyone',
+  EVERYBODY = 'everybody',
   OWNER = 'owner',
   ADMIN = 'admin',
 }
 
 export enum WhoCanPinMessages {
-  EVERYONE = 'everyone',
+  EVERYBODY = 'everybody',
   OWNER = 'owner',
   ADMIN = 'admin',
   MEMBER = 'member',
 }
 
 export enum WhoCanComment {
-  EVERYONE = 'everyone',
+  NOBODY = 'nobody',
+  EVERYBODY = 'everybody',
   OWNER = 'owner',
   ADMIN = 'admin',
   MEMBER = 'member',
 }
 
 export enum WhoCanDeleteMessages {
-  EVERYONE = 'everyone',
+  EVERYBODY = 'everybody',
   OWNER = 'owner',
   ADMIN = 'admin',
 }

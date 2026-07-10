@@ -86,13 +86,41 @@ export class ChannelSettingsDto {
 
   @IsOptional()
   @IsBoolean()
-  commentsRestrictUrls?: boolean;
+  commentsRestrictLinks?: boolean;
 
   @IsOptional()
   @IsBoolean()
-  commentsRestrictMedia?: boolean;
+  commentsRestrictTexts?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  commentsRestrictImages?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  commentsRestrictGIFs?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  commentsRestrictVideos?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  commentsRestrictFiles?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  commentsRestrictVoices?: boolean;
 
   @IsOptional()
   @IsBoolean()
   commentsRestrictStickers?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  commentsRestrictAudios?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  commentsRestrictReactions?: boolean;
 }

@@ -366,7 +366,7 @@ export class MessagesService {
   }
 
   public async delete({ dto, authUser }) {
-    const { messageIds, everyone } = dto;
+    const { messageIds, everybody } = dto;
     const userId = new Types.ObjectId(authUser?._id);
 
     // Get messages BEFORE deleting

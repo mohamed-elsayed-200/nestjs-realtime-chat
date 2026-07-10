@@ -53,17 +53,38 @@ export class ChannelSettings {
   @Prop({ type: Types.ObjectId, ref: 'Space' })
   linkedDiscussionGroup: Types.ObjectId;
 
-  @Prop({ enum: WhoCanComment, default: WhoCanComment.EVERYONE })
+  @Prop({ enum: WhoCanComment, default: WhoCanComment.EVERYBODY })
   whoCanComment: WhoCanComment;
 
   @Prop({ default: false })
-  commentsRestrictUrls: boolean;
+  commentsRestrictTexts: boolean;
 
   @Prop({ default: false })
-  commentsRestrictMedia: boolean;
+  commentsRestrictGIFs: boolean;
 
   @Prop({ default: false })
   commentsRestrictStickers: boolean;
+
+  @Prop({ default: false })
+  commentsRestrictReactions: boolean;
+
+  @Prop({ default: true })
+  commentsRestrictLinks: boolean;
+
+  @Prop({ default: true })
+  commentsRestrictImages: boolean;
+
+  @Prop({ default: true })
+  commentsRestrictVideos: boolean;
+
+  @Prop({ default: true })
+  commentsRestrictFiles: boolean;
+
+  @Prop({ default: true })
+  commentsRestrictVoices: boolean;
+
+  @Prop({ default: true })
+  commentsRestrictAudios: boolean;
 
   @Prop()
   channelLink: string;
