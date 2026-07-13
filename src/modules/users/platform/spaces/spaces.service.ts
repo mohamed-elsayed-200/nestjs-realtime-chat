@@ -197,7 +197,16 @@ export class SpacesService {
         avatar: findContact?.avatar || user?.avatar,
         profileColor: findContact?.profileColor || user?.profileColor,
         isContact: findContact?._id ? true : false,
+        received: {
+          _id: user?._id,
+          name: findContact?.name || user?.name,
+          avatar: findContact?.avatar || user?.avatar,
+          profileColor: findContact?.profileColor || user?.profileColor,
+          username: user?.username,
+          bio: user?.bio,
+        },
       };
+
       return response;
     }
   }
