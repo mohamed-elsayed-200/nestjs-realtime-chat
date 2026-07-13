@@ -414,14 +414,18 @@ export class MembersService {
       dto: isBanned
         ? {
             isBanned: false,
+            isRestricted: false,
             bannedReason: null,
             bannedAt: null,
+            role: null,
           }
         : {
             isBanned: true,
+            isRestricted: false,
             bannedReason: bannedReason ?? null,
             bannedAt: new Date(),
             isDeleted: true,
+            role: null,
           },
     });
 

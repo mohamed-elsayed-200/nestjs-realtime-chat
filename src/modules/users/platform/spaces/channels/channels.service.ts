@@ -176,14 +176,15 @@ export class ChannelsService {
     const spaceObjectId = new Types.ObjectId(spaceId);
     const userObjectId = new Types.ObjectId(authUser._id);
 
+    // 1. Check owner
     const member = await this.membersRepository.findOne({
       query: { space: spaceObjectId, user: userObjectId, isDeleted: false },
     });
     if (!member) throw new NotFoundException('members.notFound');
+    if (member.role !== SpaceMemberRole.OWNER)
+      throw new BadRequestException('spaces.cantAddMembers');
 
-    const isOwner = member.role === SpaceMemberRole.OWNER;
-    if (!isOwner) throw new BadRequestException('spaces.cantAddMembers');
-
+    // 2. Get valid contacts
     const contactDocs = await this.contactsRepository.findMany({
       query: {
         contact: { $in: contacts.map((id) => new Types.ObjectId(id)) },
@@ -191,55 +192,81 @@ export class ChannelsService {
       },
       select: 'contact',
     });
-
     if (contactDocs.length === 0)
       throw new NotFoundException('contacts.notFound');
 
-    const userIdsToInvite = contactDocs.map((c) => c.contact);
+    // 3. Dedupe user IDs
+    const userIds = [...new Set(contactDocs.map((c) => c.contact.toString()))];
 
-    const existingMembers = await this.membersRepository.findMany({
+    // 4. Get existing members (active + deleted)
+    const existing = await this.membersRepository.findMany({
       query: {
         space: spaceObjectId,
-        user: { $in: userIdsToInvite },
+        user: { $in: userIds.map((id) => new Types.ObjectId(id)) },
       },
-      select: 'user',
+      select: 'user isDeleted',
     });
 
-    const existingMemberIds = new Set(
-      existingMembers.map((m) => m.user.toString()),
+    // 5. Build lookup map: userId → isDeleted
+    const existingMap = new Map(
+      existing.map((m) => [m.user.toString(), m.isDeleted]),
     );
 
-    const newUserIds = userIdsToInvite.filter(
-      (id) => !existingMemberIds.has(id.toString()),
-    );
+    const toRestore: string[] = [];
+    const toInsert: string[] = [];
 
-    if (newUserIds.length === 0) {
-      return await this.spacesRepository.findOne({
-        query: { _id: spaceObjectId },
+    for (const id of userIds) {
+      const isDeleted = existingMap.get(id);
+      if (isDeleted === undefined)
+        toInsert.push(id); // مش موجود → insert
+      else if (isDeleted === true) toRestore.push(id); // ممسوح → restore
+      // else active → skip
+    }
+
+    // 6. Restore deleted
+    if (toRestore.length > 0) {
+      await this.membersRepository.updateMany({
+        query: {
+          space: spaceObjectId,
+          user: { $in: toRestore.map((id) => new Types.ObjectId(id)) },
+          isDeleted: true,
+        },
+        dto: {
+          isDeleted: false,
+          isBanned: false,
+          bannedAt: null,
+          deletedAt: null,
+          joinedAt: new Date(),
+        },
       });
     }
 
-    await this.membersRepository.insertMany({
-      documents: newUserIds.map((userId) => ({
-        user: userId,
-        space: spaceObjectId,
-        role: SpaceMemberRole.MEMBER,
-        joinedAt: new Date(),
-        isPined: false,
-        isMuted: false,
-        isArchived: false,
-        permissions: [],
-      })),
-    });
+    // 7. Insert new
+    if (toInsert.length > 0) {
+      await this.membersRepository.insertMany({
+        documents: toInsert.map((userId) => ({
+          user: new Types.ObjectId(userId),
+          space: spaceObjectId,
+          role: SpaceMemberRole.MEMBER,
+          joinedAt: new Date(),
+          isPined: false,
+          isMuted: false,
+          isArchived: false,
+          permissions: [],
+        })),
+      });
+    }
 
-    const updateSpace = await this.spacesRepository.updateOne({
+    // 8. Update count
+    const total = toRestore.length + toInsert.length;
+    if (total === 0) {
+      return this.spacesRepository.findOne({ query: { _id: spaceObjectId } });
+    }
+
+    return this.spacesRepository.updateOne({
       query: { _id: spaceObjectId },
-      dto: {
-        $inc: { membersCount: newUserIds.length },
-      },
+      dto: { $inc: { membersCount: total } },
     });
-
-    return updateSpace;
   }
 
   public async join({ spaceId, authUser }) {

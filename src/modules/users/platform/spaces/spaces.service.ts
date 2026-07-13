@@ -71,7 +71,7 @@ export class SpacesService {
         query: { space: spaceId, user: userId },
       });
 
-      const isMember = Boolean(member?._id) && !member?.isDeleted;
+      const isMember = Boolean(member?._id);
       // 2. Get user's contact for this space (if private space)
       let userContact = null;
       let otherParty = null;
@@ -93,20 +93,20 @@ export class SpacesService {
           select: '_id name avatar profileColor',
         });
       }
-
       // 3. Format the response
       const dataMember = isMember
         ? {
-            unreadCount: member?.unreadCount || undefined,
-            isPined: member?.isPined || undefined,
-            isMuted: member?.isMuted || undefined,
-            isArchived: member?.isArchived || undefined,
-            folder: member?.folder || undefined,
-            role: member?.role || undefined,
-            permissions: member?.permissions || undefined,
-            joinedAt: member?.joinedAt || undefined,
-            isBanned: member?.isBanned || undefined,
-            bannedAt: member?.bannedAt || undefined,
+            unreadCount: member?.unreadCount,
+            isPined: member?.isPined,
+            isMuted: member?.isMuted,
+            isArchived: member?.isArchived,
+            folder: member?.folder,
+            role: member?.role,
+            permissions: member?.permissions,
+            joinedAt: member?.joinedAt,
+            isBanned: member?.isBanned,
+            bannedAt: member?.bannedAt,
+            isDeleted: member?.isDeleted,
             received:
               findSpace?.type === SpaceTypes.PRIVATE
                 ? {
@@ -142,8 +142,8 @@ export class SpacesService {
         membersCount: findSpace?.membersCount,
         settings: findSpace?.settings,
         bio: findSpace?.bio || otherParty?.bio,
-        createdBy: findSpace?.createdBy || undefined,
-        wallpaper: findSpace?.wallpaper || member?.wallpaper || undefined,
+        createdBy: findSpace?.createdBy,
+        wallpaper: findSpace?.wallpaper || member?.wallpaper,
         // Name
         name:
           findSpace?.type === SpaceTypes.PRIVATE
@@ -224,7 +224,10 @@ export class SpacesService {
     }
 
     const findSpace = await this.spacesRepository.findOne({ query });
-    if (!findSpace) throw new NotFoundException('spaces.notFound');
+    if (!findSpace)
+      return {
+        isDeleted: true,
+      };
 
     const spaceId = new Types.ObjectId(findSpace?._id);
     const userId = new Types.ObjectId(authUser?._id);
