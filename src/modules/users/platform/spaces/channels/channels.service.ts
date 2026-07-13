@@ -306,6 +306,8 @@ export class ChannelsService {
         dto: {
           isDeleted: false,
           deletedAt: null,
+          role: SpaceMemberRole.MEMBER,
+          permission: [],
           joinedAt: new Date(),
         },
       });
@@ -379,7 +381,7 @@ export class ChannelsService {
         isDeleted: true,
         deletedAt: new Date(),
         joinedAt: null,
-        role: SpaceMemberRole.MEMBER,
+        role: null,
         permission: [],
       },
     });

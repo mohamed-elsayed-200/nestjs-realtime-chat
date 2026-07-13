@@ -417,6 +417,7 @@ export class MembersService {
             isRestricted: false,
             bannedReason: null,
             bannedAt: null,
+            permission: [],
             role: null,
           }
         : {
@@ -425,6 +426,7 @@ export class MembersService {
             bannedReason: bannedReason ?? null,
             bannedAt: new Date(),
             isDeleted: true,
+            permission: [],
             role: null,
           },
     });
