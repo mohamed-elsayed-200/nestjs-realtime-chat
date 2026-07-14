@@ -32,17 +32,59 @@ export enum SpaceMemberRole {
 }
 
 export enum SpaceMemberPermission {
-  ADD_STORIES = 'post-stories',
+  // Messages
+  SEND_MESSAGES = 'send-messages',
+  EDIT_OWN_MESSAGES = 'edit-own-messages',
+  DELETE_OWN_MESSAGES = 'delete-own-messages',
+  DELETE_ANY_MESSAGES = 'delete-any-messages',
+  PIN_MESSAGES = 'pin-messages',
+
+  // Comments
+  ADD_COMMENTS = 'add-comments',
+  EDIT_OWN_COMMENTS = 'edit-own-comments',
+  DELETE_OWN_COMMENTS = 'delete-own-comments',
+  DELETE_ANY_COMMENTS = 'delete-any-comments',
+
+  // Reactions
+  REACTION_MESSAGES = 'reaction-messages',
+  REACTION_COMMENTS = 'reaction-comments',
+
+  // Media
+  SEND_PHOTOS = 'send-photos',
+  SEND_VIDEOS = 'send-videos',
+  SEND_FILES = 'send-files',
+  SEND_VOICE = 'send-voice',
+  SEND_STICKERS = 'send-stickers',
+  SEND_GIFS = 'send-gifs',
+  SEND_POLLS = 'send-polls',
+  SEND_LINKS = 'send-links',
+
+  // Stories
+  ADD_STORIES = 'add-stories',
   EDIT_STORIES = 'edit-stories',
   DELETE_STORIES = 'delete-stories',
-  DELETE_MESSAGES = 'delete-messages',
-  BAN_USERS = 'ban-users',
-  INVITE_USERS_VIA_LINK = 'invite-users-via-link',
-  PIN_MESSAGES = 'pin-messages',
-  ADD_ADMIN = 'add-admin',
-  CHANGE_SPACE_INFO = 'change-space-info',
-  EDIT_MEMBER_TAGS = 'edit-member-tags',
+  PIN_STORIES = 'pin-stories',
+
+  // Live
   MANAGE_LIVE_STREAMS = 'manage-live-streams',
+
+  // Members
+  INVITE_USERS = 'invite-users',
+  APPROVE_JOIN_REQUESTS = 'approve-join-requests',
+
+  // Moderation
+  RESTRICT_MEMBERS = 'restrict-members',
+  BAN_MEMBERS = 'ban-members',
+  MANAGE_ADMINS = 'manage-admins',
+  EDIT_MEMBER_TAGS = 'edit-member-tags',
+
+  // Space
+  CHANGE_SETTINGS = 'change-settings',
+  CHANGE_PHOTO = 'change-photo',
+  CHANGE_USERNAME = 'change-username',
+  CHANGE_BIO = 'change-bio',
+  CHANGE_NAME = 'change-name',
+  CHANGE_PERMISSIONS = 'change-permissions',
 }
 
 export enum CommentType {

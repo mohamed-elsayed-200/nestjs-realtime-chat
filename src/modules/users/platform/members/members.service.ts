@@ -81,7 +81,6 @@ export class MembersService {
               adminTag: 1,
               adminTagColor: 1,
               permissions: 1,
-              isRestricted: 1,
               isMuted: 1,
               isBanned: 1,
               bannedAt: 1,
@@ -154,7 +153,6 @@ export class MembersService {
               adminTag: 1,
               adminTagColor: 1,
               permissions: 1,
-              isRestricted: 1,
               isMuted: 1,
               isBanned: 1,
               bannedAt: 1,
@@ -191,7 +189,7 @@ export class MembersService {
     const isOwner = authMember.role === SpaceMemberRole.OWNER;
     const isAdmin =
       authMember.role === SpaceMemberRole.ADMIN &&
-      authMember.permissions?.includes(SpaceMemberPermission.ADD_ADMIN);
+      authMember.permissions?.includes(SpaceMemberPermission.MANAGE_ADMINS);
     const canAddAdmin = isOwner || isAdmin;
     if (!canAddAdmin) throw new BadRequestException('members.noPermission');
 
@@ -211,6 +209,52 @@ export class MembersService {
         permissions: permissions ?? [],
         adminTag: adminTag ?? 'Admin',
         adminTagColor: adminTagColor ?? '#3b82f6',
+      },
+    });
+
+    if (!updated) throw new InternalServerErrorException('members.notUpdated');
+
+    return updated;
+  }
+
+  public async dismissAdmin({ dto, authUser }) {
+    const { member, space } = dto;
+    const spaceObjectId = new Types.ObjectId(space);
+    const userObjectId = new Types.ObjectId(authUser._id);
+    const memberObjectId = new Types.ObjectId(member);
+
+    const authMember = await this.membersRepository.findOne({
+      query: { space: spaceObjectId, user: userObjectId },
+    });
+
+    if (!authMember) throw new NotFoundException('members.noPermission');
+
+    const isOwner = authMember.role === SpaceMemberRole.OWNER;
+    const isAdmin =
+      authMember.role === SpaceMemberRole.ADMIN &&
+      authMember.permissions?.includes(SpaceMemberPermission.MANAGE_ADMINS);
+    const canDeleteAdmin = isOwner || isAdmin;
+    if (!canDeleteAdmin) throw new BadRequestException('members.noPermission');
+
+    const targetMember = await this.membersRepository.findOne({
+      query: { space: spaceObjectId, _id: memberObjectId },
+    });
+
+    if (!targetMember) throw new NotFoundException('members.notFound');
+
+    if (targetMember.role === SpaceMemberRole.OWNER)
+      throw new BadRequestException('members.cannotModifyOwner');
+
+    if (targetMember.role !== SpaceMemberRole.ADMIN)
+      throw new BadRequestException('members.notAdmin');
+
+    const updated = await this.membersRepository.updateOne({
+      query: { space: spaceObjectId, _id: memberObjectId },
+      dto: {
+        role: SpaceMemberRole.MEMBER,
+        permissions: [],
+        adminTag: null,
+        adminTagColor: null,
       },
     });
 
@@ -286,91 +330,6 @@ export class MembersService {
     };
   }
 
-  public async toggleRestrict({ dto, authUser }) {
-    const { member, space } = dto;
-    const spaceObjectId = new Types.ObjectId(space);
-    const userObjectId = new Types.ObjectId(authUser._id);
-    const memberObjectId = new Types.ObjectId(member);
-
-    const authMember = await this.membersRepository.findOne({
-      query: { space: spaceObjectId, user: userObjectId },
-    });
-
-    if (!authMember) throw new NotFoundException('members.noPermission');
-
-    const isOwner = authMember.role === SpaceMemberRole.OWNER;
-    const isAdmin = authMember.role === SpaceMemberRole.ADMIN;
-    if (!isOwner && !isAdmin)
-      throw new BadRequestException('members.noPermission');
-
-    const targetMember = await this.membersRepository.findOne({
-      query: { space: spaceObjectId, _id: memberObjectId },
-    });
-
-    if (!targetMember) throw new NotFoundException('members.notFound');
-    if (targetMember.role === SpaceMemberRole.OWNER)
-      throw new BadRequestException('members.cannotModifyOwner');
-
-    const isRestricted = targetMember.isRestricted;
-    const updated = await this.membersRepository.updateOne({
-      query: { space: spaceObjectId, _id: memberObjectId },
-      dto: {
-        isRestricted: !isRestricted,
-        restrictedAt: isRestricted ? null : new Date(),
-      },
-    });
-
-    if (!updated) throw new InternalServerErrorException('members.notUpdated');
-
-    return updated;
-  }
-
-  public async dismissAdmin({ dto, authUser }) {
-    const { member, space } = dto;
-    const spaceObjectId = new Types.ObjectId(space);
-    const userObjectId = new Types.ObjectId(authUser._id);
-    const memberObjectId = new Types.ObjectId(member);
-
-    const authMember = await this.membersRepository.findOne({
-      query: { space: spaceObjectId, user: userObjectId },
-    });
-
-    if (!authMember) throw new NotFoundException('members.noPermission');
-
-    const isOwner = authMember.role === SpaceMemberRole.OWNER;
-    const isAdmin =
-      authMember.role === SpaceMemberRole.ADMIN &&
-      authMember.permissions?.includes(SpaceMemberPermission.ADD_ADMIN);
-    const canDeleteAdmin = isOwner || isAdmin;
-    if (!canDeleteAdmin) throw new BadRequestException('members.noPermission');
-
-    const targetMember = await this.membersRepository.findOne({
-      query: { space: spaceObjectId, _id: memberObjectId },
-    });
-
-    if (!targetMember) throw new NotFoundException('members.notFound');
-
-    if (targetMember.role === SpaceMemberRole.OWNER)
-      throw new BadRequestException('members.cannotModifyOwner');
-
-    if (targetMember.role !== SpaceMemberRole.ADMIN)
-      throw new BadRequestException('members.notAdmin');
-
-    const updated = await this.membersRepository.updateOne({
-      query: { space: spaceObjectId, _id: memberObjectId },
-      dto: {
-        role: SpaceMemberRole.MEMBER,
-        permissions: [],
-        adminTag: null,
-        adminTagColor: null,
-      },
-    });
-
-    if (!updated) throw new InternalServerErrorException('members.notUpdated');
-
-    return updated;
-  }
-
   public async toggleBan({ dto, authUser }) {
     const { member, space, bannedReason } = dto;
     const spaceObjectId = new Types.ObjectId(space);
@@ -386,7 +345,7 @@ export class MembersService {
     const isOwner = authMember.role === SpaceMemberRole.OWNER;
     const isAdmin =
       authMember.role === SpaceMemberRole.ADMIN &&
-      authMember.permissions?.includes(SpaceMemberPermission.BAN_USERS);
+      authMember.permissions?.includes(SpaceMemberPermission.BAN_MEMBERS);
     const canBan = isOwner || isAdmin;
     if (!canBan) throw new BadRequestException('members.noPermission');
 
@@ -414,7 +373,6 @@ export class MembersService {
       dto: isBanned
         ? {
             isBanned: false,
-            isRestricted: false,
             bannedReason: null,
             bannedAt: null,
             permission: [],
@@ -422,7 +380,6 @@ export class MembersService {
           }
         : {
             isBanned: true,
-            isRestricted: false,
             bannedReason: bannedReason ?? null,
             bannedAt: new Date(),
             isDeleted: true,

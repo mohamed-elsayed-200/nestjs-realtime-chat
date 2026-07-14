@@ -440,7 +440,7 @@ export class CommentsService {
     const isOwner = member.role === SpaceMemberRole.OWNER;
     const isModeratorAdmin =
       member.role === SpaceMemberRole.ADMIN &&
-      member.permissions?.includes(SpaceMemberPermission.DELETE_MESSAGES);
+      member.permissions?.includes(SpaceMemberPermission.DELETE_ANY_COMMENTS);
 
     return isOwner || isModeratorAdmin;
   }

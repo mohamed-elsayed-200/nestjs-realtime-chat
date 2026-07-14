@@ -74,15 +74,6 @@ export class MembersController {
     return this.membersService.transferOwnership({ dto, authUser });
   }
 
-  @Post('/toggle-restrict')
-  @ResponseMeta({ message: 'members.toggled', statusCode: 201 })
-  public async toggleRestrict(
-    @GetUser() authUser: any,
-    @Body() dto: ToggleRestrictedMemberDto,
-  ) {
-    return this.membersService.toggleRestrict({ dto, authUser });
-  }
-
   @Post('/toggle-ban')
   @ResponseMeta({ message: 'members.toggled', statusCode: 201 })
   public async toggleBan(

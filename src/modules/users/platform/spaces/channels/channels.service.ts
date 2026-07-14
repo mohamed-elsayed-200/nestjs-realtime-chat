@@ -15,7 +15,6 @@ import {
   JoinApproval,
   MessageStatus,
   MessageType,
-  SpaceMemberPermission,
   SpaceMemberRole,
   SpaceTypes,
 } from '../../../../../common/types/enums';
@@ -75,19 +74,6 @@ export class ChannelsService {
         isArchived: false,
         adminTag: 'Owner',
         adminTagColor: '#22c55e',
-        permissions: [
-          SpaceMemberPermission.ADD_STORIES,
-          SpaceMemberPermission.EDIT_STORIES,
-          SpaceMemberPermission.DELETE_STORIES,
-          SpaceMemberPermission.DELETE_MESSAGES,
-          SpaceMemberPermission.BAN_USERS,
-          SpaceMemberPermission.INVITE_USERS_VIA_LINK,
-          SpaceMemberPermission.PIN_MESSAGES,
-          SpaceMemberPermission.ADD_ADMIN,
-          SpaceMemberPermission.CHANGE_SPACE_INFO,
-          SpaceMemberPermission.EDIT_MEMBER_TAGS,
-          SpaceMemberPermission.MANAGE_LIVE_STREAMS,
-        ],
       },
     });
 
@@ -110,8 +96,7 @@ export class ChannelsService {
 
     const canUpdate =
       member.role === SpaceMemberRole.OWNER ||
-      member.role === SpaceMemberRole.ADMIN ||
-      member.permissions?.includes(SpaceMemberPermission.CHANGE_SPACE_INFO);
+      member.role === SpaceMemberRole.ADMIN;
 
     if (!canUpdate) throw new InternalServerErrorException('spaces.notUpdated');
 

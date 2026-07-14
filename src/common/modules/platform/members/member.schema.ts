@@ -50,9 +50,6 @@ export class Member {
   isArchived: boolean;
 
   @Prop({ default: false })
-  isRestricted: boolean;
-
-  @Prop({ default: false })
   isPined: boolean;
 
   @Prop({ default: false })
