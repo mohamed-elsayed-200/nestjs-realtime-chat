@@ -32,24 +32,11 @@ export enum SpaceMemberRole {
 }
 
 export enum SpaceMemberPermission {
-  // Messages
+  // Member permissions
   SEND_MESSAGES = 'send-messages',
-  EDIT_OWN_MESSAGES = 'edit-own-messages',
-  DELETE_OWN_MESSAGES = 'delete-own-messages',
-  DELETE_ANY_MESSAGES = 'delete-any-messages',
-  PIN_MESSAGES = 'pin-messages',
-
-  // Comments
   ADD_COMMENTS = 'add-comments',
-  EDIT_OWN_COMMENTS = 'edit-own-comments',
-  DELETE_OWN_COMMENTS = 'delete-own-comments',
-  DELETE_ANY_COMMENTS = 'delete-any-comments',
-
-  // Reactions
   REACTION_MESSAGES = 'reaction-messages',
   REACTION_COMMENTS = 'reaction-comments',
-
-  // Media
   SEND_PHOTOS = 'send-photos',
   SEND_VIDEOS = 'send-videos',
   SEND_FILES = 'send-files',
@@ -58,33 +45,25 @@ export enum SpaceMemberPermission {
   SEND_GIFS = 'send-gifs',
   SEND_POLLS = 'send-polls',
   SEND_LINKS = 'send-links',
-
-  // Stories
-  ADD_STORIES = 'add-stories',
-  EDIT_STORIES = 'edit-stories',
-  DELETE_STORIES = 'delete-stories',
-  PIN_STORIES = 'pin-stories',
-
-  // Live
-  MANAGE_LIVE_STREAMS = 'manage-live-streams',
-
-  // Members
   INVITE_USERS = 'invite-users',
-  APPROVE_JOIN_REQUESTS = 'approve-join-requests',
 
   // Moderation
-  RESTRICT_MEMBERS = 'restrict-members',
   BAN_MEMBERS = 'ban-members',
+  MANAGE_MEMBER_MESSAGES = 'manage-member-messages',
+  MANAGE_MEMBER_COMMENTS = 'manage-member-comments',
+  MANAGE_MEMBER_MEDIA = 'manage-member-media',
+  MANAGE_JOIN_REQUESTS = 'manage-join-requests',
   MANAGE_ADMINS = 'manage-admins',
-  EDIT_MEMBER_TAGS = 'edit-member-tags',
-
-  // Space
-  CHANGE_SETTINGS = 'change-settings',
-  CHANGE_PHOTO = 'change-photo',
-  CHANGE_USERNAME = 'change-username',
-  CHANGE_BIO = 'change-bio',
-  CHANGE_NAME = 'change-name',
-  CHANGE_PERMISSIONS = 'change-permissions',
+  MANAGE_SPACE_LIVE_STREAMS = 'manage-space-live-streams',
+  CHANGE_SPACE_SETTINGS = 'change-space-settings',
+  CHANGE_SPACE_INFO = 'change-space-info',
+  PIN_SPACE_MESSAGES = 'pin-space-messages',
+  DELETE_SPACE_MESSAGES = 'delete-space-messages',
+  PIN_SPACE_COMMENTS = 'pin-space-comments',
+  DELETE_SPACE_COMMENTS = 'delete-space-comments',
+  ADD_SPACE_STORIES = 'add-space-stories',
+  EDIT_ANY_SPACE_STORY = 'edit-any-space-story',
+  DELETE_ANY_SPACE_STORY = 'delete-any-space-story',
 }
 
 export enum CommentType {

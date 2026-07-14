@@ -276,9 +276,10 @@ export class MembersService {
       } else {
         // Member: save only member-level permissions
         const memberPermissions = [
+          SpaceMemberPermission.SEND_MESSAGES,
           SpaceMemberPermission.ADD_COMMENTS,
-          SpaceMemberPermission.EDIT_OWN_COMMENTS,
-          SpaceMemberPermission.DELETE_OWN_COMMENTS,
+          SpaceMemberPermission.REACTION_MESSAGES,
+          SpaceMemberPermission.REACTION_COMMENTS,
           SpaceMemberPermission.SEND_PHOTOS,
           SpaceMemberPermission.SEND_VIDEOS,
           SpaceMemberPermission.SEND_FILES,
@@ -287,8 +288,6 @@ export class MembersService {
           SpaceMemberPermission.SEND_GIFS,
           SpaceMemberPermission.SEND_POLLS,
           SpaceMemberPermission.SEND_LINKS,
-          SpaceMemberPermission.REACTION_MESSAGES,
-          SpaceMemberPermission.REACTION_COMMENTS,
           SpaceMemberPermission.INVITE_USERS,
         ];
         updatePayload.permissions = filtered.filter((p: string) =>
