@@ -1,10 +1,10 @@
 import {
   Body,
   Controller,
-  Delete,
   Get,
   Param,
   Post,
+  Put,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -17,9 +17,7 @@ import { UserType } from '../../../../common/types/enums';
 import { UserTypes } from '../../../../common/decorators/user-type.decorator';
 import { QueryDto } from '../../../../common/modules/dto/query.dto';
 import { GetUser } from '../../../../common/decorators/get-user.decorator';
-import { PromoteAdminDto } from './dto/promote-admin.dto';
-import { DismissAdminDto } from './dto/dismiss-admin.dto';
-import { ToggleRestrictedMemberDto } from './dto/toggle-mute-member.dto';
+import { UpdateMemberDto } from './dto/update-member.dto';
 import { TransferOwnershipDto } from './dto/transfer-ownership.dto';
 import { ToggleBanMemberDto } from './dto/toggle-ban-member.dto';
 
@@ -47,22 +45,14 @@ export class MembersController {
     return this.membersService.getBannedBySpace({ query, spaceId });
   }
 
-  @Post('/promote-admin')
+  @Put('/:memberId')
   @ResponseMeta({ message: 'members.promoted', statusCode: 201 })
   public async addAdmin(
+    @Param('memberId', ValidateObjectIdPipe) memberId: string,
     @GetUser() authUser: any,
-    @Body() dto: PromoteAdminDto,
+    @Body() dto: UpdateMemberDto,
   ) {
-    return this.membersService.promoteAdmin({ dto, authUser });
-  }
-
-  @Post('/dismiss-admin')
-  @ResponseMeta({ message: 'members.dismissed', statusCode: 201 })
-  public async dismissAdmin(
-    @GetUser() authUser: any,
-    @Body() dto: DismissAdminDto,
-  ) {
-    return this.membersService.dismissAdmin({ dto, authUser });
+    return this.membersService.updateMember({ dto, memberId, authUser });
   }
 
   @Post('/transfer-ownership')
