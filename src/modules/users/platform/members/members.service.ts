@@ -262,19 +262,19 @@ export class MembersService {
     // === PERMISSIONS ===
     if (permissions !== undefined) {
       const validPermissions = Object.values(SpaceMemberPermission) as string[];
-      const filtered = permissions.filter((p: string) =>
+
+      // Remove duplicates
+      const uniquePermissions = [...new Set(permissions as string[])];
+      const filtered = uniquePermissions.filter((p: string) =>
         validPermissions.includes(p),
       );
-
       const targetWillBeAdmin =
         role === SpaceMemberRole.ADMIN ||
         (!role && targetMember.role === SpaceMemberRole.ADMIN);
 
       if (targetWillBeAdmin) {
-        // Admin: save all valid permissions
         updatePayload.permissions = filtered;
       } else {
-        // Member: save only member-level permissions
         const memberPermissions = [
           SpaceMemberPermission.SEND_MESSAGES,
           SpaceMemberPermission.ADD_COMMENTS,
