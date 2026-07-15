@@ -198,14 +198,29 @@ export class MembersService {
     });
   }
 
-  public async getOne({ memberId }) {
+  public async getOne({ query }) {
+    const { memberId, userId, spaceId } = query;
+    let finalQuery: any = {};
+    if (memberId) {
+      finalQuery._id = new Types.ObjectId(memberId);
+    }
+    if (userId) {
+      finalQuery.user = new Types.ObjectId(userId);
+    }
+    if (spaceId) {
+      finalQuery.space = new Types.ObjectId(spaceId);
+    }
+
+    if (!memberId && !userId && !spaceId)
+      throw new NotFoundException('members.notFoundOne');
+
     const member = await this.membersRepository.findOne({
-      query: { _id: memberId },
+      query: finalQuery,
       populate: [
         {
           path: 'user',
           model: 'User',
-          select: 'name avatar profileColor username',
+          select: 'name avatar profileColor username bio',
         },
         {
           path: 'bannedBy',
@@ -232,7 +247,7 @@ export class MembersService {
         'isBanned addedBy promotedBy deletedAt bannedAt joinedAt role adminTag adminTagColor isDeleted user bannedBy space permissions bannedReason',
     });
 
-    if (!member) throw new NotFoundException('members.notFound');
+    if (!member) throw new NotFoundException('members.notFoundOne');
 
     return member;
   }

@@ -12,7 +12,9 @@ import { MessagesRepository } from '../../../../../common/modules/platform/messa
 import { ContactsRepository } from '../../../../../common/modules/platform/contacts/contacts.repository';
 import {
   ActivationStatus,
+  adminPermissionList,
   JoinApproval,
+  memberPermissionList,
   MessageStatus,
   MessageType,
   SpaceMemberRole,
@@ -68,6 +70,7 @@ export class ChannelsService {
         user: new Types.ObjectId(authUser._id),
         space: new Types.ObjectId(space._id?.toString()),
         role: SpaceMemberRole.OWNER,
+        permission: [...memberPermissionList, ...adminPermissionList],
         joinedAt: new Date(),
         isPined: false,
         isMuted: false,

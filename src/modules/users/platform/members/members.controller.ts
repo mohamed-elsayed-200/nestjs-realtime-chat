@@ -39,6 +39,12 @@ export class MembersController {
     return this.membersService.getAll({ query, spaceId });
   }
 
+  @Get('/single-member')
+  @ResponseMeta({ message: 'members.foundOne' })
+  public async getOne(@Query() query: string) {
+    return this.membersService.getOne({ query });
+  }
+
   @Get('/banned/:spaceId')
   @ResponseMeta({ message: 'members.foundAll' })
   public async getBannedBySpace(
@@ -100,13 +106,5 @@ export class MembersController {
     @Body() dto: ToggleBanMemberDto,
   ) {
     return this.membersService.toggleBan({ dto, authUser });
-  }
-
-  @Get('/:memberId')
-  @ResponseMeta({ message: 'members.foundOne' })
-  public async getOne(
-    @Param('memberId', ValidateObjectIdPipe) memberId: string,
-  ) {
-    return this.membersService.getOne({ memberId });
   }
 }
