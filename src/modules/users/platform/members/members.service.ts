@@ -201,6 +201,35 @@ export class MembersService {
   public async getOne({ memberId }) {
     const member = await this.membersRepository.findOne({
       query: { _id: memberId },
+      populate: [
+        {
+          path: 'user',
+          model: 'User',
+          select: 'name avatar profileColor username',
+        },
+        {
+          path: 'bannedBy',
+          model: 'User',
+          select: 'name avatar profileColor username',
+        },
+        {
+          path: 'promotedBy',
+          model: 'User',
+          select: 'name avatar profileColor username',
+        },
+        {
+          path: 'addedBy',
+          model: 'User',
+          select: 'name avatar profileColor username',
+        },
+        {
+          path: 'space',
+          model: 'Space',
+          select: 'name profileColor avatar type',
+        },
+      ],
+      select:
+        'isBanned addedBy promotedBy deletedAt bannedAt joinedAt role adminTag adminTagColor isDeleted user bannedBy space permissions bannedReason',
     });
 
     if (!member) throw new NotFoundException('members.notFound');
