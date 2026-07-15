@@ -7,6 +7,7 @@ import {
 import { MembersRepository } from '../../../../common/modules/platform/members/members.repository';
 import { Types } from 'mongoose';
 import {
+  adminPermissionList,
   memberPermissionList,
   SpaceMemberPermission,
   SpaceMemberRole,
@@ -264,9 +265,14 @@ export class MembersService {
       query: { space: spaceObjectId, user: userObjectId, isDeleted: false },
     });
     if (!authMember) throw new NotFoundException('members.noPermission');
-    if (authMember.role !== SpaceMemberRole.OWNER) {
+    const iamOwner = authMember.role !== SpaceMemberRole.OWNER;
+    const iamAdmin = authMember.role !== SpaceMemberRole.ADMIN;
+    const canPromoteAdmin =
+      iamOwner ||
+      (iamAdmin &&
+        authMember.permissions.includes(SpaceMemberPermission.MANAGE_ADMINS));
+    if (!canPromoteAdmin)
       throw new BadRequestException('members.onlyOwnerCanPromote');
-    }
 
     // 2. Target member
     const targetMember = await this.membersRepository.findOne({
@@ -281,7 +287,9 @@ export class MembersService {
     }
 
     // 3. Validate permissions
-    const validPermissions = Object.values(SpaceMemberPermission) as string[];
+    const validPermissions = iamOwner
+      ? (Object.values(SpaceMemberPermission) as string[])
+      : authMember?.permissions;
     const uniquePermissions = [...new Set(permissions as string[])];
     const filtered = uniquePermissions.filter((p) =>
       validPermissions.includes(p),
@@ -376,13 +384,13 @@ export class MembersService {
     });
     if (!authMember) throw new NotFoundException('members.noPermission');
 
-    const isOwner = authMember.role === SpaceMemberRole.OWNER;
+    const iamOwner = authMember.role === SpaceMemberRole.OWNER;
     const canManageAdmins = authMember.permissions?.includes(
       SpaceMemberPermission.MANAGE_ADMINS,
     );
 
     if (
-      !isOwner &&
+      !iamOwner &&
       !(authMember.role === SpaceMemberRole.ADMIN && canManageAdmins)
     ) {
       throw new BadRequestException('members.noPermission');
@@ -397,37 +405,58 @@ export class MembersService {
       throw new BadRequestException('members.notAdmin');
     }
 
-    // 3. Validate permissions
-    const validPermissions = Object.values(SpaceMemberPermission) as string[];
+    // 2.1 Non-owner admins can only manage admins they personally promoted
+    if (
+      !iamOwner &&
+      targetMember.promotedBy?.toString() !== userObjectId.toString()
+    ) {
+      throw new BadRequestException('members.noPermission');
+    }
+
+    // 3. Validate requested permissions against the full valid list (member + admin)
+    const validPermissions: string[] = [
+      ...memberPermissionList,
+      ...adminPermissionList,
+    ];
     const uniquePermissions = [...new Set(permissions as string[])];
     const filtered = uniquePermissions.filter((p) =>
       validPermissions.includes(p),
     );
 
-    // 4. Update: keep member perms + new admin perms
-    const memberPermissionValues = [
-      SpaceMemberPermission.SEND_MESSAGES,
-      SpaceMemberPermission.ADD_COMMENTS,
-      SpaceMemberPermission.REACTION_MESSAGES,
-      SpaceMemberPermission.REACTION_COMMENTS,
-      SpaceMemberPermission.SEND_PHOTOS,
-      SpaceMemberPermission.SEND_VIDEOS,
-      SpaceMemberPermission.SEND_FILES,
-      SpaceMemberPermission.SEND_VOICE,
-      SpaceMemberPermission.SEND_STICKERS,
-      SpaceMemberPermission.SEND_GIFS,
-      SpaceMemberPermission.SEND_POLLS,
-      SpaceMemberPermission.SEND_LINKS,
-      SpaceMemberPermission.INVITE_USERS,
-    ];
-
+    // 4. Split current permissions into member vs admin buckets using the shared lists
     const currentPerms = targetMember.permissions || [];
     const memberPerms = currentPerms.filter((p) =>
-      memberPermissionValues.includes(p),
+      memberPermissionList.includes(p),
+    );
+    const currentAdminPerms = currentPerms.filter((p) =>
+      adminPermissionList.includes(p),
     );
 
+    // 5. Determine which admin-level permissions authUser is actually allowed to touch.
+    //    Owner controls all admin perms; a regular admin only controls admin perms they own.
+    const authControlledPerms = iamOwner
+      ? adminPermissionList
+      : (authMember.permissions || []).filter((p) =>
+          adminPermissionList.includes(p),
+        );
+
+    // Perms the target currently has that authUser has NO control over -> preserve as-is
+    const untouchableAdminPerms = currentAdminPerms.filter(
+      (p) => !authControlledPerms.includes(p),
+    );
+
+    // Perms from the request that authUser IS allowed to grant/revoke (admin perms only)
+    const editableAdminPerms = filtered.filter(
+      (p) => adminPermissionList.includes(p) && authControlledPerms.includes(p),
+    );
+
+    const newAdminPerms = [
+      ...new Set([...untouchableAdminPerms, ...editableAdminPerms]),
+    ];
+
+    // 6. Build update payload
     const updatePayload: any = {
-      permissions: [...memberPerms, ...filtered],
+      permissions: [...memberPerms, ...newAdminPerms],
     };
 
     if (adminTag !== undefined) updatePayload.adminTag = adminTag || 'Admin';
@@ -456,15 +485,10 @@ export class MembersService {
     });
     if (!authMember) throw new NotFoundException('members.noPermission');
 
-    const isOwner = authMember.role === SpaceMemberRole.OWNER;
-    const canChangePermissions = authMember.permissions?.includes(
-      SpaceMemberPermission.CHANGE_SPACE_SETTINGS,
-    );
+    const iamOwner = authMember.role === SpaceMemberRole.OWNER;
+    const iamAdmin = authMember.role === SpaceMemberRole.ADMIN;
 
-    if (
-      !isOwner &&
-      !(authMember.role === SpaceMemberRole.ADMIN && canChangePermissions)
-    ) {
+    if (!iamOwner && !iamAdmin) {
       throw new BadRequestException('members.noPermission');
     }
 
@@ -477,41 +501,57 @@ export class MembersService {
       throw new BadRequestException('members.cannotModifyOwner');
     }
 
-    // 3. Validate member permissions only
-    const memberPermissionValues = [
-      SpaceMemberPermission.SEND_MESSAGES,
-      SpaceMemberPermission.ADD_COMMENTS,
-      SpaceMemberPermission.REACTION_MESSAGES,
-      SpaceMemberPermission.REACTION_COMMENTS,
-      SpaceMemberPermission.SEND_PHOTOS,
-      SpaceMemberPermission.SEND_VIDEOS,
-      SpaceMemberPermission.SEND_FILES,
-      SpaceMemberPermission.SEND_VOICE,
-      SpaceMemberPermission.SEND_STICKERS,
-      SpaceMemberPermission.SEND_GIFS,
-      SpaceMemberPermission.SEND_POLLS,
-      SpaceMemberPermission.SEND_LINKS,
-      SpaceMemberPermission.INVITE_USERS,
-    ];
+    // 2.1 If target is an ADMIN, authUser must also have MANAGE_ADMINS to touch their perms
+    if (targetMember.role === SpaceMemberRole.ADMIN) {
+      const canManageAdmins = authMember.permissions?.includes(
+        SpaceMemberPermission.MANAGE_ADMINS,
+      );
+      if (!iamOwner && !canManageAdmins) {
+        throw new BadRequestException('members.noPermission');
+      }
+    }
 
-    const validPermissions = Object.values(SpaceMemberPermission) as string[];
+    // 3. Only accept requested permissions that are valid member permissions
     const uniquePermissions = [...new Set(permissions as string[])];
-    const filtered = uniquePermissions.filter(
-      (p) =>
-        validPermissions.includes(p) &&
-        memberPermissionValues.includes(p as SpaceMemberPermission),
+    const requestedMemberPerms = uniquePermissions.filter((p) =>
+      memberPermissionList.includes(p as SpaceMemberPermission),
     );
 
-    // 4. Update: keep admin perms + new member perms
+    // 4. Determine which member-level permissions authUser is actually allowed to touch.
+    //    Owner controls all member perms; a regular admin only controls member perms they own.
+    const authControlledPerms = iamOwner
+      ? memberPermissionList
+      : (authMember.permissions || []).filter((p) =>
+          memberPermissionList.includes(p as SpaceMemberPermission),
+        );
+
+    // 5. Current member perms the target has that authUser has NO control over -> preserve as-is
     const currentPerms = targetMember.permissions || [];
-    const adminPerms = currentPerms.filter(
-      (p) => !memberPermissionValues.includes(p),
+    const currentMemberPerms = currentPerms.filter((p) =>
+      memberPermissionList.includes(p as SpaceMemberPermission),
+    );
+    const untouchableMemberPerms = currentMemberPerms.filter(
+      (p) => !authControlledPerms.includes(p as SpaceMemberPermission),
+    );
+
+    // 6. Perms from the request that authUser IS allowed to grant/revoke
+    const editableMemberPerms = requestedMemberPerms.filter((p) =>
+      authControlledPerms.includes(p as SpaceMemberPermission),
+    );
+
+    const newMemberPerms = [
+      ...new Set([...untouchableMemberPerms, ...editableMemberPerms]),
+    ];
+
+    // 7. Keep admin perms as-is + apply new member perms
+    const adminPerms = currentPerms.filter((p) =>
+      adminPermissionList.includes(p as SpaceMemberPermission),
     );
 
     const updated = await this.membersRepository.updateOne({
       query: { space: spaceObjectId, _id: memberObjectId },
       dto: {
-        permissions: [...adminPerms, ...filtered],
+        permissions: [...adminPerms, ...newMemberPerms],
       },
     });
 
@@ -601,7 +641,7 @@ export class MembersService {
     const isOwner = authMember.role === SpaceMemberRole.OWNER;
     const isAdmin =
       authMember.role === SpaceMemberRole.ADMIN &&
-      authMember.permissions?.includes(SpaceMemberPermission.BAN_MEMBERS);
+      authMember.permissions?.includes(SpaceMemberPermission.MANAGE_MEMBERS);
     const canBan = isOwner || isAdmin;
     if (!canBan) throw new BadRequestException('members.noPermission');
 

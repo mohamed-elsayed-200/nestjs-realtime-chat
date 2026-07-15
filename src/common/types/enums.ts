@@ -33,9 +33,9 @@ export enum SpaceMemberRole {
 
 export enum SpaceMemberPermission {
   // Member permissions
+  REACTION_MESSAGES = 'reaction-messages',
   SEND_MESSAGES = 'send-messages',
   ADD_COMMENTS = 'add-comments',
-  REACTION_MESSAGES = 'reaction-messages',
   REACTION_COMMENTS = 'reaction-comments',
   SEND_PHOTOS = 'send-photos',
   SEND_VIDEOS = 'send-videos',
@@ -48,24 +48,22 @@ export enum SpaceMemberPermission {
   INVITE_USERS = 'invite-users',
 
   // Moderation
-  BAN_MEMBERS = 'ban-members',
-  MANAGE_MEMBER_MESSAGES = 'manage-member-messages',
-  MANAGE_MEMBER_COMMENTS = 'manage-member-comments',
-  MANAGE_MEMBER_MEDIA = 'manage-member-media',
-  MANAGE_JOIN_REQUESTS = 'manage-join-requests',
+  MANAGE_MEMBERS = 'manage-members',
   MANAGE_ADMINS = 'manage-admins',
-  MANAGE_SPACE_LIVE_STREAMS = 'manage-space-live-streams',
-  CHANGE_SPACE_SETTINGS = 'change-space-settings',
-  CHANGE_SPACE_INFO = 'change-space-info',
-  PIN_SPACE_MESSAGES = 'pin-space-messages',
-  DELETE_SPACE_MESSAGES = 'delete-space-messages',
-  PIN_SPACE_COMMENTS = 'pin-space-comments',
-  DELETE_SPACE_COMMENTS = 'delete-space-comments',
-  ADD_SPACE_STORIES = 'add-space-stories',
-  EDIT_ANY_SPACE_STORY = 'edit-any-space-story',
-  DELETE_ANY_SPACE_STORY = 'delete-any-space-story',
+  MANAGE_JOIN_REQUESTS = 'manage-join-requests',
+  MANAGE_LIVE_STREAMS = 'manage-live-streams',
+  CHANGE_SETTINGS = 'change-settings',
+  CHANGE_INFO = 'change-info',
+  PIN_ANY_MESSAGE = 'pin-any-message',
+  DELETE_ANY_MESSAGE = 'delete-any-message',
+  PIN_ANY_COMMENT = 'pin-any-comment',
+  DELETE_ANY_COMMENT = 'delete-any-comment',
+  ADD_STORIES = 'add-stories',
+  EDIT_ANY_STORY = 'edit-any-story',
+  DELETE_ANY_STORY = 'delete-any-story',
 }
-export const memberPermissionList = [
+
+export const memberPermissionList: string[] = [
   SpaceMemberPermission.SEND_MESSAGES,
   SpaceMemberPermission.ADD_COMMENTS,
   SpaceMemberPermission.REACTION_MESSAGES,
@@ -80,23 +78,20 @@ export const memberPermissionList = [
   SpaceMemberPermission.SEND_LINKS,
   SpaceMemberPermission.INVITE_USERS,
 ];
-export const adminPermissionList = [
-  SpaceMemberPermission.BAN_MEMBERS,
-  SpaceMemberPermission.MANAGE_MEMBER_MESSAGES,
-  SpaceMemberPermission.MANAGE_MEMBER_COMMENTS,
-  SpaceMemberPermission.MANAGE_MEMBER_MEDIA,
+export const adminPermissionList: string[] = [
+  SpaceMemberPermission.MANAGE_MEMBERS,
   SpaceMemberPermission.MANAGE_JOIN_REQUESTS,
   SpaceMemberPermission.MANAGE_ADMINS,
-  SpaceMemberPermission.MANAGE_SPACE_LIVE_STREAMS,
-  SpaceMemberPermission.CHANGE_SPACE_SETTINGS,
-  SpaceMemberPermission.CHANGE_SPACE_INFO,
-  SpaceMemberPermission.PIN_SPACE_MESSAGES,
-  SpaceMemberPermission.DELETE_SPACE_MESSAGES,
-  SpaceMemberPermission.PIN_SPACE_COMMENTS,
-  SpaceMemberPermission.DELETE_SPACE_COMMENTS,
-  SpaceMemberPermission.ADD_SPACE_STORIES,
-  SpaceMemberPermission.EDIT_ANY_SPACE_STORY,
-  SpaceMemberPermission.DELETE_ANY_SPACE_STORY,
+  SpaceMemberPermission.MANAGE_LIVE_STREAMS,
+  SpaceMemberPermission.CHANGE_SETTINGS,
+  SpaceMemberPermission.CHANGE_INFO,
+  SpaceMemberPermission.PIN_ANY_MESSAGE,
+  SpaceMemberPermission.DELETE_ANY_MESSAGE,
+  SpaceMemberPermission.PIN_ANY_COMMENT,
+  SpaceMemberPermission.DELETE_ANY_COMMENT,
+  SpaceMemberPermission.ADD_STORIES,
+  SpaceMemberPermission.EDIT_ANY_STORY,
+  SpaceMemberPermission.DELETE_ANY_STORY,
 ];
 
 export enum CommentType {
