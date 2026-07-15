@@ -7,6 +7,7 @@ import {
 import { MembersRepository } from '../../../../common/modules/platform/members/members.repository';
 import { Types } from 'mongoose';
 import {
+  memberPermissionList,
   SpaceMemberPermission,
   SpaceMemberRole,
 } from '../../../../common/types/enums';
@@ -167,20 +168,6 @@ export class MembersService {
           },
           {
             $lookup: {
-              from: 'spaces',
-              localField: 'space',
-              foreignField: '_id',
-              as: 'space',
-            },
-          },
-          {
-            $unwind: {
-              path: '$space',
-              preserveNullAndEmptyArrays: true,
-            },
-          },
-          {
-            $lookup: {
               from: 'users',
               localField: 'user',
               foreignField: '_id',
@@ -193,17 +180,10 @@ export class MembersService {
               preserveNullAndEmptyArrays: true,
             },
           },
-
           {
             $project: {
-              space: {
-                id: '$space._id',
-                membersCount: '$space.membersCount',
-                name: '$space.name',
-                type: '$space.type',
-                profileColor: '$space.profileColor',
-                avatar: '$space.avatar',
-              },
+              id: 1,
+              bannedAt: 1,
               user: {
                 id: '$user._id',
                 name: '$user.name',
@@ -211,15 +191,6 @@ export class MembersService {
                 profileColor: '$user.profileColor',
                 avatar: '$user.avatar',
               },
-              role: 1,
-              joinedAt: 1,
-              adminTag: 1,
-              adminTagColor: 1,
-              permissions: 1,
-              isMuted: 1,
-              isBanned: 1,
-              bannedAt: 1,
-              bannedReason: 1,
             },
           },
         ],
@@ -617,7 +588,7 @@ export class MembersService {
             bannedReason: null,
             bannedAt: null,
             bannedBy: null,
-            permission: [],
+            permission: memberPermissionList,
             role: null,
           }
         : {
@@ -625,8 +596,8 @@ export class MembersService {
             bannedReason: bannedReason ?? null,
             bannedAt: new Date(),
             isDeleted: true,
+            permission: memberPermissionList,
             bannedBy: userObjectId,
-            permission: [],
             role: null,
           },
     });

@@ -4,7 +4,6 @@ import {
   IsMongoId,
   IsNotEmpty,
   IsOptional,
-  IsString,
 } from 'class-validator';
 import { SpaceMemberPermission } from '../../../../../common/types/enums';
 
@@ -21,12 +20,4 @@ export class UpdateMemberPermissionsDto {
   @IsArray()
   @IsEnum(SpaceMemberPermission, { each: true })
   permissions?: SpaceMemberPermission[];
-
-  @IsOptional()
-  @IsString()
-  adminTag?: string;
-
-  @IsOptional()
-  @IsString()
-  adminTagColor?: string;
 }

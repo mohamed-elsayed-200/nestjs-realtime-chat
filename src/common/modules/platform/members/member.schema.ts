@@ -1,6 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument, Types } from 'mongoose';
 import {
+  memberPermissionList,
   SpaceMemberPermission,
   SpaceMemberRole,
 } from '../../../../common/types/enums';
@@ -36,21 +37,7 @@ export class Member {
   @Prop({
     type: [String],
     enum: SpaceMemberPermission,
-    default: [
-      SpaceMemberPermission.SEND_MESSAGES,
-      SpaceMemberPermission.ADD_COMMENTS,
-      SpaceMemberPermission.REACTION_MESSAGES,
-      SpaceMemberPermission.REACTION_COMMENTS,
-      SpaceMemberPermission.SEND_PHOTOS,
-      SpaceMemberPermission.SEND_VIDEOS,
-      SpaceMemberPermission.SEND_FILES,
-      SpaceMemberPermission.SEND_VOICE,
-      SpaceMemberPermission.SEND_STICKERS,
-      SpaceMemberPermission.SEND_GIFS,
-      SpaceMemberPermission.SEND_POLLS,
-      SpaceMemberPermission.SEND_LINKS,
-      SpaceMemberPermission.INVITE_USERS,
-    ],
+    default: memberPermissionList,
   })
   permissions: SpaceMemberPermission[];
 
