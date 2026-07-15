@@ -6,19 +6,16 @@ import {
   IsOptional,
   IsString,
 } from 'class-validator';
-import {
-  SpaceMemberPermission,
-  SpaceMemberRole,
-} from '../../../../../common/types/enums';
+import { SpaceMemberPermission } from '../../../../../common/types/enums';
 
-export class UpdateMemberDto {
+export class UpdateMemberPermissionsDto {
+  @IsMongoId()
+  @IsNotEmpty()
+  member: string;
+
   @IsMongoId()
   @IsNotEmpty()
   space: string;
-
-  @IsOptional()
-  @IsEnum(SpaceMemberRole)
-  role?: SpaceMemberRole;
 
   @IsOptional()
   @IsArray()

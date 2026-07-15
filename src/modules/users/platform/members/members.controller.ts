@@ -17,9 +17,12 @@ import { UserType } from '../../../../common/types/enums';
 import { UserTypes } from '../../../../common/decorators/user-type.decorator';
 import { QueryDto } from '../../../../common/modules/dto/query.dto';
 import { GetUser } from '../../../../common/decorators/get-user.decorator';
-import { UpdateMemberDto } from './dto/update-member.dto';
 import { TransferOwnershipDto } from './dto/transfer-ownership.dto';
 import { ToggleBanMemberDto } from './dto/toggle-ban-member.dto';
+import { PromoteAdminDto } from './dto/promote-admin.dto';
+import { UpdateAdminPermissionsDto } from './dto/update-admin-permissions.dto';
+import { UpdateMemberPermissionsDto } from './dto/update-member-permissions.dto';
+import { DismissAdminDto } from './dto/dismiss-admin.dto';
 
 @Controller('/users/members')
 @UseGuards(AuthGuard, UserTypeGuard)
@@ -45,14 +48,40 @@ export class MembersController {
     return this.membersService.getBannedBySpace({ query, spaceId });
   }
 
-  @Put('/:memberId')
-  @ResponseMeta({ message: 'members.promoted', statusCode: 201 })
-  public async addAdmin(
-    @Param('memberId', ValidateObjectIdPipe) memberId: string,
+  @Post('/promote-admin')
+  @ResponseMeta({ message: 'members.transferred', statusCode: 201 })
+  public async promoteAdmin(
     @GetUser() authUser: any,
-    @Body() dto: UpdateMemberDto,
+    @Body() dto: PromoteAdminDto,
   ) {
-    return this.membersService.updateMember({ dto, memberId, authUser });
+    return this.membersService.promoteAdmin({ dto, authUser });
+  }
+
+  @Put('/dismiss-admin')
+  @ResponseMeta({ message: 'members.transferred', statusCode: 201 })
+  public async DismissAdmin(
+    @GetUser() authUser: any,
+    @Body() dto: DismissAdminDto,
+  ) {
+    return this.membersService.dismissAdmin({ dto, authUser });
+  }
+
+  @Put('/admin-permissions')
+  @ResponseMeta({ message: 'members.transferred', statusCode: 201 })
+  public async updateAdminPermissions(
+    @GetUser() authUser: any,
+    @Body() dto: UpdateAdminPermissionsDto,
+  ) {
+    return this.membersService.updateAdminPermissions({ dto, authUser });
+  }
+
+  @Put('/member-permissions')
+  @ResponseMeta({ message: 'members.transferred', statusCode: 201 })
+  public async updateMemberPermissions(
+    @GetUser() authUser: any,
+    @Body() dto: UpdateMemberPermissionsDto,
+  ) {
+    return this.membersService.updateMemberPermissions({ dto, authUser });
   }
 
   @Post('/transfer-ownership')

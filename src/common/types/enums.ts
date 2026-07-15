@@ -65,6 +65,39 @@ export enum SpaceMemberPermission {
   EDIT_ANY_SPACE_STORY = 'edit-any-space-story',
   DELETE_ANY_SPACE_STORY = 'delete-any-space-story',
 }
+export const memberPermissionList = [
+  SpaceMemberPermission.SEND_MESSAGES,
+  SpaceMemberPermission.ADD_COMMENTS,
+  SpaceMemberPermission.REACTION_MESSAGES,
+  SpaceMemberPermission.REACTION_COMMENTS,
+  SpaceMemberPermission.SEND_PHOTOS,
+  SpaceMemberPermission.SEND_VIDEOS,
+  SpaceMemberPermission.SEND_FILES,
+  SpaceMemberPermission.SEND_VOICE,
+  SpaceMemberPermission.SEND_STICKERS,
+  SpaceMemberPermission.SEND_GIFS,
+  SpaceMemberPermission.SEND_POLLS,
+  SpaceMemberPermission.SEND_LINKS,
+  SpaceMemberPermission.INVITE_USERS,
+];
+export const adminPermissionList = [
+  SpaceMemberPermission.BAN_MEMBERS,
+  SpaceMemberPermission.MANAGE_MEMBER_MESSAGES,
+  SpaceMemberPermission.MANAGE_MEMBER_COMMENTS,
+  SpaceMemberPermission.MANAGE_MEMBER_MEDIA,
+  SpaceMemberPermission.MANAGE_JOIN_REQUESTS,
+  SpaceMemberPermission.MANAGE_ADMINS,
+  SpaceMemberPermission.MANAGE_SPACE_LIVE_STREAMS,
+  SpaceMemberPermission.CHANGE_SPACE_SETTINGS,
+  SpaceMemberPermission.CHANGE_SPACE_INFO,
+  SpaceMemberPermission.PIN_SPACE_MESSAGES,
+  SpaceMemberPermission.DELETE_SPACE_MESSAGES,
+  SpaceMemberPermission.PIN_SPACE_COMMENTS,
+  SpaceMemberPermission.DELETE_SPACE_COMMENTS,
+  SpaceMemberPermission.ADD_SPACE_STORIES,
+  SpaceMemberPermission.EDIT_ANY_SPACE_STORY,
+  SpaceMemberPermission.DELETE_ANY_SPACE_STORY,
+];
 
 export enum CommentType {
   TEXT = 'text',

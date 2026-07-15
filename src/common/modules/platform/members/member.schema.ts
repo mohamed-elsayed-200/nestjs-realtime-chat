@@ -18,6 +18,15 @@ export class Member {
   @Prop({ type: Types.ObjectId, ref: 'Folder', index: true })
   folder: Types.ObjectId;
 
+  @Prop({ type: Types.ObjectId, ref: 'User' })
+  addedBy: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, ref: 'User' })
+  promotedBy: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, ref: 'User' })
+  bannedBy: Types.ObjectId;
+
   @Prop()
   wallpaper: string;
 
@@ -27,7 +36,21 @@ export class Member {
   @Prop({
     type: [String],
     enum: SpaceMemberPermission,
-    default: [],
+    default: [
+      SpaceMemberPermission.SEND_MESSAGES,
+      SpaceMemberPermission.ADD_COMMENTS,
+      SpaceMemberPermission.REACTION_MESSAGES,
+      SpaceMemberPermission.REACTION_COMMENTS,
+      SpaceMemberPermission.SEND_PHOTOS,
+      SpaceMemberPermission.SEND_VIDEOS,
+      SpaceMemberPermission.SEND_FILES,
+      SpaceMemberPermission.SEND_VOICE,
+      SpaceMemberPermission.SEND_STICKERS,
+      SpaceMemberPermission.SEND_GIFS,
+      SpaceMemberPermission.SEND_POLLS,
+      SpaceMemberPermission.SEND_LINKS,
+      SpaceMemberPermission.INVITE_USERS,
+    ],
   })
   permissions: SpaceMemberPermission[];
 
@@ -61,12 +84,6 @@ export class Member {
   // Dates
   @Prop()
   deletedAt?: Date;
-
-  @Prop()
-  restrictedAt?: Date;
-
-  @Prop()
-  mutedAt?: Date;
 
   @Prop()
   bannedAt?: Date;

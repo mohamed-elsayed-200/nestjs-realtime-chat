@@ -58,6 +58,48 @@ export class MembersService {
               preserveNullAndEmptyArrays: true,
             },
           },
+          {
+            $lookup: {
+              from: 'users',
+              localField: 'addedBy',
+              foreignField: '_id',
+              as: 'addedBy',
+            },
+          },
+          {
+            $unwind: {
+              path: '$addedBy',
+              preserveNullAndEmptyArrays: true,
+            },
+          },
+          {
+            $lookup: {
+              from: 'users',
+              localField: 'promotedBy',
+              foreignField: '_id',
+              as: 'promotedBy',
+            },
+          },
+          {
+            $unwind: {
+              path: '$promotedBy',
+              preserveNullAndEmptyArrays: true,
+            },
+          },
+          {
+            $lookup: {
+              from: 'users',
+              localField: 'bannedBy',
+              foreignField: '_id',
+              as: 'bannedBy',
+            },
+          },
+          {
+            $unwind: {
+              path: '$bannedBy',
+              preserveNullAndEmptyArrays: true,
+            },
+          },
 
           {
             $project: {
@@ -75,6 +117,27 @@ export class MembersService {
                 username: '$user.username',
                 profileColor: '$user.profileColor',
                 avatar: '$user.avatar',
+              },
+              addedBy: {
+                id: '$addedBy._id',
+                name: '$addedBy.name',
+                username: '$addedBy.username',
+                profileColor: '$addedBy.profileColor',
+                avatar: '$addedBy.avatar',
+              },
+              bannedBy: {
+                id: '$bannedBy._id',
+                name: '$bannedBy.name',
+                username: '$bannedBy.username',
+                profileColor: '$bannedBy.profileColor',
+                avatar: '$bannedBy.avatar',
+              },
+              promotedBy: {
+                id: '$promotedBy._id',
+                name: '$promotedBy.name',
+                username: '$promotedBy.username',
+                profileColor: '$promotedBy.profileColor',
+                avatar: '$promotedBy.avatar',
               },
               role: 1,
               joinedAt: 1,
@@ -174,143 +237,187 @@ export class MembersService {
     return member;
   }
 
-  public async updateMember({ dto, memberId, authUser }) {
-    const {
-      space,
-      role, // optional — promote/demote
-      permissions, // optional — edit permissions
-      adminTag, // optional — for admin
-      adminTagColor, // optional — for admin
-    } = dto;
+  public async promoteAdmin({ dto, authUser }) {
+    const { member, space, permissions, adminTag, adminTagColor } = dto;
 
     const spaceObjectId = new Types.ObjectId(space);
     const userObjectId = new Types.ObjectId(authUser._id);
-    const memberObjectId = new Types.ObjectId(memberId);
+    const memberObjectId = new Types.ObjectId(member);
 
-    // 1. Auth member
+    // 1. Auth: Owner only
+    const authMember = await this.membersRepository.findOne({
+      query: { space: spaceObjectId, user: userObjectId, isDeleted: false },
+    });
+    if (!authMember) throw new NotFoundException('members.noPermission');
+    if (authMember.role !== SpaceMemberRole.OWNER) {
+      throw new BadRequestException('members.onlyOwnerCanPromote');
+    }
+
+    // 2. Target member
+    const targetMember = await this.membersRepository.findOne({
+      query: { space: spaceObjectId, _id: memberObjectId, isDeleted: false },
+    });
+    if (!targetMember) throw new NotFoundException('members.notFound');
+    if (targetMember.role === SpaceMemberRole.OWNER) {
+      throw new BadRequestException('members.cannotModifyOwner');
+    }
+    if (targetMember.role === SpaceMemberRole.ADMIN) {
+      throw new BadRequestException('members.alreadyAdmin');
+    }
+
+    // 3. Validate permissions
+    const validPermissions = Object.values(SpaceMemberPermission) as string[];
+    const uniquePermissions = [...new Set(permissions as string[])];
+    const filtered = uniquePermissions.filter((p) =>
+      validPermissions.includes(p),
+    );
+
+    // 4. Promote
+    const updated = await this.membersRepository.updateOne({
+      query: { space: spaceObjectId, _id: memberObjectId },
+      dto: {
+        role: SpaceMemberRole.ADMIN,
+        permissions: filtered,
+        adminTag: adminTag || 'Admin',
+        adminTagColor: adminTagColor || '#3b82f6',
+        promotedBy: userObjectId,
+      },
+    });
+
+    if (!updated) throw new InternalServerErrorException('members.notUpdated');
+    return updated;
+  }
+
+  public async dismissAdmin({ dto, authUser }) {
+    const { member, space } = dto;
+
+    const spaceObjectId = new Types.ObjectId(space);
+    const userObjectId = new Types.ObjectId(authUser._id);
+    const memberObjectId = new Types.ObjectId(member);
+
+    // 1. Auth: Owner only
+    const authMember = await this.membersRepository.findOne({
+      query: { space: spaceObjectId, user: userObjectId, isDeleted: false },
+    });
+    if (!authMember) throw new NotFoundException('members.noPermission');
+    if (authMember.role !== SpaceMemberRole.OWNER) {
+      throw new BadRequestException('members.onlyOwnerCanDismiss');
+    }
+
+    // 2. Target member
+    const targetMember = await this.membersRepository.findOne({
+      query: { space: spaceObjectId, _id: memberObjectId, isDeleted: false },
+    });
+    if (!targetMember) throw new NotFoundException('members.notFound');
+    if (targetMember.role !== SpaceMemberRole.ADMIN) {
+      throw new BadRequestException('members.notAdmin');
+    }
+
+    // 3. Dismiss: keep member-level permissions only
+    const memberPermissions = [
+      SpaceMemberPermission.SEND_MESSAGES,
+      SpaceMemberPermission.ADD_COMMENTS,
+      SpaceMemberPermission.REACTION_MESSAGES,
+      SpaceMemberPermission.REACTION_COMMENTS,
+      SpaceMemberPermission.SEND_PHOTOS,
+      SpaceMemberPermission.SEND_VIDEOS,
+      SpaceMemberPermission.SEND_FILES,
+      SpaceMemberPermission.SEND_VOICE,
+      SpaceMemberPermission.SEND_STICKERS,
+      SpaceMemberPermission.SEND_GIFS,
+      SpaceMemberPermission.SEND_POLLS,
+      SpaceMemberPermission.SEND_LINKS,
+      SpaceMemberPermission.INVITE_USERS,
+    ];
+
+    const currentPerms = targetMember.permissions || [];
+    const keptPerms = currentPerms.filter((p) => memberPermissions.includes(p));
+
+    const updated = await this.membersRepository.updateOne({
+      query: { space: spaceObjectId, _id: memberObjectId },
+      dto: {
+        role: SpaceMemberRole.MEMBER,
+        permissions: keptPerms,
+        adminTag: null,
+        adminTagColor: null,
+        promotedBy: null,
+      },
+    });
+
+    if (!updated) throw new InternalServerErrorException('members.notUpdated');
+    return updated;
+  }
+
+  public async updateAdminPermissions({ dto, authUser }) {
+    const { member, space, permissions, adminTag, adminTagColor } = dto;
+
+    const spaceObjectId = new Types.ObjectId(space);
+    const userObjectId = new Types.ObjectId(authUser._id);
+    const memberObjectId = new Types.ObjectId(member);
+
+    // 1. Auth: Owner or Admin with MANAGE_ADMINS
     const authMember = await this.membersRepository.findOne({
       query: { space: spaceObjectId, user: userObjectId, isDeleted: false },
     });
     if (!authMember) throw new NotFoundException('members.noPermission');
 
-    // 2. Rank check
     const isOwner = authMember.role === SpaceMemberRole.OWNER;
-    const isAdmin = authMember.role === SpaceMemberRole.ADMIN;
     const canManageAdmins = authMember.permissions?.includes(
       SpaceMemberPermission.MANAGE_ADMINS,
     );
 
-    // Owners have full access.
-    // Admins can only manage members (not other admins) and update their permissions.
-    if (!isOwner && !(isAdmin && canManageAdmins)) {
+    if (
+      !isOwner &&
+      !(authMember.role === SpaceMemberRole.ADMIN && canManageAdmins)
+    ) {
       throw new BadRequestException('members.noPermission');
     }
 
-    // 3. Target member
+    // 2. Target member
     const targetMember = await this.membersRepository.findOne({
       query: { space: spaceObjectId, _id: memberObjectId, isDeleted: false },
     });
     if (!targetMember) throw new NotFoundException('members.notFound');
-
-    // 4. Cannot modify owner
-    if (targetMember.role === SpaceMemberRole.OWNER) {
-      throw new BadRequestException('members.cannotModifyOwner');
+    if (targetMember.role !== SpaceMemberRole.ADMIN) {
+      throw new BadRequestException('members.notAdmin');
     }
 
-    // 5. Admin cannot modify another admin (only owner can)
-    if (!isOwner && targetMember.role === SpaceMemberRole.ADMIN) {
-      throw new BadRequestException('members.cannotModifyAdmin');
-    }
+    // 3. Validate permissions
+    const validPermissions = Object.values(SpaceMemberPermission) as string[];
+    const uniquePermissions = [...new Set(permissions as string[])];
+    const filtered = uniquePermissions.filter((p) =>
+      validPermissions.includes(p),
+    );
 
-    // 6. Build update
-    const updatePayload: any = {};
+    // 4. Update: keep member perms + new admin perms
+    const memberPermissionValues = [
+      SpaceMemberPermission.SEND_MESSAGES,
+      SpaceMemberPermission.ADD_COMMENTS,
+      SpaceMemberPermission.REACTION_MESSAGES,
+      SpaceMemberPermission.REACTION_COMMENTS,
+      SpaceMemberPermission.SEND_PHOTOS,
+      SpaceMemberPermission.SEND_VIDEOS,
+      SpaceMemberPermission.SEND_FILES,
+      SpaceMemberPermission.SEND_VOICE,
+      SpaceMemberPermission.SEND_STICKERS,
+      SpaceMemberPermission.SEND_GIFS,
+      SpaceMemberPermission.SEND_POLLS,
+      SpaceMemberPermission.SEND_LINKS,
+      SpaceMemberPermission.INVITE_USERS,
+    ];
 
-    // === ROLE CHANGE ===
-    if (role !== undefined) {
-      // Cannot assign owner role
-      if (role === SpaceMemberRole.OWNER) {
-        throw new BadRequestException('members.useTransferOwnership');
-      }
+    const currentPerms = targetMember.permissions || [];
+    const memberPerms = currentPerms.filter((p) =>
+      memberPermissionValues.includes(p),
+    );
 
-      // Only owner can promote to admin
-      if (role === SpaceMemberRole.ADMIN && !isOwner) {
-        throw new BadRequestException('members.onlyOwnerCanPromote');
-      }
+    const updatePayload: any = {
+      permissions: [...memberPerms, ...filtered],
+    };
 
-      // Admin demoting admin? No (only owner)
-      if (
-        role === SpaceMemberRole.MEMBER &&
-        targetMember.role === SpaceMemberRole.ADMIN &&
-        !isOwner
-      ) {
-        throw new BadRequestException('members.onlyOwnerCanDismiss');
-      }
-
-      updatePayload.role = role;
-
-      // Demoting admin → member: clear admin fields
-      if (
-        role === SpaceMemberRole.MEMBER &&
-        targetMember.role === SpaceMemberRole.ADMIN
-      ) {
-        updatePayload.permissions = [];
-        updatePayload.adminTag = null;
-        updatePayload.adminTagColor = null;
-      }
-    }
-
-    // === PERMISSIONS ===
-    if (permissions !== undefined) {
-      const validPermissions = Object.values(SpaceMemberPermission) as string[];
-
-      // Remove duplicates
-      const uniquePermissions = [...new Set(permissions as string[])];
-      const filtered = uniquePermissions.filter((p: string) =>
-        validPermissions.includes(p),
-      );
-      const targetWillBeAdmin =
-        role === SpaceMemberRole.ADMIN ||
-        (!role && targetMember.role === SpaceMemberRole.ADMIN);
-
-      if (targetWillBeAdmin) {
-        updatePayload.permissions = filtered;
-      } else {
-        const memberPermissions = [
-          SpaceMemberPermission.SEND_MESSAGES,
-          SpaceMemberPermission.ADD_COMMENTS,
-          SpaceMemberPermission.REACTION_MESSAGES,
-          SpaceMemberPermission.REACTION_COMMENTS,
-          SpaceMemberPermission.SEND_PHOTOS,
-          SpaceMemberPermission.SEND_VIDEOS,
-          SpaceMemberPermission.SEND_FILES,
-          SpaceMemberPermission.SEND_VOICE,
-          SpaceMemberPermission.SEND_STICKERS,
-          SpaceMemberPermission.SEND_GIFS,
-          SpaceMemberPermission.SEND_POLLS,
-          SpaceMemberPermission.SEND_LINKS,
-          SpaceMemberPermission.INVITE_USERS,
-        ];
-        updatePayload.permissions = filtered.filter((p: string) =>
-          memberPermissions.includes(p as SpaceMemberPermission),
-        );
-      }
-    }
-
-    // === ADMIN TAGS (admin only) ===
-    const targetIsOrWillBeAdmin =
-      role === SpaceMemberRole.ADMIN ||
-      (!role && targetMember.role === SpaceMemberRole.ADMIN);
-
-    if (targetIsOrWillBeAdmin) {
-      if (adminTag !== undefined) updatePayload.adminTag = adminTag || 'Admin';
-      if (adminTagColor !== undefined)
-        updatePayload.adminTagColor = adminTagColor || '#3b82f6';
-    }
-
-    // 7. Execute
-    if (Object.keys(updatePayload).length === 0) {
-      return targetMember; // Nothing to update
-    }
+    if (adminTag !== undefined) updatePayload.adminTag = adminTag || 'Admin';
+    if (adminTagColor !== undefined)
+      updatePayload.adminTagColor = adminTagColor || '#3b82f6';
 
     const updated = await this.membersRepository.updateOne({
       query: { space: spaceObjectId, _id: memberObjectId },
@@ -318,7 +425,82 @@ export class MembersService {
     });
 
     if (!updated) throw new InternalServerErrorException('members.notUpdated');
+    return updated;
+  }
 
+  public async updateMemberPermissions({ dto, authUser }) {
+    const { member, space, permissions } = dto;
+
+    const spaceObjectId = new Types.ObjectId(space);
+    const userObjectId = new Types.ObjectId(authUser._id);
+    const memberObjectId = new Types.ObjectId(member);
+
+    // 1. Auth: Owner or Admin with CHANGE_SPACE_SETTINGS
+    const authMember = await this.membersRepository.findOne({
+      query: { space: spaceObjectId, user: userObjectId, isDeleted: false },
+    });
+    if (!authMember) throw new NotFoundException('members.noPermission');
+
+    const isOwner = authMember.role === SpaceMemberRole.OWNER;
+    const canChangePermissions = authMember.permissions?.includes(
+      SpaceMemberPermission.CHANGE_SPACE_SETTINGS,
+    );
+
+    if (
+      !isOwner &&
+      !(authMember.role === SpaceMemberRole.ADMIN && canChangePermissions)
+    ) {
+      throw new BadRequestException('members.noPermission');
+    }
+
+    // 2. Target member
+    const targetMember = await this.membersRepository.findOne({
+      query: { space: spaceObjectId, _id: memberObjectId, isDeleted: false },
+    });
+    if (!targetMember) throw new NotFoundException('members.notFound');
+    if (targetMember.role === SpaceMemberRole.OWNER) {
+      throw new BadRequestException('members.cannotModifyOwner');
+    }
+
+    // 3. Validate member permissions only
+    const memberPermissionValues = [
+      SpaceMemberPermission.SEND_MESSAGES,
+      SpaceMemberPermission.ADD_COMMENTS,
+      SpaceMemberPermission.REACTION_MESSAGES,
+      SpaceMemberPermission.REACTION_COMMENTS,
+      SpaceMemberPermission.SEND_PHOTOS,
+      SpaceMemberPermission.SEND_VIDEOS,
+      SpaceMemberPermission.SEND_FILES,
+      SpaceMemberPermission.SEND_VOICE,
+      SpaceMemberPermission.SEND_STICKERS,
+      SpaceMemberPermission.SEND_GIFS,
+      SpaceMemberPermission.SEND_POLLS,
+      SpaceMemberPermission.SEND_LINKS,
+      SpaceMemberPermission.INVITE_USERS,
+    ];
+
+    const validPermissions = Object.values(SpaceMemberPermission) as string[];
+    const uniquePermissions = [...new Set(permissions as string[])];
+    const filtered = uniquePermissions.filter(
+      (p) =>
+        validPermissions.includes(p) &&
+        memberPermissionValues.includes(p as SpaceMemberPermission),
+    );
+
+    // 4. Update: keep admin perms + new member perms
+    const currentPerms = targetMember.permissions || [];
+    const adminPerms = currentPerms.filter(
+      (p) => !memberPermissionValues.includes(p),
+    );
+
+    const updated = await this.membersRepository.updateOne({
+      query: { space: spaceObjectId, _id: memberObjectId },
+      dto: {
+        permissions: [...adminPerms, ...filtered],
+      },
+    });
+
+    if (!updated) throw new InternalServerErrorException('members.notUpdated');
     return updated;
   }
 
@@ -434,6 +616,7 @@ export class MembersService {
             isBanned: false,
             bannedReason: null,
             bannedAt: null,
+            bannedBy: null,
             permission: [],
             role: null,
           }
@@ -442,6 +625,7 @@ export class MembersService {
             bannedReason: bannedReason ?? null,
             bannedAt: new Date(),
             isDeleted: true,
+            bannedBy: userObjectId,
             permission: [],
             role: null,
           },
