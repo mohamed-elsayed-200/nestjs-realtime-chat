@@ -1,3 +1,4 @@
+import { UsersRepository } from './../../../../common/modules/iam/users/users.repository';
 import { Types } from 'mongoose';
 import {
   BadRequestException,
@@ -23,6 +24,7 @@ export class JoinRequestsService {
   constructor(
     private readonly spacesRepository: SpacesRepository,
     private readonly membersRepository: MembersRepository,
+    private readonly usersRepository: UsersRepository,
     private readonly joinRequestsRepository: JoinRequestsRepository,
   ) {}
   public async getAll({ query, space, authUser }) {
@@ -237,11 +239,20 @@ export class JoinRequestsService {
     if (!acceptRequest)
       throw new NotFoundException('joinRequests.failedAccepted');
 
+    const findUser = await this.usersRepository.findOne({
+      query: { _id: findRequest.user },
+      select: 'name profileColor avatar username',
+    });
+
     await this.spacesRepository.updateOne({
       query: { _id: spaceObjectId },
       dto: { $inc: { membersCount: 1 } },
     });
-    return findRequest;
+    return {
+      id: findRequest._id,
+      space: findRequest.space,
+      user: findUser,
+    };
   }
 
   public async rejectRequest({ dto, authUser }) {
