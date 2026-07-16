@@ -34,20 +34,6 @@ export class MembersService {
           },
           {
             $lookup: {
-              from: 'spaces',
-              localField: 'space',
-              foreignField: '_id',
-              as: 'space',
-            },
-          },
-          {
-            $unwind: {
-              path: '$space',
-              preserveNullAndEmptyArrays: true,
-            },
-          },
-          {
-            $lookup: {
               from: 'users',
               localField: 'user',
               foreignField: '_id',
@@ -60,59 +46,9 @@ export class MembersService {
               preserveNullAndEmptyArrays: true,
             },
           },
-          {
-            $lookup: {
-              from: 'users',
-              localField: 'addedBy',
-              foreignField: '_id',
-              as: 'addedBy',
-            },
-          },
-          {
-            $unwind: {
-              path: '$addedBy',
-              preserveNullAndEmptyArrays: true,
-            },
-          },
-          {
-            $lookup: {
-              from: 'users',
-              localField: 'promotedBy',
-              foreignField: '_id',
-              as: 'promotedBy',
-            },
-          },
-          {
-            $unwind: {
-              path: '$promotedBy',
-              preserveNullAndEmptyArrays: true,
-            },
-          },
-          {
-            $lookup: {
-              from: 'users',
-              localField: 'bannedBy',
-              foreignField: '_id',
-              as: 'bannedBy',
-            },
-          },
-          {
-            $unwind: {
-              path: '$bannedBy',
-              preserveNullAndEmptyArrays: true,
-            },
-          },
 
           {
             $project: {
-              space: {
-                id: '$space._id',
-                membersCount: '$space.membersCount',
-                name: '$space.name',
-                type: '$space.type',
-                profileColor: '$space.profileColor',
-                avatar: '$space.avatar',
-              },
               user: {
                 id: '$user._id',
                 name: '$user.name',
@@ -120,35 +56,13 @@ export class MembersService {
                 profileColor: '$user.profileColor',
                 avatar: '$user.avatar',
               },
-              addedBy: {
-                id: '$addedBy._id',
-                name: '$addedBy.name',
-                username: '$addedBy.username',
-                profileColor: '$addedBy.profileColor',
-                avatar: '$addedBy.avatar',
-              },
-              bannedBy: {
-                id: '$bannedBy._id',
-                name: '$bannedBy.name',
-                username: '$bannedBy.username',
-                profileColor: '$bannedBy.profileColor',
-                avatar: '$bannedBy.avatar',
-              },
-              promotedBy: {
-                id: '$promotedBy._id',
-                name: '$promotedBy.name',
-                username: '$promotedBy.username',
-                profileColor: '$promotedBy.profileColor',
-                avatar: '$promotedBy.avatar',
-              },
+              addedById: '$addedBy',
+              bannedById: '$bannedBy',
+              promotedById: '$promotedBy',
               role: 1,
-              joinedAt: 1,
               adminTag: 1,
               adminTagColor: 1,
               permissions: 1,
-              isMuted: 1,
-              isBanned: 1,
-              bannedAt: 1,
             },
           },
         ],
@@ -264,13 +178,15 @@ export class MembersService {
     const authMember = await this.membersRepository.findOne({
       query: { space: spaceObjectId, user: userObjectId, isDeleted: false },
     });
+
     if (!authMember) throw new NotFoundException('members.noPermission');
-    const iamOwner = authMember.role !== SpaceMemberRole.OWNER;
-    const iamAdmin = authMember.role !== SpaceMemberRole.ADMIN;
+    const iamOwner = authMember.role === SpaceMemberRole.OWNER;
+    const iamAdmin = authMember.role === SpaceMemberRole.ADMIN;
     const canPromoteAdmin =
       iamOwner ||
       (iamAdmin &&
         authMember.permissions.includes(SpaceMemberPermission.ADD_ADMINS));
+
     if (!canPromoteAdmin)
       throw new BadRequestException('members.onlyOwnerCanPromote');
 
@@ -308,7 +224,15 @@ export class MembersService {
     });
 
     if (!updated) throw new InternalServerErrorException('members.notUpdated');
-    return updated;
+
+    return {
+      id: updated?._id,
+      promotedById: updated?.promotedBy,
+      role: updated?.role,
+      permissions: updated?.permissions,
+      adminTag: updated?.adminTag,
+      adminTagColor: updated?.adminTagColor,
+    };
   }
 
   public async dismissAdmin({ dto, authUser }) {
@@ -369,7 +293,11 @@ export class MembersService {
     });
 
     if (!updated) throw new InternalServerErrorException('members.notUpdated');
-    return updated;
+    return {
+      id: updated?._id,
+      role: updated?.role,
+      permissions: updated?.permissions,
+    };
   }
 
   public async updateAdminPermissions({ dto, authUser }) {
@@ -387,8 +315,11 @@ export class MembersService {
 
     const iamOwner = authMember.role === SpaceMemberRole.OWNER;
     const canChangeAdminPerm = authMember.permissions?.includes(
-      SpaceMemberPermission.CHANGE_ADMIN_PERMISSIONS,
+      SpaceMemberPermission.ADD_ADMINS,
     );
+    if (!iamOwner && !canChangeAdminPerm) {
+      throw new BadRequestException('members.noPermission');
+    }
 
     // 2. Target member
     const targetMember = await this.membersRepository.findOne({
@@ -402,8 +333,7 @@ export class MembersService {
     // 2.1 Non-owner admins can only manage admins they personally promoted
     if (
       !iamOwner &&
-      targetMember.promotedBy?.toString() !== userObjectId.toString() &&
-      !canChangeAdminPerm
+      targetMember.promotedBy?.toString() !== userObjectId.toString()
     ) {
       throw new BadRequestException('members.noPermission');
     }
@@ -464,7 +394,13 @@ export class MembersService {
     });
 
     if (!updated) throw new InternalServerErrorException('members.notUpdated');
-    return updated;
+    return {
+      id: updated?._id,
+      role: updated?.role,
+      permissions: updated?.permissions,
+      adminTag: updated?.adminTag,
+      adminTagColor: updated?.adminTagColor,
+    };
   }
 
   public async updateMemberPermissions({ dto, authUser }) {
@@ -551,7 +487,11 @@ export class MembersService {
     });
 
     if (!updated) throw new InternalServerErrorException('members.notUpdated');
-    return updated;
+    return {
+      id: updated?._id,
+      role: updated?.role,
+      permissions: updated?.permissions,
+    };
   }
 
   public async transferOwnership({ dto, authUser }) {
