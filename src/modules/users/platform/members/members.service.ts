@@ -270,7 +270,7 @@ export class MembersService {
     const canPromoteAdmin =
       iamOwner ||
       (iamAdmin &&
-        authMember.permissions.includes(SpaceMemberPermission.MANAGE_ADMINS));
+        authMember.permissions.includes(SpaceMemberPermission.ADD_ADMINS));
     if (!canPromoteAdmin)
       throw new BadRequestException('members.onlyOwnerCanPromote');
 
@@ -318,13 +318,20 @@ export class MembersService {
     const userObjectId = new Types.ObjectId(authUser._id);
     const memberObjectId = new Types.ObjectId(member);
 
-    // 1. Auth: Owner only
+    // 1. Auth: Owner or Admin with MANAGE_ADMINS
     const authMember = await this.membersRepository.findOne({
       query: { space: spaceObjectId, user: userObjectId, isDeleted: false },
     });
     if (!authMember) throw new NotFoundException('members.noPermission');
-    if (authMember.role !== SpaceMemberRole.OWNER) {
-      throw new BadRequestException('members.onlyOwnerCanDismiss');
+
+    const isOwner = authMember.role === SpaceMemberRole.OWNER;
+    const isAdmin = authMember.role === SpaceMemberRole.ADMIN;
+    const canManageAdmins = authMember.permissions?.includes(
+      SpaceMemberPermission.ADD_ADMINS,
+    );
+
+    if (!isOwner && !(isAdmin && canManageAdmins)) {
+      throw new BadRequestException('members.noPermission');
     }
 
     // 2. Target member
@@ -336,25 +343,19 @@ export class MembersService {
       throw new BadRequestException('members.notAdmin');
     }
 
-    // 3. Dismiss: keep member-level permissions only
-    const memberPermissions = [
-      SpaceMemberPermission.SEND_MESSAGES,
-      SpaceMemberPermission.ADD_COMMENTS,
-      SpaceMemberPermission.REACTION_MESSAGES,
-      SpaceMemberPermission.REACTION_COMMENTS,
-      SpaceMemberPermission.SEND_PHOTOS,
-      SpaceMemberPermission.SEND_VIDEOS,
-      SpaceMemberPermission.SEND_FILES,
-      SpaceMemberPermission.SEND_VOICE,
-      SpaceMemberPermission.SEND_STICKERS,
-      SpaceMemberPermission.SEND_GIFS,
-      SpaceMemberPermission.SEND_POLLS,
-      SpaceMemberPermission.SEND_LINKS,
-      SpaceMemberPermission.INVITE_USERS,
-    ];
+    // 2.1 Non-owner admins can only dismiss admins they personally promoted
+    if (
+      !isOwner &&
+      targetMember.promotedBy?.toString() !== userObjectId.toString()
+    ) {
+      throw new BadRequestException('members.noPermission');
+    }
 
+    // 3. Dismiss: keep member-level permissions only
     const currentPerms = targetMember.permissions || [];
-    const keptPerms = currentPerms.filter((p) => memberPermissions.includes(p));
+    const keptPerms = currentPerms.filter((p) =>
+      memberPermissionList.includes(p),
+    );
 
     const updated = await this.membersRepository.updateOne({
       query: { space: spaceObjectId, _id: memberObjectId },
@@ -385,16 +386,9 @@ export class MembersService {
     if (!authMember) throw new NotFoundException('members.noPermission');
 
     const iamOwner = authMember.role === SpaceMemberRole.OWNER;
-    const canManageAdmins = authMember.permissions?.includes(
-      SpaceMemberPermission.MANAGE_ADMINS,
+    const canChangeAdminPerm = authMember.permissions?.includes(
+      SpaceMemberPermission.CHANGE_ADMIN_PERMISSIONS,
     );
-
-    if (
-      !iamOwner &&
-      !(authMember.role === SpaceMemberRole.ADMIN && canManageAdmins)
-    ) {
-      throw new BadRequestException('members.noPermission');
-    }
 
     // 2. Target member
     const targetMember = await this.membersRepository.findOne({
@@ -408,7 +402,8 @@ export class MembersService {
     // 2.1 Non-owner admins can only manage admins they personally promoted
     if (
       !iamOwner &&
-      targetMember.promotedBy?.toString() !== userObjectId.toString()
+      targetMember.promotedBy?.toString() !== userObjectId.toString() &&
+      !canChangeAdminPerm
     ) {
       throw new BadRequestException('members.noPermission');
     }
@@ -504,7 +499,7 @@ export class MembersService {
     // 2.1 If target is an ADMIN, authUser must also have MANAGE_ADMINS to touch their perms
     if (targetMember.role === SpaceMemberRole.ADMIN) {
       const canManageAdmins = authMember.permissions?.includes(
-        SpaceMemberPermission.MANAGE_ADMINS,
+        SpaceMemberPermission.ADD_ADMINS,
       );
       if (!iamOwner && !canManageAdmins) {
         throw new BadRequestException('members.noPermission');
@@ -641,7 +636,7 @@ export class MembersService {
     const isOwner = authMember.role === SpaceMemberRole.OWNER;
     const isAdmin =
       authMember.role === SpaceMemberRole.ADMIN &&
-      authMember.permissions?.includes(SpaceMemberPermission.MANAGE_MEMBERS);
+      authMember.permissions?.includes(SpaceMemberPermission.BAN_MEMBERS);
     const canBan = isOwner || isAdmin;
     if (!canBan) throw new BadRequestException('members.noPermission');
 

@@ -48,8 +48,10 @@ export enum SpaceMemberPermission {
   INVITE_USERS = 'invite-users',
 
   // Moderation
-  MANAGE_MEMBERS = 'manage-members',
-  MANAGE_ADMINS = 'manage-admins',
+  BAN_MEMBERS = 'ban-members',
+  CHANGE_MEMBER_PERMISSIONS = 'change-member-permissions',
+  ADD_ADMINS = 'add-admin',
+  CHANGE_ADMIN_PERMISSIONS = 'change-admin-permissions',
   MANAGE_JOIN_REQUESTS = 'manage-join-requests',
   MANAGE_LIVE_STREAMS = 'manage-live-streams',
   CHANGE_SETTINGS = 'change-settings',
@@ -79,9 +81,11 @@ export const memberPermissionList: string[] = [
   SpaceMemberPermission.INVITE_USERS,
 ];
 export const adminPermissionList: string[] = [
-  SpaceMemberPermission.MANAGE_MEMBERS,
+  SpaceMemberPermission.BAN_MEMBERS,
+  SpaceMemberPermission.CHANGE_MEMBER_PERMISSIONS,
+  SpaceMemberPermission.ADD_ADMINS,
+  SpaceMemberPermission.CHANGE_ADMIN_PERMISSIONS,
   SpaceMemberPermission.MANAGE_JOIN_REQUESTS,
-  SpaceMemberPermission.MANAGE_ADMINS,
   SpaceMemberPermission.MANAGE_LIVE_STREAMS,
   SpaceMemberPermission.CHANGE_SETTINGS,
   SpaceMemberPermission.CHANGE_INFO,
