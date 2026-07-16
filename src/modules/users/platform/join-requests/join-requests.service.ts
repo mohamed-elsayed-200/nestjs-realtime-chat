@@ -7,8 +7,8 @@ import {
 } from '@nestjs/common';
 import {
   JoinApproval,
-  MessageStatus,
-  MessageType,
+  memberPermissionList,
+  SpaceMemberPermission,
   SpaceMemberRole,
   SpaceTypes,
 } from './../../../../common/types/enums';
@@ -16,7 +16,7 @@ import { JoinRequestsRepository } from './../../../../common/modules/platform/jo
 import { SpacesRepository } from './../../../../common/modules/platform/spaces/spaces.repository';
 import { MembersRepository } from './../../../../common/modules/platform/members/members.repository';
 import { JoinRequestStatus } from '../../../../common/modules/platform/join-requests/join-request.schema';
-import { MessagesRepository } from '../../../../common/modules/platform/messages/messages.repository';
+import { emptyAggregateQuery } from 'src/common/modules/data-access/aggregate-query';
 
 @Injectable()
 export class JoinRequestsService {
@@ -24,7 +24,6 @@ export class JoinRequestsService {
     private readonly spacesRepository: SpacesRepository,
     private readonly membersRepository: MembersRepository,
     private readonly joinRequestsRepository: JoinRequestsRepository,
-    private readonly messagesRepository: MessagesRepository,
   ) {}
 
   public async getAll({ query, space, authUser }) {
@@ -37,6 +36,13 @@ export class JoinRequestsService {
     });
     const isOwner = findMember?.role === SpaceMemberRole.OWNER;
     const isAdmin = findMember?.role === SpaceMemberRole.ADMIN;
+    const iCanManageJoinRequests = findMember.permissions.includes(
+      SpaceMemberPermission.MANAGE_JOIN_REQUESTS,
+    );
+
+    if (!isOwner && !(isAdmin && iCanManageJoinRequests))
+      return emptyAggregateQuery;
+
     let match = {};
 
     if (isOwner || isAdmin) {
@@ -69,20 +75,6 @@ export class JoinRequestsService {
             },
           },
           {
-            $lookup: {
-              from: 'users',
-              localField: 'reviewedBy',
-              foreignField: '_id',
-              as: 'reviewedBy',
-            },
-          },
-          {
-            $unwind: {
-              path: '$reviewedBy',
-              preserveNullAndEmptyArrays: true,
-            },
-          },
-          {
             $project: {
               space: 1,
               status: 1,
@@ -94,12 +86,6 @@ export class JoinRequestsService {
                 name: '$user.name',
                 avatar: '$user.avatar',
                 profileColor: '$user.profileColor',
-              },
-              reviewedBy: {
-                id: '$reviewedBy._id',
-                name: '$reviewedBy.name',
-                avatar: '$reviewedBy.avatar',
-                profileColor: '$reviewedBy.profileColor',
               },
             },
           },
@@ -123,7 +109,7 @@ export class JoinRequestsService {
     const findMember = await this.membersRepository.findOne({
       query: { user: userObjectId, space: spaceObjectId },
     });
-    if (findMember)
+    if (findMember && findMember?.isDeleted === false)
       throw new BadRequestException('joinRequests.userAlreadyJoined');
 
     // check is channel space need to join request for access
@@ -180,8 +166,13 @@ export class JoinRequestsService {
     });
     const isOwner = findMember.role === SpaceMemberRole.OWNER;
     const isAdmin = findMember.role === SpaceMemberRole.ADMIN;
-    const isAllowed = isOwner || isAdmin;
-    if (!isAllowed) throw new BadRequestException('joinRequest.notAllowed');
+    const iCanManageJoinRequests = findMember.permissions.includes(
+      SpaceMemberPermission.MANAGE_JOIN_REQUESTS,
+    );
+
+    if (!isOwner && !(isAdmin && iCanManageJoinRequests)) {
+      throw new BadRequestException('joinRequest.notAllowed');
+    }
 
     // find the request join
     const findRequest = await this.joinRequestsRepository.findOne({
@@ -193,7 +184,7 @@ export class JoinRequestsService {
     const insideMember = await this.membersRepository.findOne({
       query: { user: findRequest.user, space: spaceObjectId },
     });
-    if (insideMember)
+    if (insideMember && insideMember?.isDeleted === false)
       throw new BadRequestException('joinRequests.userAlreadyJoined');
 
     // create new member
@@ -202,12 +193,9 @@ export class JoinRequestsService {
         user: findRequest.user,
         space: spaceObjectId,
         role: SpaceMemberRole.MEMBER,
-        permissions: [],
+        permissions: memberPermissionList,
+        addedBy: userObjectId,
         joinedAt: new Date(),
-
-        isPined: false,
-        isMuted: false,
-        isArchived: false,
       },
     });
     if (!newMember)
@@ -253,7 +241,7 @@ export class JoinRequestsService {
     const insideMember = await this.membersRepository.findOne({
       query: { user: findRequest.user, space: spaceObjectId },
     });
-    if (insideMember)
+    if (insideMember && insideMember?.isDeleted === false)
       throw new BadRequestException('joinRequests.userAlreadyJoined');
 
     // reject request

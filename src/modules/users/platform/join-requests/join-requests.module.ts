@@ -13,7 +13,6 @@ import { JoinRequestsController } from './join-requests.controller';
     BaseAuthModule,
     BaseSpaceModule,
     BaseJoinRequests,
-    BaseMessageModule,
   ],
   controllers: [JoinRequestsController],
   providers: [JoinRequestsService],
