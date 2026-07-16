@@ -25,7 +25,6 @@ export class JoinRequestsService {
     private readonly membersRepository: MembersRepository,
     private readonly joinRequestsRepository: JoinRequestsRepository,
   ) {}
-
   public async getAll({ query, space, authUser }) {
     const spaceObjectId = new Types.ObjectId(space);
     const userObjectId = new Types.ObjectId(authUser?._id);
@@ -36,7 +35,7 @@ export class JoinRequestsService {
     });
     const isOwner = findMember?.role === SpaceMemberRole.OWNER;
     const isAdmin = findMember?.role === SpaceMemberRole.ADMIN;
-    const iCanManageJoinRequests = findMember.permissions.includes(
+    const iCanManageJoinRequests = findMember?.permissions?.includes(
       SpaceMemberPermission.MANAGE_JOIN_REQUESTS,
     );
 
@@ -61,6 +60,23 @@ export class JoinRequestsService {
             $match: match,
           },
           {
+            $addFields: {
+              sortPriority: {
+                $cond: {
+                  if: { $eq: ['$status', JoinRequestStatus.PENDING] },
+                  then: 0,
+                  else: 1,
+                },
+              },
+            },
+          },
+          {
+            $sort: {
+              sortPriority: 1,
+              createdAt: -1,
+            },
+          },
+          {
             $lookup: {
               from: 'users',
               localField: 'user',
@@ -81,6 +97,7 @@ export class JoinRequestsService {
               message: 1,
               reviewedAt: 1,
               rejectionReason: 1,
+              createdAt: 1,
               user: {
                 id: '$user._id',
                 name: '$user.name',
