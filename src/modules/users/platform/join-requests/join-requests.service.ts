@@ -184,35 +184,46 @@ export class JoinRequestsService {
     const insideMember = await this.membersRepository.findOne({
       query: { user: findRequest.user, space: spaceObjectId },
     });
-    if (insideMember && insideMember?.isDeleted === false)
-      throw new BadRequestException('joinRequests.userAlreadyJoined');
+    if (insideMember) {
+      const newMember = await this.membersRepository.updateOne({
+        query: { _id: insideMember._id },
+        dto: {
+          isDeleted: false,
+          role: SpaceMemberRole.MEMBER,
+          permissions: memberPermissionList,
+          addedBy: userObjectId,
+          joinedAt: new Date(),
+        },
+      });
+      if (!newMember)
+        throw new InternalServerErrorException('joinRequests.failedAccepted');
+    } else if (!insideMember) {
+      // create new member
+      const newMember = await this.membersRepository.createOne({
+        dto: {
+          user: findRequest.user,
+          space: spaceObjectId,
+          role: SpaceMemberRole.MEMBER,
+          permissions: memberPermissionList,
+          addedBy: userObjectId,
+          joinedAt: new Date(),
+        },
+      });
+      if (!newMember)
+        throw new InternalServerErrorException('joinRequests.failedAccepted');
+    }
 
-    // create new member
-    const newMember = await this.membersRepository.createOne({
-      dto: {
-        user: findRequest.user,
-        space: spaceObjectId,
-        role: SpaceMemberRole.MEMBER,
-        permissions: memberPermissionList,
-        addedBy: userObjectId,
-        joinedAt: new Date(),
-      },
-    });
-    if (!newMember)
-      throw new InternalServerErrorException('joinRequests.failedAccepted');
-
-    // accept request
+    // accepted request
     const acceptRequest = await this.joinRequestsRepository.deleteOne({
       query: { _id: requestObjectId },
     });
     if (!acceptRequest)
-      throw new InternalServerErrorException('joinRequests.failedAccepted');
+      throw new NotFoundException('joinRequests.failedAccepted');
 
     await this.spacesRepository.updateOne({
       query: { _id: spaceObjectId },
       dto: { $inc: { membersCount: 1 } },
     });
-
     return findRequest;
   }
 

@@ -252,7 +252,6 @@ export class SpacesService {
       options: {
         allowedSearchFields: ['name', 'bio'],
         allowedFilterFields: ['status', 'type', 'archive'],
-
         pipelines: [
           // 1. Filter by user
           {
@@ -307,7 +306,7 @@ export class SpacesService {
             },
           },
 
-          // 4. Lookup user's contacts (where current user is 'me')
+          // 4. Lookup user's contacts (where current user is 'me') - already correctly scoped
           {
             $lookup: {
               from: 'contacts',
@@ -324,8 +323,8 @@ export class SpacesService {
                         { $eq: ['$me', '$$userId'] },
                         {
                           $or: [
-                            { $eq: ['$contact', '$$spaceSender'] },
                             { $eq: ['$contact', '$$spaceReceived'] },
+                            { $eq: ['$contact', '$$spaceSender'] },
                           ],
                         },
                       ],
@@ -345,23 +344,30 @@ export class SpacesService {
             },
           },
 
-          // 5. Lookup contact documents from space
+          // 5. FIXED: Lookup only the contact document that belongs to the CURRENT user
+          //    (senderContact if userId is the sender, receivedContact if userId is the receiver)
+          //    This prevents leaking the other party's private contact naming.
+          {
+            $addFields: {
+              myContactId: {
+                $cond: {
+                  if: { $eq: [userId, '$space.sender'] },
+                  then: '$space.senderContact',
+                  else: '$space.receivedContact',
+                },
+              },
+            },
+          },
           {
             $lookup: {
               from: 'contacts',
               let: {
-                senderContactId: '$space.senderContact',
-                receivedContactId: '$space.receivedContact',
+                myContactId: '$myContactId',
               },
               pipeline: [
                 {
                   $match: {
-                    $expr: {
-                      $or: [
-                        { $eq: ['$_id', '$$senderContactId'] },
-                        { $eq: ['$_id', '$$receivedContactId'] },
-                      ],
-                    },
+                    $expr: { $eq: ['$_id', '$$myContactId'] },
                   },
                 },
                 {
@@ -394,11 +400,36 @@ export class SpacesService {
                   0,
                 ],
               },
-              userContact: {
-                $arrayElemAt: ['$userContacts', 0],
+              userContact: { $arrayElemAt: ['$userContacts', 0] },
+              spaceContact: { $arrayElemAt: ['$spaceContacts', 0] },
+            },
+          },
+
+          // 6.1 Resolve unified display fields once, with priority: userContact > spaceContact > otherParty
+          {
+            $addFields: {
+              resolvedName: {
+                $ifNull: [
+                  '$userContact.name',
+                  { $ifNull: ['$spaceContact.name', '$otherParty.name'] },
+                ],
               },
-              spaceContact: {
-                $arrayElemAt: ['$spaceContacts', 0],
+              resolvedAvatar: {
+                $ifNull: [
+                  '$userContact.avatar',
+                  { $ifNull: ['$spaceContact.avatar', '$otherParty.avatar'] },
+                ],
+              },
+              resolvedProfileColor: {
+                $ifNull: [
+                  '$userContact.profileColor',
+                  {
+                    $ifNull: [
+                      '$spaceContact.profileColor',
+                      '$otherParty.profileColor',
+                    ],
+                  },
+                ],
               },
             },
           },
@@ -419,7 +450,7 @@ export class SpacesService {
             },
           },
 
-          // 7. Final projection - FIXED VERSION
+          // 7. Final projection
           {
             $project: {
               _id: '$space._id',
@@ -431,7 +462,6 @@ export class SpacesService {
               role: 1,
               folder: { $ifNull: ['$folder', null] },
 
-              // Space fields - use $space.fieldName directly
               type: '$space.type',
               status: '$space.status',
               createdAt: '$space.createdAt',
@@ -440,31 +470,21 @@ export class SpacesService {
               settings: '$space.settings',
 
               lastMessage: {
-                isOutgoing: {
-                  $eq: ['$lastMessage.sender', userId],
-                },
+                isOutgoing: { $eq: ['$lastMessage.sender', userId] },
                 id: '$lastMessage._id',
                 status: '$lastMessage.status',
                 text: '$lastMessage.text',
                 createdAt: '$lastMessage.createdAt',
               },
 
-              // FIXED: isContact - check if array is not empty
               isContact: {
                 $cond: {
                   if: { $eq: ['$space.type', 'private'] },
-                  then: {
-                    $cond: {
-                      if: { $gt: [{ $size: '$userContacts' }, 0] },
-                      then: true,
-                      else: false,
-                    },
-                  },
+                  then: { $gt: [{ $size: '$userContacts' }, 0] },
                   else: false,
                 },
               },
 
-              // FIXED: wallpaper
               wallpaper: {
                 $cond: {
                   if: {
@@ -478,81 +498,39 @@ export class SpacesService {
                 },
               },
 
-              // FIXED: name - use proper field references
               name: {
                 $cond: {
                   if: { $eq: ['$space.type', 'private'] },
-                  then: {
-                    $cond: {
-                      if: { $gt: [{ $size: '$userContacts' }, 0] },
-                      then: { $arrayElemAt: ['$userContacts.name', 0] },
-                      else: {
-                        $cond: {
-                          if: { $gt: [{ $size: '$spaceContacts' }, 0] },
-                          then: { $arrayElemAt: ['$spaceContacts.name', 0] },
-                          else: '$otherParty.name',
-                        },
-                      },
-                    },
-                  },
+                  then: '$resolvedName',
                   else: '$space.name',
                 },
               },
 
-              // FIXED: avatar
               avatar: {
                 $cond: {
                   if: { $eq: ['$space.type', 'private'] },
-                  then: {
-                    $cond: {
-                      if: { $gt: [{ $size: '$userContacts' }, 0] },
-                      then: { $arrayElemAt: ['$userContacts.avatar', 0] },
-                      else: {
-                        $cond: {
-                          if: { $gt: [{ $size: '$spaceContacts' }, 0] },
-                          then: { $arrayElemAt: ['$spaceContacts.avatar', 0] },
-                          else: '$otherParty.avatar',
-                        },
-                      },
-                    },
-                  },
+                  then: '$resolvedAvatar',
                   else: '$space.avatar',
                 },
               },
 
-              // FIXED: profileColor
               profileColor: {
                 $cond: {
                   if: { $eq: ['$space.type', 'private'] },
-                  then: {
-                    $cond: {
-                      if: { $gt: [{ $size: '$userContacts' }, 0] },
-                      then: { $arrayElemAt: ['$userContacts.profileColor', 0] },
-                      else: {
-                        $cond: {
-                          if: { $gt: [{ $size: '$spaceContacts' }, 0] },
-                          then: {
-                            $arrayElemAt: ['$spaceContacts.profileColor', 0],
-                          },
-                          else: '$otherParty.profileColor',
-                        },
-                      },
-                    },
-                  },
+                  then: '$resolvedProfileColor',
                   else: '$space.profileColor',
                 },
               },
 
-              // FIXED: received
               received: {
                 $cond: {
                   if: { $eq: ['$space.type', 'private'] },
                   then: {
                     _id: '$otherParty._id',
-                    name: '$otherParty.name',
+                    name: '$resolvedName',
                     username: '$otherParty.username',
-                    avatar: '$otherParty.avatar',
-                    profileColor: '$otherParty.profileColor',
+                    avatar: '$resolvedAvatar',
+                    profileColor: '$resolvedProfileColor',
                     bio: '$otherParty.bio',
                   },
                   else: null,

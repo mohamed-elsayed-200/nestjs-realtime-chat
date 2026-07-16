@@ -81,6 +81,6 @@ export class Member {
 
 export const MemberSchema = SchemaFactory.createForClass(Member);
 
-MemberSchema.index({ user: 1, space: 1 });
+MemberSchema.index({ user: 1, space: 1 }, { unique: true });
 MemberSchema.index({ space: 1, isBanned: 1 });
 MemberSchema.index({ space: 1, unreadCount: 1 });

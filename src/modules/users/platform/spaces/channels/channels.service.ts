@@ -370,13 +370,18 @@ export class ChannelsService {
         deletedAt: new Date(),
         joinedAt: null,
         role: null,
-        permission: [],
+        adminTag: null,
+        adminTagColor: null,
+        permission: member?.permissions?.filter((perm) =>
+          memberPermissionList?.includes(perm),
+        ),
       },
     });
 
     const updatedSpace = await this.spacesRepository.updateOne({
       query: { _id: spaceObjectId },
       dto: { $inc: { membersCount: -1 } },
+      // dto: { membersCount:9 },
     });
     return updatedSpace;
   }
