@@ -297,6 +297,8 @@ export class MembersService {
       id: updated?._id,
       role: updated?.role,
       permissions: updated?.permissions,
+      adminTag: null,
+      adminTagColor: null,
     };
   }
 
