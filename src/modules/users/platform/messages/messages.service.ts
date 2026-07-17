@@ -9,6 +9,7 @@ import { SpacesRepository } from '../../../../common/modules/platform/spaces/spa
 import { MembersRepository } from '../../../../common/modules/platform/members/members.repository';
 import {
   MessageStatus,
+  MessageType,
   SpaceHistory,
   SpaceMemberRole,
   SpaceTypes,
@@ -503,47 +504,69 @@ export class MessagesService {
 
   public async pin({ dto, authUser }) {
     const { messages, space, isPinned } = dto;
-    const userId = new Types.ObjectId(authUser?._id);
-    const spaceId = new Types.ObjectId(space);
-
+    const userObjectId = new Types.ObjectId(authUser?._id);
+    const spaceObjectId = new Types.ObjectId(space);
     // Check if user has permission to pin messages in this space
     const member = await this.membersRepository.findOne({
       query: {
-        user: userId,
-        space: spaceId,
+        user: userObjectId,
+        space: spaceObjectId,
       },
     });
-
     if (!member) throw new NotFoundException('members.notFound');
-
     // Check if user has permission to pin (admin, moderator, or channel admin)
     const findSpace = await this.spacesRepository.findOne({
-      query: { _id: spaceId },
+      query: { _id: spaceObjectId },
     });
-
     if (
       findSpace?.type === SpaceTypes.CHANNEL &&
       member.role === SpaceMemberRole.MEMBER
     ) {
       throw new ForbiddenException('messages.noPermissionToPin');
     }
-
     // Convert to array if single ID
     const messageIdsArray = Array.isArray(messages) ? messages : [messages];
     const messageObjectIds = messageIdsArray.map(
       (id) => new Types.ObjectId(id),
     );
-
     // Batch update all messages in one query
     const result = await this.messagesRepository.updateMany({
-      query: { _id: { $in: messageObjectIds }, space: spaceId },
+      query: { _id: { $in: messageObjectIds }, space: spaceObjectId },
       dto: { isPinned },
     });
-
     if (result.modifiedCount === 0) {
       throw new InternalServerErrorException('messages.notUpdated');
     }
+    const findLastMessage = await this.messagesRepository.findOne({
+      query: { _id: messageObjectIds[messageObjectIds?.length - 1] },
+    });
+    const action = isPinned ? 'pinned' : 'unpinned';
+    const messageLabel =
+      messageIdsArray.length > 1
+        ? `${messageIdsArray.length} messages`
+        : `a ${findLastMessage?.content || findLastMessage?.text || 'message'}`;
+    const systemText = `${authUser?.name} ${action} ${messageLabel}`;
 
+    const lastMessage = await this.messagesRepository.createOne({
+      dto: {
+        space: findSpace._id,
+        sender: userObjectId,
+        messageType: MessageType.SYSTEM,
+        status: MessageStatus.SENT,
+        content: systemText,
+        text: systemText,
+      },
+    });
+
+    await this.spacesRepository.updateOne({
+      query: { _id: findSpace._id },
+      dto: { lastMessage: lastMessage._id },
+    });
+
+    await this.membersRepository.updateMany({
+      query: { space: spaceObjectId },
+      dto: { $inc: { unreadCount: 1 } },
+    });
     return;
   }
 }
