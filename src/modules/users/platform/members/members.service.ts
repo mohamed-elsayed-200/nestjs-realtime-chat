@@ -46,7 +46,35 @@ export class MembersService {
               preserveNullAndEmptyArrays: true,
             },
           },
-
+          {
+            $addFields: {
+              rolePriority: {
+                $switch: {
+                  branches: [
+                    {
+                      case: { $eq: ['$role', SpaceMemberRole.OWNER] },
+                      then: 0,
+                    },
+                    {
+                      case: { $eq: ['$role', SpaceMemberRole.ADMIN] },
+                      then: 1,
+                    },
+                    {
+                      case: { $eq: ['$role', SpaceMemberRole.MEMBER] },
+                      then: 2,
+                    },
+                  ],
+                  default: 3,
+                },
+              },
+            },
+          },
+          {
+            $sort: {
+              rolePriority: 1,
+              joinedAt: -1,
+            },
+          },
           {
             $project: {
               user: {
@@ -63,6 +91,7 @@ export class MembersService {
               adminTag: 1,
               adminTagColor: 1,
               permissions: 1,
+              joinedAt: 1,
             },
           },
         ],

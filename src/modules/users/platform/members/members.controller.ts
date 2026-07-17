@@ -46,7 +46,7 @@ export class MembersController {
   }
 
   @Get('/banned/:spaceId')
-  @ResponseMeta({ message: 'members.foundAll' })
+  @ResponseMeta({ message: 'members.foundBannedList' })
   public async getBannedBySpace(
     @Param('spaceId', ValidateObjectIdPipe) spaceId: string,
     @Query() query: QueryDto,
