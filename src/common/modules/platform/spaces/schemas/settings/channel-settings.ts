@@ -1,9 +1,8 @@
 import { Prop, Schema } from '@nestjs/mongoose';
-import { Types } from 'mongoose';
 import {
   SpaceHistory,
   JoinApproval,
-  WhoCanComment,
+  PermissionLevel,
 } from '../../../../../types/enums';
 
 @Schema({ _id: false })
@@ -14,77 +13,97 @@ export class ChannelSettings {
   @Prop({ enum: SpaceHistory, default: SpaceHistory.VISIBLE })
   spaceHistory: SpaceHistory;
 
-  @Prop({ default: false })
-  isSubscriptionRequired: boolean;
-
-  @Prop({ default: true })
-  enableReactions: boolean;
-
-  @Prop({ default: true })
-  allowCustomNotifications: boolean;
-
-  @Prop({ default: true })
-  allowMentions: boolean;
-
-  @Prop({ default: false })
-  enablePolls: boolean;
-
   @Prop({ default: 0 })
   maxMembers: number;
 
   @Prop({ default: 0 })
   messageExpiryDuration: number;
 
-  @Prop({ default: false })
-  addSignature: boolean;
+  @Prop({ enum: PermissionLevel, default: PermissionLevel.ADMINS })
+  enableSignature: PermissionLevel;
 
-  @Prop({ default: false })
-  hideSubscribersCount: boolean;
+  @Prop({ enum: PermissionLevel, default: PermissionLevel.MEMBER })
+  enableProtectContent: PermissionLevel;
 
-  @Prop({ default: false })
-  hideSubscribersList: boolean;
+  @Prop({ enum: PermissionLevel, default: PermissionLevel.EVERYBODY })
+  enableViewMembersCount: PermissionLevel;
 
-  @Prop({ default: false })
-  protectContent: boolean;
+  @Prop({ enum: PermissionLevel, default: PermissionLevel.EVERYBODY })
+  enableViewMembersList: PermissionLevel;
 
-  @Prop({ default: false })
-  enableComments: boolean;
+  // Messages
+  @Prop({ enum: PermissionLevel, default: PermissionLevel.ADMINS })
+  allowPoll: PermissionLevel;
 
-  @Prop({ type: Types.ObjectId, ref: 'Space' })
-  linkedDiscussionGroup: Types.ObjectId;
+  @Prop({ enum: PermissionLevel, default: PermissionLevel.ADMINS })
+  allowMention: PermissionLevel;
 
-  @Prop({ enum: WhoCanComment, default: WhoCanComment.EVERYBODY })
-  whoCanComment: WhoCanComment;
+  @Prop({ enum: PermissionLevel, default: PermissionLevel.EVERYBODY })
+  allowSendText: PermissionLevel;
 
-  @Prop({ default: false })
-  commentsRestrictTexts: boolean;
+  @Prop({ enum: PermissionLevel, default: PermissionLevel.EVERYBODY })
+  allowSendGIF: PermissionLevel;
 
-  @Prop({ default: false })
-  commentsRestrictGIFs: boolean;
+  @Prop({ enum: PermissionLevel, default: PermissionLevel.EVERYBODY })
+  allowSendSticker: PermissionLevel;
 
-  @Prop({ default: false })
-  commentsRestrictStickers: boolean;
+  @Prop({ enum: PermissionLevel, default: PermissionLevel.EVERYBODY })
+  allowReactionMessage: PermissionLevel;
 
-  @Prop({ default: false })
-  commentsRestrictReactions: boolean;
+  @Prop({ enum: PermissionLevel, default: PermissionLevel.ADMINS })
+  allowSendLink: PermissionLevel;
 
-  @Prop({ default: true })
-  commentsRestrictLinks: boolean;
+  @Prop({ enum: PermissionLevel, default: PermissionLevel.ADMINS })
+  allowSendImage: PermissionLevel;
 
-  @Prop({ default: true })
-  commentsRestrictImages: boolean;
+  @Prop({ enum: PermissionLevel, default: PermissionLevel.ADMINS })
+  allowSendVideo: PermissionLevel;
 
-  @Prop({ default: true })
-  commentsRestrictVideos: boolean;
+  @Prop({ enum: PermissionLevel, default: PermissionLevel.ADMINS })
+  allowSendFile: PermissionLevel;
 
-  @Prop({ default: true })
-  commentsRestrictFiles: boolean;
+  @Prop({ enum: PermissionLevel, default: PermissionLevel.ADMINS })
+  allowSendVoice: PermissionLevel;
 
-  @Prop({ default: true })
-  commentsRestrictVoices: boolean;
+  @Prop({ enum: PermissionLevel, default: PermissionLevel.ADMINS })
+  allowSendAudio: PermissionLevel;
 
-  @Prop({ default: true })
-  commentsRestrictAudios: boolean;
+  // Comments
+  @Prop({ enum: PermissionLevel, default: PermissionLevel.EVERYBODY })
+  allowSendCommentText: PermissionLevel;
+
+  @Prop({ enum: PermissionLevel, default: PermissionLevel.EVERYBODY })
+  allowSendCommentGIF: PermissionLevel;
+
+  @Prop({ enum: PermissionLevel, default: PermissionLevel.EVERYBODY })
+  allowSendCommentSticker: PermissionLevel;
+
+  @Prop({ enum: PermissionLevel, default: PermissionLevel.EVERYBODY })
+  allowCommentReaction: PermissionLevel;
+
+  @Prop({ enum: PermissionLevel, default: PermissionLevel.ADMINS })
+  allowCommentMention: PermissionLevel;
+
+  @Prop({ enum: PermissionLevel, default: PermissionLevel.ADMINS })
+  allowCommentPoll: PermissionLevel;
+
+  @Prop({ enum: PermissionLevel, default: PermissionLevel.ADMINS })
+  allowSendCommentLink: PermissionLevel;
+
+  @Prop({ enum: PermissionLevel, default: PermissionLevel.ADMINS })
+  allowSendCommentImage: PermissionLevel;
+
+  @Prop({ enum: PermissionLevel, default: PermissionLevel.ADMINS })
+  allowSendCommentVideo: PermissionLevel;
+
+  @Prop({ enum: PermissionLevel, default: PermissionLevel.ADMINS })
+  allowSendCommentFile: PermissionLevel;
+
+  @Prop({ enum: PermissionLevel, default: PermissionLevel.ADMINS })
+  allowSendCommentVoice: PermissionLevel;
+
+  @Prop({ enum: PermissionLevel, default: PermissionLevel.ADMINS })
+  allowSendCommentAudio: PermissionLevel;
 
   @Prop()
   channelLink: string;

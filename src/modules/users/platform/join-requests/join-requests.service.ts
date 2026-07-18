@@ -204,17 +204,19 @@ export class JoinRequestsService {
       query: { user: findRequest.user, space: spaceObjectId },
     });
     if (insideMember) {
-      const newMember = await this.membersRepository.updateOne({
+      const updateMember = await this.membersRepository.updateOne({
         query: { _id: insideMember._id },
         dto: {
           isDeleted: false,
           role: SpaceMemberRole.MEMBER,
-          permissions: memberPermissionList,
+          permissions: insideMember?.permissions?.filter((perm) =>
+            memberPermissionList?.includes(perm),
+          ),
           addedBy: userObjectId,
           joinedAt: new Date(),
         },
       });
-      if (!newMember)
+      if (!updateMember)
         throw new InternalServerErrorException('joinRequests.failedAccepted');
     } else if (!insideMember) {
       // create new member

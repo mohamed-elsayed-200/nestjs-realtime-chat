@@ -1,16 +1,8 @@
-import {
-  IsBoolean,
-  IsEnum,
-  IsMongoId,
-  IsNumber,
-  IsOptional,
-  IsString,
-  Min,
-} from 'class-validator';
+import { IsEnum, IsNumber, IsOptional, IsString, Min } from 'class-validator';
 import {
   SpaceHistory,
   JoinApproval,
-  WhoCanComment,
+  PermissionLevel,
 } from '../../../../../../common/types/enums';
 
 export class ChannelSettingsDto {
@@ -23,26 +15,6 @@ export class ChannelSettingsDto {
   spaceHistory?: SpaceHistory;
 
   @IsOptional()
-  @IsBoolean()
-  isSubscriptionRequired?: boolean;
-
-  @IsOptional()
-  @IsBoolean()
-  allowCustomNotifications?: boolean;
-
-  @IsOptional()
-  @IsBoolean()
-  allowMentions?: boolean;
-
-  @IsOptional()
-  @IsBoolean()
-  enablePolls?: boolean;
-
-  @IsOptional()
-  @IsBoolean()
-  enableReactions?: boolean;
-
-  @IsOptional()
   @IsNumber()
   @Min(0)
   maxMembers?: number;
@@ -53,74 +25,120 @@ export class ChannelSettingsDto {
   messageExpiryDuration?: number;
 
   @IsOptional()
-  @IsBoolean()
-  addSignature?: boolean;
+  @IsEnum(PermissionLevel)
+  enableSignature?: PermissionLevel;
 
   @IsOptional()
-  @IsBoolean()
-  hideSubscribersCount?: boolean;
+  @IsEnum(PermissionLevel)
+  enableProtectContent?: PermissionLevel;
 
   @IsOptional()
-  @IsBoolean()
-  hideSubscribersList?: boolean;
+  @IsEnum(PermissionLevel)
+  enableViewMembersCount?: PermissionLevel;
 
   @IsOptional()
-  @IsBoolean()
-  protectContent?: boolean;
+  @IsEnum(PermissionLevel)
+  enableViewMembersList?: PermissionLevel;
+
+  // Messages
+  @IsOptional()
+  @IsEnum(PermissionLevel)
+  allowPoll?: PermissionLevel;
 
   @IsOptional()
-  @IsBoolean()
-  enableComments?: boolean;
+  @IsEnum(PermissionLevel)
+  allowMention?: PermissionLevel;
 
   @IsOptional()
-  @IsMongoId()
-  linkedDiscussionGroup?: string;
+  @IsEnum(PermissionLevel)
+  allowSendText?: PermissionLevel;
+
+  @IsOptional()
+  @IsEnum(PermissionLevel)
+  allowSendGIF?: PermissionLevel;
+
+  @IsOptional()
+  @IsEnum(PermissionLevel)
+  allowSendSticker?: PermissionLevel;
+
+  @IsOptional()
+  @IsEnum(PermissionLevel)
+  allowReactionMessage?: PermissionLevel;
+
+  @IsOptional()
+  @IsEnum(PermissionLevel)
+  allowSendLink?: PermissionLevel;
+
+  @IsOptional()
+  @IsEnum(PermissionLevel)
+  allowSendImage?: PermissionLevel;
+
+  @IsOptional()
+  @IsEnum(PermissionLevel)
+  allowSendVideo?: PermissionLevel;
+
+  @IsOptional()
+  @IsEnum(PermissionLevel)
+  allowSendFile?: PermissionLevel;
+
+  @IsOptional()
+  @IsEnum(PermissionLevel)
+  allowSendVoice?: PermissionLevel;
+
+  @IsOptional()
+  @IsEnum(PermissionLevel)
+  allowSendAudio?: PermissionLevel;
+
+  // Comments
+  @IsOptional()
+  @IsEnum(PermissionLevel)
+  allowSendCommentText?: PermissionLevel;
+
+  @IsOptional()
+  @IsEnum(PermissionLevel)
+  allowSendCommentGIF?: PermissionLevel;
+
+  @IsOptional()
+  @IsEnum(PermissionLevel)
+  allowSendCommentSticker?: PermissionLevel;
+
+  @IsOptional()
+  @IsEnum(PermissionLevel)
+  allowCommentReaction?: PermissionLevel;
+
+  @IsOptional()
+  @IsEnum(PermissionLevel)
+  allowCommentMention?: PermissionLevel;
+
+  @IsOptional()
+  @IsEnum(PermissionLevel)
+  allowCommentPoll?: PermissionLevel;
+
+  @IsOptional()
+  @IsEnum(PermissionLevel)
+  allowSendCommentLink?: PermissionLevel;
+
+  @IsOptional()
+  @IsEnum(PermissionLevel)
+  allowSendCommentImage?: PermissionLevel;
+
+  @IsOptional()
+  @IsEnum(PermissionLevel)
+  allowSendCommentVideo?: PermissionLevel;
+
+  @IsOptional()
+  @IsEnum(PermissionLevel)
+  allowSendCommentFile?: PermissionLevel;
+
+  @IsOptional()
+  @IsEnum(PermissionLevel)
+  allowSendCommentVoice?: PermissionLevel;
+
+  @IsOptional()
+  @IsEnum(PermissionLevel)
+  allowSendCommentAudio?: PermissionLevel;
 
   @IsOptional()
   @IsString()
   channelLink?: string;
-
-  @IsOptional()
-  @IsEnum(WhoCanComment)
-  whoCanComment?: WhoCanComment;
-
-  @IsOptional()
-  @IsBoolean()
-  commentsRestrictLinks?: boolean;
-
-  @IsOptional()
-  @IsBoolean()
-  commentsRestrictTexts?: boolean;
-
-  @IsOptional()
-  @IsBoolean()
-  commentsRestrictImages?: boolean;
-
-  @IsOptional()
-  @IsBoolean()
-  commentsRestrictGIFs?: boolean;
-
-  @IsOptional()
-  @IsBoolean()
-  commentsRestrictVideos?: boolean;
-
-  @IsOptional()
-  @IsBoolean()
-  commentsRestrictFiles?: boolean;
-
-  @IsOptional()
-  @IsBoolean()
-  commentsRestrictVoices?: boolean;
-
-  @IsOptional()
-  @IsBoolean()
-  commentsRestrictStickers?: boolean;
-
-  @IsOptional()
-  @IsBoolean()
-  commentsRestrictAudios?: boolean;
-
-  @IsOptional()
-  @IsBoolean()
-  commentsRestrictReactions?: boolean;
 }

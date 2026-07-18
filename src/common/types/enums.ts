@@ -26,9 +26,9 @@ export enum SpaceTypes {
   BOT = 'bot',
 }
 export enum SpaceMemberRole {
-  OWNER = 'owner',
   ADMIN = 'admin',
   MEMBER = 'member',
+  OWNER = 'owner',
 }
 
 export enum SpaceMemberPermission {
@@ -39,6 +39,7 @@ export enum SpaceMemberPermission {
   REACTION_COMMENTS = 'reaction-comments',
   SEND_PHOTOS = 'send-photos',
   SEND_VIDEOS = 'send-videos',
+  SEND_AUDIOS = 'send-audios',
   SEND_FILES = 'send-files',
   SEND_VOICE = 'send-voice',
   SEND_STICKERS = 'send-stickers',
@@ -72,6 +73,7 @@ export const memberPermissionList: string[] = [
   SpaceMemberPermission.SEND_PHOTOS,
   SpaceMemberPermission.SEND_VIDEOS,
   SpaceMemberPermission.SEND_FILES,
+  SpaceMemberPermission.SEND_AUDIOS,
   SpaceMemberPermission.SEND_VOICE,
   SpaceMemberPermission.SEND_STICKERS,
   SpaceMemberPermission.SEND_GIFS,
@@ -131,27 +133,23 @@ export enum MessageStatus {
 // space settings
 export enum WhoCanSendMessages {
   EVERYBODY = 'everybody',
-  OWNER = 'owner',
   ADMIN = 'admin',
   MEMBER = 'member',
 }
 
 export enum WhoCanAddMembers {
   EVERYBODY = 'everybody',
-  OWNER = 'owner',
   ADMIN = 'admin',
   MEMBER = 'member',
 }
 
 export enum WhoCanChangeInfo {
   EVERYBODY = 'everybody',
-  OWNER = 'owner',
   ADMIN = 'admin',
 }
 
 export enum WhoCanPinMessages {
   EVERYBODY = 'everybody',
-  OWNER = 'owner',
   ADMIN = 'admin',
   MEMBER = 'member',
 }
@@ -159,14 +157,17 @@ export enum WhoCanPinMessages {
 export enum WhoCanComment {
   NOBODY = 'nobody',
   EVERYBODY = 'everybody',
-  OWNER = 'owner',
   ADMIN = 'admin',
   MEMBER = 'member',
 }
-
+export enum PermissionLevel {
+  NOBODY = 'nobody',
+  EVERYBODY = 'everybody',
+  ADMINS = 'admins',
+  MEMBER = 'member',
+}
 export enum WhoCanDeleteMessages {
   EVERYBODY = 'everybody',
-  OWNER = 'owner',
   ADMIN = 'admin',
 }
 

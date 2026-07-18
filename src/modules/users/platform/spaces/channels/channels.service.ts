@@ -295,7 +295,9 @@ export class ChannelsService {
           isDeleted: false,
           deletedAt: null,
           role: SpaceMemberRole.MEMBER,
-          permission: [],
+          permission: existingMember?.permissions?.filter((perm) =>
+            memberPermissionList?.includes(perm),
+          ),
           joinedAt: new Date(),
         },
       });
@@ -306,10 +308,7 @@ export class ChannelsService {
           space: spaceObjectId,
           role: SpaceMemberRole.MEMBER,
           joinedAt: new Date(),
-          isPined: false,
-          isMuted: false,
-          isArchived: false,
-          permissions: [],
+          permissions: memberPermissionList,
         },
       });
     }
