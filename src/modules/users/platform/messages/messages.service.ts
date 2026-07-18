@@ -325,7 +325,6 @@ export class MessagesService {
     await this.membersRepository.updateMany({
       query: {
         space: spaceId,
-        type: SpaceTypes.PRIVATE,
         user: { $ne: senderId },
       },
       dto: {
