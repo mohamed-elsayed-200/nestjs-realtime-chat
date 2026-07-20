@@ -366,14 +366,25 @@ export class MessagesService {
   }
 
   public async delete({ dto, authUser }) {
-    const { messageIds, everybody } = dto;
-    const userId = new Types.ObjectId(authUser?._id);
+    const { messageIds, spaceId, everybody } = dto;
+    const userObjectId = new Types.ObjectId(authUser?._id);
+    const spaceObjectId = new Types.ObjectId(spaceId);
+
+    // Get space
+    const findSpace = await this.spacesRepository.findOne({
+      query: { _id: spaceObjectId },
+    });
+
+    if (findSpace) {
+      throw new NotFoundException('spaces.notFoundOne');
+    }
 
     // Get messages BEFORE deleting
     const messagesToDelete = await this.messagesRepository.findMany({
       query: {
         _id: { $in: messageIds },
-        sender: userId,
+        sender: userObjectId,
+        space: spaceObjectId,
       },
     });
 
@@ -386,16 +397,31 @@ export class MessagesService {
       ...new Set(messagesToDelete.map((msg) => msg.space.toString())),
     ];
 
-    // Delete messages
-    const result = await this.messagesRepository.deleteMany({
-      query: {
-        _id: { $in: messageIds },
-        sender: userId,
-      },
-    });
+    // Determine effective everybody flag
+    // Private → respect the dto.everybody value
+    // Group/Channel → force everybody = true (delete for everyone)
+    const isPrivate = findSpace.type === SpaceTypes.PRIVATE;
+    const effectiveEverybody = isPrivate ? everybody : true;
 
-    if (result.deletedCount === 0) {
-      throw new NotFoundException('messages.notDeleted');
+    // Delete messages
+    if (effectiveEverybody) {
+      // Soft delete for everyone (mark as deleted for all)
+      await this.messagesRepository.updateMany({
+        query: { _id: { $in: messageIds } },
+        dto: { isDeleted: true, deletedAt: new Date() },
+      });
+    } else {
+      // Hard delete for sender only (private chat only)
+      const result = await this.messagesRepository.deleteMany({
+        query: {
+          _id: { $in: messageIds },
+          sender: userObjectId,
+        },
+      });
+
+      if (result.deletedCount === 0) {
+        throw new NotFoundException('messages.notDeleted');
+      }
     }
 
     // Update lastMessage for each space and collect results
@@ -426,7 +452,7 @@ export class MessagesService {
     }
     const lastMessage = updatedSpaces[0]?.lastMessage;
     return {
-      deletedCount: result.deletedCount,
+      deletedCount: messageIds?.length,
       lastMessage: new Types.ObjectId(lastMessage?._id?.toString()),
     };
   }

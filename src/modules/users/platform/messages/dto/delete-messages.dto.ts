@@ -6,4 +6,8 @@ export class DeleteMessageDto {
   @IsMongoId({ each: true })
   @IsNotEmpty()
   messageIds: Types.ObjectId[];
+
+  @IsMongoId()
+  @IsNotEmpty()
+  spaceId: string;
 }
