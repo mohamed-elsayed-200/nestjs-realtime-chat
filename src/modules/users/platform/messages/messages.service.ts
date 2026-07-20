@@ -1,5 +1,5 @@
 import {
-  ForbiddenException,
+  BadRequestException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
@@ -11,6 +11,7 @@ import {
   MessageStatus,
   MessageType,
   SpaceHistory,
+  SpaceMemberPermission,
   SpaceMemberRole,
   SpaceTypes,
 } from '../../../../common/types/enums';
@@ -82,7 +83,7 @@ export class MessagesService {
           {
             $match: {
               space: spaceObjectId,
-              isDeletedForMe: { $ne: true },
+              deletedFrom: { $ne: userObjectId },
               ...(hideMessagesFromDate && {
                 createdAt: { $gte: hideMessagesFromDate },
               }),
@@ -370,90 +371,133 @@ export class MessagesService {
     const userObjectId = new Types.ObjectId(authUser?._id);
     const spaceObjectId = new Types.ObjectId(spaceId);
 
-    // Get space
     const findSpace = await this.spacesRepository.findOne({
       query: { _id: spaceObjectId },
     });
 
-    if (findSpace) {
+    if (!findSpace) {
       throw new NotFoundException('spaces.notFoundOne');
     }
 
-    // Get messages BEFORE deleting
+    const isPrivate = findSpace.type === SpaceTypes.PRIVATE;
+    const isChannelOrGroup =
+      findSpace.type === SpaceTypes.CHANNEL ||
+      findSpace.type === SpaceTypes.GROUP;
+
+    let member: any = null;
+    if (isChannelOrGroup) {
+      member = await this.membersRepository.findOne({
+        query: { space: spaceObjectId, user: userObjectId },
+      });
+
+      if (!member) {
+        throw new BadRequestException('spaces.notMember');
+      }
+    }
+
+    const canDeleteAnyMessage =
+      isChannelOrGroup &&
+      (member.role === SpaceMemberRole.OWNER ||
+        member.permissions?.includes(SpaceMemberPermission.DELETE_ANY_MESSAGE));
+
+    const messagesQuery: Record<string, unknown> = {
+      _id: { $in: messageIds },
+      space: spaceObjectId,
+    };
+    if (!canDeleteAnyMessage) {
+      messagesQuery.sender = userObjectId;
+    }
+
     const messagesToDelete = await this.messagesRepository.findMany({
-      query: {
-        _id: { $in: messageIds },
-        sender: userObjectId,
-        space: spaceObjectId,
-      },
+      query: messagesQuery,
     });
 
     if (messagesToDelete.length === 0) {
       throw new NotFoundException('messages.notFound');
     }
 
-    // Extract unique space IDs
+    const foundIds = messagesToDelete.map((msg) => msg._id.toString());
+
+    if (!canDeleteAnyMessage && foundIds.length !== messageIds.length) {
+      throw new BadRequestException('messages.notAllowedToDelete');
+    }
+
+    const hasForeignMessages = messagesToDelete.some(
+      (msg) => msg.sender.toString() !== authUser._id.toString(),
+    );
+    if (hasForeignMessages && !canDeleteAnyMessage) {
+      throw new BadRequestException('messages.notAllowedToDelete');
+    }
+
     const uniqueSpaceIds = [
       ...new Set(messagesToDelete.map((msg) => msg.space.toString())),
     ];
 
-    // Determine effective everybody flag
-    // Private → respect the dto.everybody value
-    // Group/Channel → force everybody = true (delete for everyone)
-    const isPrivate = findSpace.type === SpaceTypes.PRIVATE;
     const effectiveEverybody = isPrivate ? everybody : true;
 
-    // Delete messages
     if (effectiveEverybody) {
-      // Soft delete for everyone (mark as deleted for all)
+      if (!isPrivate && !canDeleteAnyMessage && hasForeignMessages) {
+        throw new BadRequestException('messages.notAllowedToDeleteForEveryone');
+      }
+
+      let memberIds: Types.ObjectId[];
+      if (isPrivate) {
+        memberIds = [findSpace.sender, findSpace.received]
+          .filter(Boolean)
+          .map((id: any) => new Types.ObjectId(id.toString()));
+      } else {
+        const spaceMembers = await this.membersRepository.findMany({
+          query: { space: spaceObjectId, isBanned: false, isDeleted: false },
+        });
+        memberIds = spaceMembers.map(
+          (m: any) => new Types.ObjectId(m.user.toString()),
+        );
+      }
+
       await this.messagesRepository.updateMany({
-        query: { _id: { $in: messageIds } },
-        dto: { isDeleted: true, deletedAt: new Date() },
-      });
-    } else {
-      // Hard delete for sender only (private chat only)
-      const result = await this.messagesRepository.deleteMany({
-        query: {
-          _id: { $in: messageIds },
-          sender: userObjectId,
+        query: { _id: { $in: foundIds }, space: spaceObjectId },
+        dto: {
+          $addToSet: { deletedFrom: { $each: memberIds } },
+          deletedAt: new Date(),
         },
       });
-
-      if (result.deletedCount === 0) {
-        throw new NotFoundException('messages.notDeleted');
-      }
+    } else {
+      await this.messagesRepository.updateMany({
+        query: { _id: { $in: foundIds }, space: spaceObjectId },
+        dto: { $addToSet: { deletedFrom: userObjectId } },
+      });
     }
 
-    // Update lastMessage for each space and collect results
     const updatedSpaces = [];
 
-    for (const spaceId of uniqueSpaceIds) {
+    for (const currentSpaceId of uniqueSpaceIds) {
       const lastMessage: any = await this.messagesRepository.findOne({
         query: {
-          space: new Types.ObjectId(spaceId),
-          isDeleted: { $ne: true },
+          space: new Types.ObjectId(currentSpaceId),
+          deletedFrom: { $ne: userObjectId },
         },
         sort: { createdAt: -1 },
       });
 
       await this.spacesRepository.updateOne({
-        query: { _id: spaceId },
+        query: { _id: currentSpaceId },
         dto: {
           lastMessage: lastMessage
-            ? new Types.ObjectId(lastMessage?._id?.toString())
+            ? new Types.ObjectId(lastMessage._id.toString())
             : null,
         },
       });
 
-      updatedSpaces.push({
-        spaceId,
-        lastMessage: lastMessage,
-      });
+      updatedSpaces.push({ spaceId: currentSpaceId, lastMessage });
     }
+
     const lastMessage = updatedSpaces[0]?.lastMessage;
+
     return {
-      deletedCount: messageIds?.length,
-      lastMessage: new Types.ObjectId(lastMessage?._id?.toString()),
+      deletedCount: foundIds.length,
+      lastMessage: lastMessage
+        ? new Types.ObjectId(lastMessage._id.toString())
+        : null,
     };
   }
 
@@ -461,7 +505,6 @@ export class MessagesService {
     const { messageIds, targetSpaceId } = dto;
     const userId = new Types.ObjectId(authUser?._id);
 
-    // Check if user is a member of target space
     const findMember: any = await this.membersRepository.findOne({
       query: {
         user: userId,
@@ -478,15 +521,13 @@ export class MessagesService {
 
     if (!findMember) throw new NotFoundException('spaces.notFound');
 
-    // Channel: only admins and moderators can forward
     if (
       findMember.space.type === SpaceTypes.CHANNEL &&
       findMember.role === SpaceMemberRole.MEMBER
     ) {
-      throw new ForbiddenException('channels.onlyAdminsCanForward');
+      throw new BadRequestException('channels.onlyAdminsCanForward');
     }
 
-    // Rest of your code...
     const originalMessages = await this.messagesRepository.findMany({
       query: {
         _id: { $in: messageIds },
@@ -547,7 +588,7 @@ export class MessagesService {
       findSpace?.type === SpaceTypes.CHANNEL &&
       member.role === SpaceMemberRole.MEMBER
     ) {
-      throw new ForbiddenException('messages.noPermissionToPin');
+      throw new BadRequestException('messages.noPermissionToPin');
     }
     // Convert to array if single ID
     const messageIdsArray = Array.isArray(messages) ? messages : [messages];

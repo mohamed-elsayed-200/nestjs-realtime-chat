@@ -1,4 +1,10 @@
-import { IsArray, IsMongoId, IsNotEmpty } from 'class-validator';
+import {
+  IsArray,
+  IsBoolean,
+  IsMongoId,
+  IsNotEmpty,
+  IsOptional,
+} from 'class-validator';
 import { Types } from 'mongoose';
 
 export class DeleteMessageDto {
@@ -10,4 +16,8 @@ export class DeleteMessageDto {
   @IsMongoId()
   @IsNotEmpty()
   spaceId: string;
+
+  @IsBoolean()
+  @IsOptional()
+  everybody: boolean;
 }

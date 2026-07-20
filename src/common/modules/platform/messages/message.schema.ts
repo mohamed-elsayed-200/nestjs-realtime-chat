@@ -42,8 +42,8 @@ export class Message {
   @Prop({ default: false })
   isEdited?: boolean;
 
-  @Prop({ default: false })
-  isDeletedForMe?: boolean;
+  @Prop({ type: Types.ObjectId, ref: 'User' })
+  deletedFrom?: Types.ObjectId;
 
   @Prop()
   mimeType?: string;
