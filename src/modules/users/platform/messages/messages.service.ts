@@ -443,25 +443,37 @@ export class MessagesService {
       query: {
         _id: { $in: messageIds },
         space: spaceObjectId,
+        // FIX: If not owner/admin, only fetch user's own messages
         ...(!canDeleteAny && { sender: userObjectId }),
       },
     });
 
     if (messages.length === 0) throw new NotFoundException('messages.notFound');
-    if (!canDeleteAny && messages.length !== messageIds.length) {
-      throw new BadRequestException('messages.notAllowedToDelete');
+
+    // FIX: Validate that all found messages belong to user (if not owner/admin)
+    if (!canDeleteAny) {
+      const allBelongToUser = messages.every(
+        (msg) => msg.sender?.toString() === userObjectId.toString(),
+      );
+      if (!allBelongToUser) {
+        throw new BadRequestException('messages.notAllowedToDelete');
+      }
     }
 
     const foundIds = messages.map((m) => m._id.toString());
 
     // 5. Determine delete scope
-    // Private: respect `everybody` flag, but only sender can delete for all
     const isSenderOfAll = messages.every(
       (msg) => msg.sender?.toString() === userObjectId.toString(),
     );
-    const deleteForAll = isPrivate ? everybody && isSenderOfAll : true;
 
-    if (deleteForAll && !isPrivate && !canDeleteAny) {
+    // FIX: In group/channel, sender can delete their own messages
+    // deleteForAll = true only for owner/admin or sender deleting their own
+    const deleteForAll = isPrivate
+      ? everybody && isSenderOfAll
+      : canDeleteAny || isSenderOfAll;
+
+    if (deleteForAll && !isPrivate && !canDeleteAny && !isSenderOfAll) {
       throw new BadRequestException('messages.notAllowedToDeleteForEveryone');
     }
 
@@ -488,7 +500,7 @@ export class MessagesService {
 
     // 8. Perform deletion
     if (isPrivate) {
-      // Private: use deletedFrom (per-user)
+      // Private: soft delete with deletedFrom (per-user)
       await this.messagesRepository.updateMany({
         query: { _id: { $in: foundIds } },
         dto: {
@@ -496,10 +508,9 @@ export class MessagesService {
         },
       });
     } else {
-      // Group/Channel: use deletedAt (global soft delete)
-      await this.messagesRepository.updateMany({
+      // FIX: Group/Channel: HARD DELETE (remove completely from DB)
+      await this.messagesRepository.deleteMany({
         query: { _id: { $in: foundIds } },
-        dto: { deletedAt: new Date() },
       });
     }
 
@@ -539,12 +550,9 @@ export class MessagesService {
         }
       }
     } else {
-      // Group/Channel: update global lastMessage
+      // FIX: Group/Channel: update global lastMessage after hard delete
       const lastMsg = await this.messagesRepository.findOne({
-        query: {
-          space: spaceObjectId,
-          deletedAt: { $exists: false },
-        },
+        query: { space: spaceObjectId },
         sort: { createdAt: -1 },
       });
 
@@ -564,10 +572,7 @@ export class MessagesService {
           sort: { createdAt: -1 },
         })
       : await this.messagesRepository.findOne({
-          query: {
-            space: spaceObjectId,
-            deletedAt: { $exists: false },
-          },
+          query: { space: spaceObjectId },
           sort: { createdAt: -1 },
         });
 
