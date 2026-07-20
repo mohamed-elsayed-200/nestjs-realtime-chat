@@ -28,6 +28,9 @@ export class Member {
   @Prop({ type: Types.ObjectId, ref: 'User' })
   bannedBy: Types.ObjectId;
 
+  @Prop({ type: Types.ObjectId, ref: 'Message' })
+  lastMessage?: Types.ObjectId;
+
   @Prop()
   wallpaper: string;
 

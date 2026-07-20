@@ -34,6 +34,14 @@ export class SpacesService {
     const userId = new Types.ObjectId(authUser._id);
     const spaceId = new Types.ObjectId(spaceOrUserId);
 
+    // 1. Find member first (to get per-user lastMessage for private chats)
+    const member = await this.membersRepository.findOne({
+      query: { space: spaceId, user: userId },
+    });
+
+    const isMember = Boolean(member?._id);
+
+    // 2. Get space with populated fields
     const findSpace: any = await this.spacesRepository.findOne({
       query: { _id: spaceId },
       populate: [
@@ -58,25 +66,32 @@ export class SpacesService {
           path: 'receivedContact',
           select: '_id name avatar profileColor',
         },
-        {
-          path: 'lastMessage',
-          select: '_id sender status text createdAt',
-        },
       ],
     });
 
     if (findSpace) {
-      // 1. Find the member with populated space
-      const member = await this.membersRepository.findOne({
-        query: { space: spaceId, user: userId },
-      });
+      // FIX: Determine effective lastMessage ID
+      // Private -> member.lastMessage (per-user)
+      // Group/Channel -> space.lastMessage (global)
+      const isPrivate = findSpace?.type === SpaceTypes.PRIVATE;
+      const effectiveLastMessageId = isPrivate
+        ? member?.lastMessage
+        : findSpace?.lastMessage;
 
-      const isMember = Boolean(member?._id);
-      // 2. Get user's contact for this space (if private space)
+      // FIX: Lookup last message details
+      let lastMessageData = null;
+      if (effectiveLastMessageId) {
+        lastMessageData = await this.messagesRepository.findOne({
+          query: { _id: effectiveLastMessageId },
+          select: '_id sender status text createdAt',
+        });
+      }
+
+      // 3. Get user's contact for this space (if private space)
       let userContact = null;
       let otherParty = null;
 
-      if (findSpace?.type === SpaceTypes.PRIVATE) {
+      if (isPrivate) {
         // Get the other user
         if (findSpace?.sender?._id.toString() === userId.toString()) {
           otherParty = findSpace?.received;
@@ -93,7 +108,8 @@ export class SpacesService {
           select: '_id name avatar profileColor',
         });
       }
-      // 3. Format the response
+
+      // 4. Format the response
       const dataMember = isMember
         ? {
             unreadCount: member?.unreadCount,
@@ -107,26 +123,26 @@ export class SpacesService {
             isBanned: member?.isBanned,
             bannedAt: member?.bannedAt,
             isDeleted: member?.isDeleted,
-            received:
-              findSpace?.type === SpaceTypes.PRIVATE
-                ? {
-                    _id: otherParty?._id,
-                    name: otherParty?.name,
-                    username: otherParty?.username,
-                    avatar: otherParty?.avatar,
-                    profileColor: otherParty?.profileColor,
-                    bio: otherParty?.bio,
-                  }
-                : null,
-            lastMessage: findSpace?.lastMessage
+            received: isPrivate
+              ? {
+                  _id: otherParty?._id,
+                  name: otherParty?.name,
+                  username: otherParty?.username,
+                  avatar: otherParty?.avatar,
+                  profileColor: otherParty?.profileColor,
+                  bio: otherParty?.bio,
+                }
+              : null,
+            // FIX: Use lastMessageData instead of findSpace.lastMessage
+            lastMessage: lastMessageData
               ? {
                   isOutgoing:
-                    findSpace?.lastMessage.sender?._id?.toString() ===
+                    lastMessageData.sender?._id?.toString() ===
                     userId.toString(),
-                  id: findSpace?.lastMessage._id,
-                  status: findSpace?.lastMessage.status,
-                  text: findSpace?.lastMessage.text,
-                  createdAt: findSpace?.lastMessage.createdAt,
+                  id: lastMessageData._id,
+                  status: lastMessageData.status,
+                  text: lastMessageData.text,
+                  createdAt: lastMessageData.createdAt,
                 }
               : null,
           }
@@ -145,26 +161,22 @@ export class SpacesService {
         createdBy: findSpace?.createdBy,
         wallpaper: findSpace?.wallpaper || member?.wallpaper,
         // Name
-        name:
-          findSpace?.type === SpaceTypes.PRIVATE
-            ? userContact?.name || otherParty?.name || null
-            : findSpace?.name,
+        name: isPrivate
+          ? userContact?.name || otherParty?.name || null
+          : findSpace?.name,
 
         // Avatar
-        avatar:
-          findSpace?.type === SpaceTypes.PRIVATE
-            ? userContact?.avatar || otherParty?.avatar || null
-            : findSpace?.avatar,
+        avatar: isPrivate
+          ? userContact?.avatar || otherParty?.avatar || null
+          : findSpace?.avatar,
 
         // Profile Color
-        profileColor:
-          findSpace?.type === SpaceTypes.PRIVATE
-            ? userContact?.profileColor || otherParty?.profileColor || null
-            : findSpace?.profileColor,
+        profileColor: isPrivate
+          ? userContact?.profileColor || otherParty?.profileColor || null
+          : findSpace?.profileColor,
 
         // isContact
-        isContact:
-          findSpace?.type === SpaceTypes.PRIVATE ? !!userContact : false,
+        isContact: isPrivate ? !!userContact : false,
 
         // Member fields
         ...dataMember,
@@ -306,7 +318,7 @@ export class SpacesService {
             },
           },
 
-          // 4. Lookup user's contacts (where current user is 'me') - already correctly scoped
+          // 4. Lookup user's contacts (where current user is 'me')
           {
             $lookup: {
               from: 'contacts',
@@ -344,9 +356,7 @@ export class SpacesService {
             },
           },
 
-          // 5. FIXED: Lookup only the contact document that belongs to the CURRENT user
-          //    (senderContact if userId is the sender, receivedContact if userId is the receiver)
-          //    This prevents leaking the other party's private contact naming.
+          // 5. Lookup only the contact document that belongs to the CURRENT user
           {
             $addFields: {
               myContactId: {
@@ -405,7 +415,7 @@ export class SpacesService {
             },
           },
 
-          // 6.1 Resolve unified display fields once, with priority: userContact > spaceContact > otherParty
+          // 6.1 Resolve unified display fields once
           {
             $addFields: {
               resolvedName: {
@@ -434,23 +444,38 @@ export class SpacesService {
             },
           },
 
-          // 3. Lookup last message details
+          // 7. FIX: Determine effective lastMessage ID
+          // Private -> member.lastMessage (per-user)
+          // Group/Channel -> space.lastMessage (global)
+          {
+            $addFields: {
+              effectiveLastMessageId: {
+                $cond: {
+                  if: { $eq: ['$space.type', 'private'] },
+                  then: '$lastMessage',
+                  else: '$space.lastMessage',
+                },
+              },
+            },
+          },
+
+          // 8. Lookup last message details
           {
             $lookup: {
               from: 'messages',
-              localField: 'space.lastMessage',
+              localField: 'effectiveLastMessageId',
               foreignField: '_id',
-              as: 'lastMessage',
+              as: 'lastMessageData',
             },
           },
           {
             $unwind: {
-              path: '$lastMessage',
+              path: '$lastMessageData',
               preserveNullAndEmptyArrays: true,
             },
           },
 
-          // 7. Final projection
+          // 9. Final projection
           {
             $project: {
               _id: '$space._id',
@@ -470,11 +495,17 @@ export class SpacesService {
               settings: '$space.settings',
 
               lastMessage: {
-                isOutgoing: { $eq: ['$lastMessage.sender', userId] },
-                id: '$lastMessage._id',
-                status: '$lastMessage.status',
-                text: '$lastMessage.text',
-                createdAt: '$lastMessage.createdAt',
+                $cond: {
+                  if: { $ne: ['$lastMessageData', null] },
+                  then: {
+                    isOutgoing: { $eq: ['$lastMessageData.sender', userId] },
+                    id: '$lastMessageData._id',
+                    status: '$lastMessageData.status',
+                    text: '$lastMessageData.text',
+                    createdAt: '$lastMessageData.createdAt',
+                  },
+                  else: null,
+                },
               },
 
               isContact: {
