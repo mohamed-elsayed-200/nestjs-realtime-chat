@@ -2,11 +2,7 @@ import { Prop, Schema } from '@nestjs/mongoose';
 import {
   SpaceHistory,
   JoinApproval,
-  WhoCanAddMembers,
-  WhoCanChangeInfo,
-  WhoCanDeleteMessages,
-  WhoCanPinMessages,
-  WhoCanSendMessages,
+  PermissionLevel,
 } from '../../../../../../common/types/enums';
 
 @Schema({ _id: false })
@@ -17,72 +13,61 @@ export class GroupSettings {
   @Prop({ enum: SpaceHistory, default: SpaceHistory.VISIBLE })
   spaceHistory: SpaceHistory;
 
-  @Prop({ default: false })
-  isSubscriptionRequired: boolean;
-
-  @Prop({ default: true })
-  allowCustomNotifications: boolean;
-
-  @Prop({ default: true })
-  allowMentions: boolean;
-
-  @Prop({ default: false })
-  enablePolls: boolean;
-
   @Prop({ default: 0 })
   maxMembers: number;
 
   @Prop({ default: 0 })
   messageExpiryDuration: number;
 
-  @Prop({ enum: WhoCanSendMessages, default: WhoCanSendMessages.EVERYBODY })
-  whoCanSendMessages: WhoCanSendMessages;
+  @Prop({ enum: PermissionLevel, default: PermissionLevel.ADMINS })
+  enableSignature: PermissionLevel;
 
-  @Prop({ enum: WhoCanAddMembers, default: WhoCanAddMembers.ADMIN })
-  whoCanAddMembers: WhoCanAddMembers;
+  @Prop({ enum: PermissionLevel, default: PermissionLevel.MEMBER })
+  enableProtectContent: PermissionLevel;
 
-  @Prop({ enum: WhoCanChangeInfo, default: WhoCanChangeInfo.ADMIN })
-  whoCanChangeInfo: WhoCanChangeInfo;
+  @Prop({ enum: PermissionLevel, default: PermissionLevel.EVERYBODY })
+  enableViewMembersCount: PermissionLevel;
 
-  @Prop({ enum: WhoCanPinMessages, default: WhoCanPinMessages.ADMIN })
-  whoCanPinMessages: WhoCanPinMessages;
+  @Prop({ enum: PermissionLevel, default: PermissionLevel.EVERYBODY })
+  enableViewMembersList: PermissionLevel;
 
-  @Prop({
-    enum: WhoCanDeleteMessages,
-    default: WhoCanDeleteMessages.ADMIN,
-  })
-  whoCanDeleteMessages: WhoCanDeleteMessages;
+  // Messages
+  @Prop({ enum: PermissionLevel, default: PermissionLevel.ADMINS })
+  allowPoll: PermissionLevel;
 
-  @Prop({ default: false })
-  hideMembersList: boolean;
+  @Prop({ enum: PermissionLevel, default: PermissionLevel.ADMINS })
+  allowMention: PermissionLevel;
 
-  @Prop({ default: false })
-  hideMembersCount: boolean;
+  @Prop({ enum: PermissionLevel, default: PermissionLevel.EVERYBODY })
+  allowSendText: PermissionLevel;
 
-  @Prop({ default: false })
-  restrictSendingUrls: boolean;
+  @Prop({ enum: PermissionLevel, default: PermissionLevel.EVERYBODY })
+  allowSendGIF: PermissionLevel;
 
-  @Prop({ default: false })
-  restrictSendingMedia: boolean;
+  @Prop({ enum: PermissionLevel, default: PermissionLevel.EVERYBODY })
+  allowSendSticker: PermissionLevel;
 
-  @Prop({ default: false })
-  restrictSendingStickers: boolean;
+  @Prop({ enum: PermissionLevel, default: PermissionLevel.EVERYBODY })
+  allowReactionMessage: PermissionLevel;
 
-  @Prop({ default: false })
-  slowModeEnabled: boolean;
+  @Prop({ enum: PermissionLevel, default: PermissionLevel.ADMINS })
+  allowSendLink: PermissionLevel;
 
-  @Prop({ default: 0 })
-  slowModeDelay: number;
+  @Prop({ enum: PermissionLevel, default: PermissionLevel.ADMINS })
+  allowSendImage: PermissionLevel;
 
-  @Prop({ default: false })
-  enableSlowModeWarning: boolean;
+  @Prop({ enum: PermissionLevel, default: PermissionLevel.ADMINS })
+  allowSendVideo: PermissionLevel;
 
-  @Prop({ default: false })
-  enableVoiceSpace: boolean;
+  @Prop({ enum: PermissionLevel, default: PermissionLevel.ADMINS })
+  allowSendFile: PermissionLevel;
 
-  @Prop({ default: null })
+  @Prop({ enum: PermissionLevel, default: PermissionLevel.ADMINS })
+  allowSendVoice: PermissionLevel;
+
+  @Prop({ enum: PermissionLevel, default: PermissionLevel.ADMINS })
+  allowSendAudio: PermissionLevel;
+
+  @Prop()
   groupLink: string;
-
-  @Prop({ default: true })
-  enableReactions: boolean;
 }

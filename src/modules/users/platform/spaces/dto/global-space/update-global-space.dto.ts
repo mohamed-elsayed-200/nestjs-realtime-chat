@@ -1,30 +1,27 @@
-import { Type } from 'class-transformer';
 import {
-  IsArray,
-  IsMongoId,
-  IsNotEmpty,
   IsOptional,
   IsString,
   MaxLength,
   MinLength,
   ValidateNested,
 } from 'class-validator';
-import { GroupSettingsDto } from './group-settings.dto';
+import { GlobalSpaceSettingsDto } from './global-space-settings.dto';
+import { Type } from 'class-transformer';
 
 export class SpaceSettingsDto {
   @IsOptional()
   @ValidateNested()
-  @Type(() => GroupSettingsDto)
-  group?: GroupSettingsDto;
+  @Type(() => GlobalSpaceSettingsDto)
+  channel?: GlobalSpaceSettingsDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => GlobalSpaceSettingsDto)
+  group?: GlobalSpaceSettingsDto;
 }
 
-export class CreateGroupSpaceDto {
-  @IsNotEmpty({ message: 'categories.validation.memberId.isNotEmpty' })
-  @IsArray({ message: 'categories.validation.members.isArray' })
-  @IsMongoId({ each: true, message: 'categories.validation.members.isMongoId' })
-  members: string[];
-
-  @IsNotEmpty({ message: 'spaces.validation.name.isNotEmpty' })
+export class UpdateGlobalSpaceDto {
+  @IsOptional()
   @IsString({ message: 'spaces.validation.name.isString' })
   @MinLength(2, { message: 'spaces.validation.name.minLength' })
   @MaxLength(50, { message: 'spaces.validation.name.maxLength' })
@@ -38,6 +35,14 @@ export class CreateGroupSpaceDto {
   @IsOptional()
   @IsString({ message: 'spaces.validation.avatar.isString' })
   avatar?: string;
+
+  @IsOptional()
+  @IsString({ message: 'spaces.validation.avatar.isString' })
+  wallpaper?: string;
+
+  @IsOptional()
+  @IsString({ message: 'spaces.validation.profileColor.isString' })
+  profileColor?: string;
 
   @IsOptional()
   @ValidateNested()

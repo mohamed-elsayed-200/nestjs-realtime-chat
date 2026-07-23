@@ -5,7 +5,7 @@ import {
   PermissionLevel,
 } from '../../../../../../common/types/enums';
 
-export class ChannelSettingsDto {
+export class GlobalSpaceSettingsDto {
   @IsOptional()
   @IsEnum(JoinApproval)
   joinApproval?: JoinApproval;

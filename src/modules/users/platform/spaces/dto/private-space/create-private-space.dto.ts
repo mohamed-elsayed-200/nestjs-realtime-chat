@@ -5,7 +5,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { PrivateSettingsDto } from './private-settings.dto';
+import { PrivateSettingsDto } from './private-space-settings.dto';
 
 export class SpaceSettingsDto {
   @IsOptional()

@@ -21,6 +21,10 @@ import { GetUser } from '../../../../common/decorators/get-user.decorator';
 import { ChangeWallpaperDto } from './dto/change-wallpaper.dto';
 import { OpenLinkDto } from './dto/open-space.dto';
 import { DeleteSpaceDto } from './dto/delete-space.dto';
+import { CreatePrivateSpaceDto } from './dto/private-space/create-private-space.dto';
+import { CreateGlobalSpaceDto } from './dto/global-space/create-global-space.dto';
+import { InviteContactsToGlobalDto } from './dto/global-space/invite-contacts-to-global-space.dto';
+import { UpdateGlobalSpaceDto } from './dto/global-space/update-global-space.dto';
 
 @Controller('/users/spaces')
 @UseGuards(AuthGuard, UserTypeGuard)
@@ -102,5 +106,61 @@ export class SpacesController {
     @Body() dto: DeleteSpaceDto,
   ) {
     return this.spacesService.delete({ spaceId, dto, authUser });
+  }
+
+  @Post('/private-space')
+  @ResponseMeta({ message: 'spaces.created', statusCode: 201 })
+  public async createPrivate(
+    @Body() dto: CreatePrivateSpaceDto,
+    @GetUser() authUser: any,
+  ) {
+    return this.spacesService.createPrivateSpace({ dto, authUser });
+  }
+
+  @Post('/global-space')
+  @ResponseMeta({ message: 'spaces.created', statusCode: 201 })
+  public async create(
+    @Body() dto: CreateGlobalSpaceDto,
+    @GetUser() authUser: any,
+  ) {
+    return this.spacesService.createGlobalSpace({ dto, authUser });
+  }
+
+  @Post('/add-members/:spaceId')
+  @ResponseMeta({ message: 'spaces.joined', statusCode: 201 })
+  public async addSubscribes(
+    @Param('spaceId', ValidateObjectIdPipe) spaceId: string,
+    @GetUser() authUser: any,
+    @Body() dto: InviteContactsToGlobalDto,
+  ) {
+    return this.spacesService.addMembersToSpace({ spaceId, dto, authUser });
+  }
+
+  @Post('/join/:spaceId')
+  @ResponseMeta({ message: 'spaces.joined', statusCode: 201 })
+  public async join(
+    @Param('spaceId', ValidateObjectIdPipe) spaceId: string,
+    @GetUser() authUser: any,
+  ) {
+    return this.spacesService.joinToSpace({ spaceId, authUser });
+  }
+
+  @Post('/leave/:spaceId')
+  @ResponseMeta({ message: 'spaces.joined', statusCode: 201 })
+  public async leave(
+    @Param('spaceId', ValidateObjectIdPipe) spaceId: string,
+    @GetUser() authUser: any,
+  ) {
+    return this.spacesService.leaveFromSpace({ spaceId, authUser });
+  }
+
+  @Put('/:spaceId')
+  @ResponseMeta({ message: 'spaces.updated', statusCode: 201 })
+  public async update(
+    @Param('spaceId', ValidateObjectIdPipe) spaceId: string,
+    @Body() dto: UpdateGlobalSpaceDto,
+    @GetUser() authUser: any,
+  ) {
+    return this.spacesService.updateGlobalSpace({ spaceId, dto, authUser });
   }
 }
