@@ -920,8 +920,8 @@ export class SpacesService {
     if (isPrivate || isBot)
       throw new NotFoundException('spaces.checkSpaceType');
 
-    if (isGroup && dto?.settings) dto.settings.channel = null;
-    if (isChannel && dto?.settings) dto.settings.group = null;
+    if (isGroup && dto?.settings) dto.settings.channel = undefined;
+    if (isChannel && dto?.settings) dto.settings.group = undefined;
 
     const members = [
       ...dto?.members?.filter((id) => id !== authUser._id.toString()),
@@ -942,20 +942,21 @@ export class SpacesService {
       membersCount: members?.length,
     };
 
+    const linkToCheck = isChannel
+      ? dto?.settings?.channel?.channelLink
+      : isGroup
+        ? dto?.settings?.group?.groupLink
+        : null;
     const findSpace = await this.spacesRepository.findOne({
       query: {
         $or: [
-          {
-            'settings.channel.channelLink': dto?.settings?.channel?.channelLink,
-          },
-          {
-            'settings.group.groupLink': dto?.settings?.group?.groupLink,
-          },
+          { 'settings.channel.channelLink': linkToCheck },
+          { 'settings.group.groupLink': linkToCheck },
         ],
       },
     });
-    if (findSpace)
-      throw new BadRequestException('spaces.channelLinkAlreadyUsed');
+
+    if (findSpace) throw new BadRequestException('spaces.spaceLinkAlreadyUsed');
 
     const space = await this.spacesRepository.createOne({ dto: newSpace });
     if (!space) throw new InternalServerErrorException('spaces.notCreated');
@@ -1014,9 +1015,31 @@ export class SpacesService {
 
     if (!canUpdate) throw new InternalServerErrorException('spaces.notUpdated');
 
+    const linkToCheck = isChannel
+      ? dto?.settings?.channel?.channelLink
+      : isGroup
+        ? dto?.settings?.group?.groupLink
+        : null;
+
+    if (linkToCheck) {
+      const findSpace = await this.spacesRepository.findOne({
+        query: {
+          _id: { $ne: spaceObjectId },
+          $or: [
+            { 'settings.channel.channelLink': linkToCheck },
+            { 'settings.group.groupLink': linkToCheck },
+          ],
+        },
+      });
+
+      if (findSpace)
+        throw new BadRequestException('spaces.spaceLinkAlreadyUsed');
+    }
+
+    const { type, ...updateDto } = dto;
     const space = await this.spacesRepository.updateOne({
-      query: { _id: spaceObjectId, type: dto?.type },
-      dto,
+      query: { _id: spaceObjectId, type },
+      dto: updateDto,
     });
 
     if (!space) throw new InternalServerErrorException('spaces.notUpdated');
@@ -1183,7 +1206,6 @@ export class SpacesService {
     });
 
     if (!findSpace) throw new NotFoundException('spaces.notFound');
-    const isGroup = findSpace?.type === SpaceTypes.GROUP;
     const isChannel = findSpace?.type === SpaceTypes.CHANNEL;
     const isPrivate = findSpace?.type === SpaceTypes.PRIVATE;
     const isBot = findSpace?.type === SpaceTypes.BOT;

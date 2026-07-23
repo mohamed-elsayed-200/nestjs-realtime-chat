@@ -110,7 +110,7 @@ export class SpacesController {
 
   @Post('/private-space')
   @ResponseMeta({ message: 'spaces.created', statusCode: 201 })
-  public async createPrivate(
+  public async createPrivateSpace(
     @Body() dto: CreatePrivateSpaceDto,
     @GetUser() authUser: any,
   ) {
@@ -119,11 +119,21 @@ export class SpacesController {
 
   @Post('/global-space')
   @ResponseMeta({ message: 'spaces.created', statusCode: 201 })
-  public async create(
+  public async createGlobalSpace(
     @Body() dto: CreateGlobalSpaceDto,
     @GetUser() authUser: any,
   ) {
     return this.spacesService.createGlobalSpace({ dto, authUser });
+  }
+
+  @Put('/global-space/:spaceId')
+  @ResponseMeta({ message: 'spaces.created', statusCode: 201 })
+  public async updateGlobalSpace(
+    @Param('spaceId', ValidateObjectIdPipe) spaceId: string,
+    @Body() dto: UpdateGlobalSpaceDto,
+    @GetUser() authUser: any,
+  ) {
+    return this.spacesService.updateGlobalSpace({ dto, spaceId, authUser });
   }
 
   @Post('/add-members/:spaceId')

@@ -1,23 +1,27 @@
 import {
+  IsEnum,
+  IsNotEmpty,
   IsOptional,
   IsString,
   MaxLength,
   MinLength,
   ValidateNested,
 } from 'class-validator';
-import { GlobalSpaceSettingsDto } from './global-space-settings.dto';
 import { Type } from 'class-transformer';
+import { ChannelSettingsDto } from './channel-settings.dto';
+import { GroupSettingsDto } from './group-settings.dto';
+import { SpaceTypes } from '../../../../../../common/types/enums';
 
 export class SpaceSettingsDto {
   @IsOptional()
   @ValidateNested()
-  @Type(() => GlobalSpaceSettingsDto)
-  channel?: GlobalSpaceSettingsDto;
+  @Type(() => ChannelSettingsDto)
+  channel?: ChannelSettingsDto;
 
   @IsOptional()
   @ValidateNested()
-  @Type(() => GlobalSpaceSettingsDto)
-  group?: GlobalSpaceSettingsDto;
+  @Type(() => GroupSettingsDto)
+  group?: GroupSettingsDto;
 }
 
 export class UpdateGlobalSpaceDto {
@@ -31,6 +35,10 @@ export class UpdateGlobalSpaceDto {
   @IsString({ message: 'spaces.validation.bio.isString' })
   @MaxLength(200, { message: 'spaces.validation.bio.maxLength' })
   bio?: string;
+
+  @IsNotEmpty()
+  @IsEnum(SpaceTypes, { message: 'user.validation.SpaceTypes.isEnum' })
+  type: SpaceTypes;
 
   @IsOptional()
   @IsString({ message: 'spaces.validation.avatar.isString' })

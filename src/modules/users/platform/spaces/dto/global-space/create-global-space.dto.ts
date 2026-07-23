@@ -9,20 +9,21 @@ import {
   MinLength,
   ValidateNested,
 } from 'class-validator';
-import { GlobalSpaceSettingsDto } from './global-space-settings.dto';
 import { Type } from 'class-transformer';
 import { SpaceTypes, UserType } from '../../../../../../common/types/enums';
+import { GroupSettingsDto } from './group-settings.dto';
+import { ChannelSettingsDto } from './channel-settings.dto';
 
 export class SpaceSettingsDto {
   @IsOptional()
   @ValidateNested()
-  @Type(() => GlobalSpaceSettingsDto)
-  channel?: GlobalSpaceSettingsDto;
+  @Type(() => ChannelSettingsDto)
+  channel?: ChannelSettingsDto;
 
   @IsOptional()
   @ValidateNested()
-  @Type(() => GlobalSpaceSettingsDto)
-  group?: GlobalSpaceSettingsDto;
+  @Type(() => GroupSettingsDto)
+  group?: GroupSettingsDto;
 }
 
 export class CreateGlobalSpaceDto {

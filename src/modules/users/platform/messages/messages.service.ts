@@ -151,6 +151,31 @@ export class MessagesService {
           },
           {
             $lookup: {
+              from: 'members',
+              let: { senderId: '$sender._id' },
+              pipeline: [
+                {
+                  $match: {
+                    $expr: {
+                      $and: [
+                        { $eq: ['$user', '$$senderId'] },
+                        { $eq: ['$space', spaceObjectId] },
+                      ],
+                    },
+                  },
+                },
+              ],
+              as: 'member',
+            },
+          },
+          {
+            $unwind: {
+              path: '$member',
+              preserveNullAndEmptyArrays: true,
+            },
+          },
+          {
+            $lookup: {
               from: 'reactions',
               let: { messageId: '$_id' },
               pipeline: [
@@ -252,10 +277,12 @@ export class MessagesService {
                 },
               },
               sender: {
+                _id: '$sender._id',
                 profileColor: '$sender.profileColor',
                 avatar: '$sender.avatar',
                 name: '$sender.name',
-                _id: '$sender._id',
+                adminTag: '$member.adminTag',
+                adminTagColor: '$member.adminTagColor',
               },
               forwardFrom: {
                 $cond: {

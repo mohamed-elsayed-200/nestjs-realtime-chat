@@ -74,3 +74,15 @@ SpaceSchema.index(
   { 'settings.group.groupLink': 1 },
   { unique: true, sparse: true },
 );
+SpaceSchema.index(
+  { 'settings.channel.channelLink': 1, 'settings.group.groupLink': 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      $or: [
+        { 'settings.channel.channelLink': { $exists: true, $ne: null } },
+        { 'settings.group.groupLink': { $exists: true, $ne: null } },
+      ],
+    },
+  },
+);

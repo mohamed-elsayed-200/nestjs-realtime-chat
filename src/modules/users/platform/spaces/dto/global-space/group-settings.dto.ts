@@ -5,7 +5,7 @@ import {
   PermissionLevel,
 } from '../../../../../../common/types/enums';
 
-export class GlobalSpaceSettingsDto {
+export class GroupSettingsDto {
   @IsOptional()
   @IsEnum(JoinApproval)
   joinApproval?: JoinApproval;
@@ -89,56 +89,7 @@ export class GlobalSpaceSettingsDto {
   @IsEnum(PermissionLevel)
   allowSendAudio?: PermissionLevel;
 
-  // Comments
-  @IsOptional()
-  @IsEnum(PermissionLevel)
-  allowSendCommentText?: PermissionLevel;
-
-  @IsOptional()
-  @IsEnum(PermissionLevel)
-  allowSendCommentGIF?: PermissionLevel;
-
-  @IsOptional()
-  @IsEnum(PermissionLevel)
-  allowSendCommentSticker?: PermissionLevel;
-
-  @IsOptional()
-  @IsEnum(PermissionLevel)
-  allowCommentReaction?: PermissionLevel;
-
-  @IsOptional()
-  @IsEnum(PermissionLevel)
-  allowCommentMention?: PermissionLevel;
-
-  @IsOptional()
-  @IsEnum(PermissionLevel)
-  allowCommentPoll?: PermissionLevel;
-
-  @IsOptional()
-  @IsEnum(PermissionLevel)
-  allowSendCommentLink?: PermissionLevel;
-
-  @IsOptional()
-  @IsEnum(PermissionLevel)
-  allowSendCommentImage?: PermissionLevel;
-
-  @IsOptional()
-  @IsEnum(PermissionLevel)
-  allowSendCommentVideo?: PermissionLevel;
-
-  @IsOptional()
-  @IsEnum(PermissionLevel)
-  allowSendCommentFile?: PermissionLevel;
-
-  @IsOptional()
-  @IsEnum(PermissionLevel)
-  allowSendCommentVoice?: PermissionLevel;
-
-  @IsOptional()
-  @IsEnum(PermissionLevel)
-  allowSendCommentAudio?: PermissionLevel;
-
   @IsOptional()
   @IsString()
-  channelLink?: string;
+  groupLink?: string;
 }
