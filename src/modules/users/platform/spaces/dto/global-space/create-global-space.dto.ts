@@ -11,7 +11,7 @@ import {
 } from 'class-validator';
 import { GlobalSpaceSettingsDto } from './global-space-settings.dto';
 import { Type } from 'class-transformer';
-import { SpaceTypes, UserType } from 'src/common/types/enums';
+import { SpaceTypes, UserType } from '../../../../../../common/types/enums';
 
 export class SpaceSettingsDto {
   @IsOptional()

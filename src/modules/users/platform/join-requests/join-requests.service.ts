@@ -17,7 +17,7 @@ import { JoinRequestsRepository } from './../../../../common/modules/platform/jo
 import { SpacesRepository } from './../../../../common/modules/platform/spaces/spaces.repository';
 import { MembersRepository } from './../../../../common/modules/platform/members/members.repository';
 import { JoinRequestStatus } from '../../../../common/modules/platform/join-requests/join-request.schema';
-import { emptyAggregateQuery } from 'src/common/modules/data-access/aggregate-query';
+import { emptyAggregateQuery } from '../../../../common/modules/data-access/aggregate-query';
 
 @Injectable()
 export class JoinRequestsService {
