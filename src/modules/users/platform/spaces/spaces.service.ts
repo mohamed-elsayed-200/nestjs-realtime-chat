@@ -580,6 +580,21 @@ export class SpacesService {
     return spaces;
   }
 
+  public async getCommunitySubSpaces({ communityId, authUser }) {
+    const commId = new Types.ObjectId(communityId);
+    const userId = new Types.ObjectId(authUser._id);
+
+    const member = await this.membersRepository.findOne({
+      query: { user: userId, space: commId },
+    });
+    if (!member) throw new NotFoundException('members.notFoundOne');
+
+    return this.spacesRepository.findAll({
+      query: { parentSpace: commId },
+      options: { sort: { createdAt: 1 } },
+    });
+  }
+
   public async changeWallpaper({ spaceId, dto, authUser }) {
     const { wallpaper, everybody } = dto;
     const userObjectId = new Types.ObjectId(authUser._id);
@@ -952,6 +967,7 @@ export class SpacesService {
         $or: [
           { 'settings.channel.channelLink': linkToCheck },
           { 'settings.group.groupLink': linkToCheck },
+          { 'settings.community.communityLink': linkToCheck },
         ],
       },
     });
@@ -1091,6 +1107,60 @@ export class SpacesService {
     }
 
     return space;
+  }
+
+  public async createCommunitySubSpace({ communityId, dto, authUser }) {
+    const commId = new Types.ObjectId(communityId);
+    const userId = new Types.ObjectId(authUser._id);
+
+    const community = await this.spacesRepository.findOne({
+      query: { _id: commId, type: SpaceTypes.COMMUNITY },
+    });
+    if (!community) throw new NotFoundException('spaces.communityNotFound');
+
+    const member = await this.membersRepository.findOne({
+      query: { user: userId, space: commId },
+    });
+    if (!member) throw new NotFoundException('members.notFoundOne');
+
+    const canCreate =
+      member.role === SpaceMemberRole.OWNER ||
+      member.role === SpaceMemberRole.ADMIN;
+    if (!canCreate) throw new BadRequestException('spaces.notAuthorized');
+
+    const count = await this.spacesRepository.count({
+      query: { parentSpace: commId },
+    });
+    if (count >= 500) {
+      throw new BadRequestException('spaces.communitySubSpacesLimitReached');
+    }
+
+    const isGroup = dto.type === SpaceTypes.GROUP;
+    const isChannel = dto.type === SpaceTypes.CHANNEL;
+
+    if (!isGroup && !isChannel) {
+      throw new BadRequestException('spaces.invalidSubSpaceType');
+    }
+
+    const subSpace = await this.spacesRepository.createOne({
+      dto: {
+        name: dto.name,
+        bio: dto.bio,
+        avatar: dto.avatar,
+        profileColor: dto.profileColor || community.profileColor,
+        wallpaper: dto.wallpaper,
+        type: dto.type,
+        parentSpace: commId,
+        status: ActivationStatus.ACTIVE,
+        createdBy: userId,
+        membersCount: community.membersCount,
+        settings: isGroup
+          ? { group: { groupLink: dto.settings?.group?.groupLink } }
+          : { channel: { channelLink: dto.settings?.channel?.channelLink } },
+      },
+    });
+
+    return subSpace;
   }
 
   public async addMembersToSpace({ spaceId, dto, authUser }) {

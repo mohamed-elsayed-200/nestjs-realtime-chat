@@ -42,6 +42,9 @@ export class Space {
   @Prop({ type: Types.ObjectId, ref: 'Message' })
   lastMessage?: Types.ObjectId;
 
+  @Prop({ type: Types.ObjectId, ref: 'Space' })
+  parentSpace?: Types.ObjectId;
+
   @Prop({
     type: String,
     enum: ActivationStatus,
@@ -57,7 +60,7 @@ export class Space {
 }
 
 export const SpaceSchema = SchemaFactory.createForClass(Space);
-
+SpaceSchema.index({ parentSpace: 1, type: 1 });
 SpaceSchema.index({ status: 1 });
 SpaceSchema.index({ senderContact: 1 });
 SpaceSchema.index({ receivedContact: 1 });
@@ -75,6 +78,11 @@ SpaceSchema.index(
   { unique: true, sparse: true },
 );
 SpaceSchema.index(
+  { 'settings.community.communityLink': 1 },
+  { unique: true, sparse: true },
+);
+
+SpaceSchema.index(
   { 'settings.channel.channelLink': 1, 'settings.group.groupLink': 1 },
   {
     unique: true,
@@ -82,6 +90,7 @@ SpaceSchema.index(
       $or: [
         { 'settings.channel.channelLink': { $exists: true, $ne: null } },
         { 'settings.group.groupLink': { $exists: true, $ne: null } },
+        { 'settings.community.communityLink': { $exists: true, $ne: null } },
       ],
     },
   },

@@ -11,6 +11,7 @@ import { Type } from 'class-transformer';
 import { ChannelSettingsDto } from './channel-settings.dto';
 import { GroupSettingsDto } from './group-settings.dto';
 import { SpaceTypes } from '../../../../../../common/types/enums';
+import { CommunitySettingsDto } from './community-settings.dto';
 
 export class SpaceSettingsDto {
   @IsOptional()
@@ -22,6 +23,11 @@ export class SpaceSettingsDto {
   @ValidateNested()
   @Type(() => GroupSettingsDto)
   group?: GroupSettingsDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => CommunitySettingsDto)
+  community?: CommunitySettingsDto;
 }
 
 export class UpdateGlobalSpaceDto {

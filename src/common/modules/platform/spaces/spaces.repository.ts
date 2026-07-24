@@ -29,6 +29,10 @@ export class SpacesRepository {
     return await base.lean().exec();
   }
 
+  public async count({ query }) {
+    return this.spaceModel.countDocuments(query);
+  }
+
   public async createOne({ dto }) {
     if (dto?.createdBy) dto.createdBy = new Types.ObjectId(dto?.createdBy);
     return this.spaceModel.create(dto);

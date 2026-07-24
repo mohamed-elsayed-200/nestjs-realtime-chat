@@ -13,6 +13,7 @@ import { Type } from 'class-transformer';
 import { SpaceTypes, UserType } from '../../../../../../common/types/enums';
 import { GroupSettingsDto } from './group-settings.dto';
 import { ChannelSettingsDto } from './channel-settings.dto';
+import { CommunitySettingsDto } from './community-settings.dto';
 
 export class SpaceSettingsDto {
   @IsOptional()
@@ -24,6 +25,11 @@ export class SpaceSettingsDto {
   @ValidateNested()
   @Type(() => GroupSettingsDto)
   group?: GroupSettingsDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => CommunitySettingsDto)
+  community?: CommunitySettingsDto;
 }
 
 export class CreateGlobalSpaceDto {

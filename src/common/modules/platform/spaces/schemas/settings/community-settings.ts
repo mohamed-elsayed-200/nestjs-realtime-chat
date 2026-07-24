@@ -1,0 +1,66 @@
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import { Types } from 'mongoose';
+import {
+  JoinApproval,
+  PermissionLevel,
+} from '../../../../../../common/types/enums';
+
+@Schema({ _id: false })
+export class CommunityCategory {
+  @Prop({ required: true })
+  name: string;
+
+  @Prop({ default: 0 })
+  position: number;
+
+  @Prop({ type: [{ type: Types.ObjectId, ref: 'Space' }], default: [] })
+  spaces: Types.ObjectId[];
+}
+
+export const CommunityCategorySchema =
+  SchemaFactory.createForClass(CommunityCategory);
+
+@Schema({ _id: false })
+export class CommunitySettings {
+  @Prop({ unique: true, sparse: true })
+  communityLink: string;
+
+  @Prop({ enum: JoinApproval, default: JoinApproval.ANYONE_CAN_JOIN })
+  joinApproval: JoinApproval;
+
+  @Prop({ default: 0 })
+  maxMembers: number;
+
+  @Prop({ enum: PermissionLevel, default: PermissionLevel.EVERYBODY })
+  enableViewMembersCount: PermissionLevel;
+
+  @Prop({ enum: PermissionLevel, default: PermissionLevel.EVERYBODY })
+  enableViewMembersList: PermissionLevel;
+
+  @Prop({ enum: PermissionLevel, default: PermissionLevel.ADMINS })
+  allowCreateSpace: PermissionLevel;
+
+  @Prop({ enum: PermissionLevel, default: PermissionLevel.ADMINS })
+  allowInvite: PermissionLevel;
+
+  @Prop({ enum: PermissionLevel, default: PermissionLevel.ADMINS })
+  allowEditInfo: PermissionLevel;
+
+  @Prop({ enum: PermissionLevel, default: PermissionLevel.ADMINS })
+  allowDelete: PermissionLevel;
+
+  @Prop({ enum: PermissionLevel, default: PermissionLevel.ADMINS })
+  allowKickMember: PermissionLevel;
+
+  @Prop({ enum: PermissionLevel, default: PermissionLevel.ADMINS })
+  allowBanMember: PermissionLevel;
+
+  @Prop({ type: [CommunityCategorySchema], default: [] })
+  categories: CommunityCategory[];
+
+  @Prop({ type: [{ type: Types.ObjectId, ref: 'Space' }], default: [] })
+  autoJoinSpaces: Types.ObjectId[];
+}
+
+export const CommunitySettingsSchema =
+  SchemaFactory.createForClass(CommunitySettings);
