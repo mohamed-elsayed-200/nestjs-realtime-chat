@@ -1,3 +1,9 @@
+import { Types } from 'mongoose';
+import { SpacesRepository } from '../../../../common/modules/platform/spaces/spaces.repository';
+import { MembersRepository } from '../../../../common/modules/platform/members/members.repository';
+import { ContactsRepository } from '../../../../common/modules/platform/contacts/contacts.repository';
+import { MessagesRepository } from '../../../../common/modules/platform/messages/messages.repository';
+import { JoinRequestsRepository } from '../../../../common/modules/platform/join-requests/join-requests.repository';
 import { JoinRequestStatus } from './../../../../common/modules/platform/join-requests/join-request.schema';
 import { UsersRepository } from './../../../../common/modules/iam/users/users.repository';
 import {
@@ -6,11 +12,6 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
-import { Types } from 'mongoose';
-import { SpacesRepository } from '../../../../common/modules/platform/spaces/spaces.repository';
-import { MembersRepository } from '../../../../common/modules/platform/members/members.repository';
-import { ContactsRepository } from '../../../../common/modules/platform/contacts/contacts.repository';
-import { MessagesRepository } from '../../../../common/modules/platform/messages/messages.repository';
 import {
   ActivationStatus,
   adminPermissionList,
@@ -21,7 +22,6 @@ import {
   SpaceMemberRole,
   SpaceTypes,
 } from '../../../../common/types/enums';
-import { JoinRequestsRepository } from '../../../../common/modules/platform/join-requests/join-requests.repository';
 
 @Injectable()
 export class SpacesService {
@@ -930,16 +930,29 @@ export class SpacesService {
   public async createGlobalSpace({ dto, authUser }) {
     const isGroup = dto?.type === SpaceTypes.GROUP;
     const isChannel = dto?.type === SpaceTypes.CHANNEL;
+    const isCommunity = dto?.type === SpaceTypes.COMMUNITY;
     const isPrivate = dto?.type === SpaceTypes.PRIVATE;
     const isBot = dto?.type === SpaceTypes.BOT;
     if (isPrivate || isBot)
       throw new NotFoundException('spaces.checkSpaceType');
 
-    if (isGroup && dto?.settings) dto.settings.channel = undefined;
-    if (isChannel && dto?.settings) dto.settings.group = undefined;
+    // ── Clean unrelated settings ──
+    if (isGroup && dto?.settings) {
+      dto.settings.channel = undefined;
+      dto.settings.community = undefined;
+    }
+    if (isChannel && dto?.settings) {
+      dto.settings.group = undefined;
+      dto.settings.community = undefined;
+    }
+    if (isCommunity && dto?.settings) {
+      dto.settings.group = undefined;
+      dto.settings.channel = undefined;
+    }
 
+    // ── Members: fallback to [] if undefined ──
     const members = [
-      ...dto?.members?.filter((id) => id !== authUser._id.toString()),
+      ...(dto?.members || []).filter((id) => id !== authUser._id.toString()),
       authUser._id.toString(),
     ];
 
@@ -957,22 +970,29 @@ export class SpacesService {
       membersCount: members?.length,
     };
 
+    // ── Link check (fixed community path) ──
     const linkToCheck = isChannel
       ? dto?.settings?.channel?.channelLink
       : isGroup
         ? dto?.settings?.group?.groupLink
-        : null;
-    const findSpace = await this.spacesRepository.findOne({
-      query: {
-        $or: [
-          { 'settings.channel.channelLink': linkToCheck },
-          { 'settings.group.groupLink': linkToCheck },
-          { 'settings.community.communityLink': linkToCheck },
-        ],
-      },
-    });
+        : isCommunity
+          ? dto?.settings?.community?.communityLink
+          : null;
 
-    if (findSpace) throw new BadRequestException('spaces.spaceLinkAlreadyUsed');
+    if (linkToCheck) {
+      const findSpace = await this.spacesRepository.findOne({
+        query: {
+          $or: [
+            { 'settings.channel.channelLink': linkToCheck },
+            { 'settings.group.groupLink': linkToCheck },
+            { 'settings.community.communityLink': linkToCheck },
+          ],
+        },
+      });
+
+      if (findSpace)
+        throw new BadRequestException('spaces.spaceLinkAlreadyUsed');
+    }
 
     const space = await this.spacesRepository.createOne({ dto: newSpace });
     if (!space) throw new InternalServerErrorException('spaces.notCreated');
@@ -1005,13 +1025,25 @@ export class SpacesService {
   public async updateGlobalSpace({ spaceId, dto, authUser }) {
     const isGroup = dto?.type === SpaceTypes.GROUP;
     const isChannel = dto?.type === SpaceTypes.CHANNEL;
+    const isCommunity = dto?.type === SpaceTypes.COMMUNITY;
     const isPrivate = dto?.type === SpaceTypes.PRIVATE;
     const isBot = dto?.type === SpaceTypes.BOT;
     if (isPrivate || isBot)
       throw new BadRequestException('spaces.checkSpaceType');
 
-    if (isGroup && dto?.settings) dto.settings.channel = null;
-    if (isChannel && dto?.settings) dto.settings.group = null;
+    // ── Clean unrelated settings ──
+    if (isGroup && dto?.settings) {
+      dto.settings.channel = null;
+      dto.settings.community = null;
+    }
+    if (isChannel && dto?.settings) {
+      dto.settings.group = null;
+      dto.settings.community = null;
+    }
+    if (isCommunity && dto?.settings) {
+      dto.settings.group = null;
+      dto.settings.channel = null;
+    }
 
     const spaceObjectId = new Types.ObjectId(spaceId);
     const userObjectId = new Types.ObjectId(authUser?._id);
@@ -1031,11 +1063,14 @@ export class SpacesService {
 
     if (!canUpdate) throw new InternalServerErrorException('spaces.notUpdated');
 
+    // ── Link check (fixed: added community) ──
     const linkToCheck = isChannel
       ? dto?.settings?.channel?.channelLink
       : isGroup
         ? dto?.settings?.group?.groupLink
-        : null;
+        : isCommunity
+          ? dto?.settings?.community?.communityLink
+          : null;
 
     if (linkToCheck) {
       const findSpace = await this.spacesRepository.findOne({
@@ -1044,6 +1079,7 @@ export class SpacesService {
           $or: [
             { 'settings.channel.channelLink': linkToCheck },
             { 'settings.group.groupLink': linkToCheck },
+            { 'settings.community.communityLink': linkToCheck },
           ],
         },
       });

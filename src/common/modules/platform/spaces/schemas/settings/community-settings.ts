@@ -50,16 +50,10 @@ export class CommunitySettings {
   allowDelete: PermissionLevel;
 
   @Prop({ enum: PermissionLevel, default: PermissionLevel.ADMINS })
-  allowKickMember: PermissionLevel;
-
-  @Prop({ enum: PermissionLevel, default: PermissionLevel.ADMINS })
   allowBanMember: PermissionLevel;
 
   @Prop({ type: [CommunityCategorySchema], default: [] })
   categories: CommunityCategory[];
-
-  @Prop({ type: [{ type: Types.ObjectId, ref: 'Space' }], default: [] })
-  autoJoinSpaces: Types.ObjectId[];
 }
 
 export const CommunitySettingsSchema =

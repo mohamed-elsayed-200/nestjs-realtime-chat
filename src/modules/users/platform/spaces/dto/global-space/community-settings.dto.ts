@@ -66,10 +66,6 @@ export class CommunitySettingsDto {
 
   @IsOptional()
   @IsEnum(PermissionLevel)
-  allowKickMember?: PermissionLevel;
-
-  @IsOptional()
-  @IsEnum(PermissionLevel)
   allowBanMember?: PermissionLevel;
 
   @IsOptional()
@@ -77,9 +73,4 @@ export class CommunitySettingsDto {
   @ValidateNested({ each: true })
   @Type(() => CommunityCategoryDto)
   categories?: CommunityCategoryDto[];
-
-  @IsOptional()
-  @IsArray()
-  @IsMongoId({ each: true })
-  autoJoinSpaces?: string[];
 }
