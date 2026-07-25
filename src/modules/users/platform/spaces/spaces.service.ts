@@ -160,6 +160,8 @@ export class SpacesService {
         createdAt: findSpace?.createdAt,
         updatedAt: findSpace?.updatedAt,
         membersCount: findSpace?.membersCount,
+        channelsCount: findSpace?.channelsCount,
+        groupsCount: findSpace?.groupsCount,
         settings: findSpace?.settings,
         bio: findSpace?.bio || otherParty?.bio,
         createdBy: findSpace?.createdBy,
@@ -502,11 +504,13 @@ export class SpacesService {
               role: 1,
               folder: { $ifNull: ['$folder', null] },
 
+              channelsCount: '$space.channelsCount',
+              groupsCount: '$space.groupsCount',
+              membersCount: '$space.membersCount',
               type: '$space.type',
               status: '$space.status',
               createdAt: '$space.createdAt',
               updatedAt: '$space.updatedAt',
-              membersCount: '$space.membersCount',
               settings: '$space.settings',
 
               lastMessage: {
@@ -836,73 +840,6 @@ export class SpacesService {
     return { isArchived: member.isArchived };
   }
 
-  public async delete({ spaceId, dto, authUser }) {
-    const { everybody } = dto;
-    const spaceObjectId = new Types.ObjectId(spaceId);
-    const userObjectId = new Types.ObjectId(authUser?._id);
-    const findMember: any = await this.membersRepository.findOne({
-      query: {
-        space: spaceObjectId,
-        user: userObjectId,
-      },
-      populate: [
-        {
-          path: 'space',
-          model: 'Space',
-        },
-      ],
-    });
-
-    if (!findMember) throw new NotFoundException('spaces.notFound');
-
-    const space = findMember?.space;
-    const isOwner = findMember.role === SpaceMemberRole.OWNER;
-    const isChannel = space?.type === SpaceTypes.CHANNEL;
-    const isGroup = space?.type === SpaceTypes.GROUP;
-    const isPrivate = space?.type === SpaceTypes.PRIVATE;
-
-    if (isChannel && !isOwner)
-      throw new BadRequestException('spaces.notDeleted');
-    if (isGroup && !isOwner) throw new BadRequestException('spaces.notDeleted');
-    const remainingMembers = await this.membersRepository.count({
-      query: { space: spaceObjectId, isDeleted: false },
-    });
-
-    if (
-      everybody ||
-      isChannel ||
-      isGroup ||
-      (isPrivate && remainingMembers <= 1)
-    ) {
-      await this.membersRepository.deleteMany({
-        query: { space: spaceObjectId },
-      });
-
-      await this.messagesRepository.deleteMany({
-        query: { space: spaceObjectId },
-      });
-
-      const item = await this.spacesRepository.deleteOne({
-        query: { _id: spaceObjectId },
-      });
-
-      if (!item) throw new NotFoundException('spaces.notDeleted');
-
-      return item;
-    } else {
-      await this.membersRepository.updateOne({
-        query: { user: userObjectId, space: spaceObjectId },
-        dto: { isDeleted: true, deletedAt: new Date() },
-      });
-
-      const item = await this.spacesRepository.findOne({
-        query: { _id: spaceObjectId },
-      });
-
-      return item;
-    }
-  }
-
   public async markSpaceAsRead({ spaceId, authUser }) {
     await this.membersRepository.markUnreadCountAsRead({ spaceId, authUser });
   }
@@ -1108,6 +1045,14 @@ export class SpacesService {
     const space = await this.spacesRepository.createOne({ dto: newSpace });
     if (!space) throw new InternalServerErrorException('spaces.notCreated');
 
+    if (newSpace.parentSpace && (isGroup || isChannel)) {
+      const incField = isChannel ? 'channelsCount' : 'groupsCount';
+      await this.spacesRepository.updateOne({
+        query: { _id: newSpace.parentSpace },
+        dto: { $inc: { [incField]: 1 } },
+      });
+    }
+
     await Promise.all(
       members.map((id) =>
         this.membersRepository.createOne({
@@ -1130,6 +1075,7 @@ export class SpacesService {
         }),
       ),
     );
+
     return space;
   }
 
@@ -1254,103 +1200,6 @@ export class SpacesService {
     }
 
     return space;
-  }
-
-  public async addMembersToSpace({ spaceId, dto, authUser }) {
-    const { contacts } = dto;
-    const spaceObjectId = new Types.ObjectId(spaceId);
-    const userObjectId = new Types.ObjectId(authUser._id);
-
-    // 1. Check owner
-    const member = await this.membersRepository.findOne({
-      query: { space: spaceObjectId, user: userObjectId, isDeleted: false },
-    });
-    if (!member) throw new NotFoundException('members.notFound');
-    if (member.role !== SpaceMemberRole.OWNER)
-      throw new BadRequestException('spaces.cantAddMembers');
-
-    // 2. Get valid contacts
-    const contactDocs = await this.contactsRepository.findMany({
-      query: {
-        contact: { $in: contacts.map((id) => new Types.ObjectId(id)) },
-        me: userObjectId,
-      },
-      select: 'contact',
-    });
-    if (contactDocs.length === 0)
-      throw new NotFoundException('contacts.notFound');
-
-    // 3. Dedupe user IDs
-    const userIds = [...new Set(contactDocs.map((c) => c.contact.toString()))];
-
-    // 4. Get existing members (active + deleted)
-    const existing = await this.membersRepository.findMany({
-      query: {
-        space: spaceObjectId,
-        user: { $in: userIds.map((id) => new Types.ObjectId(id)) },
-      },
-      select: 'user isDeleted',
-    });
-
-    // 5. Build lookup map: userId → isDeleted
-    const existingMap = new Map(
-      existing.map((m) => [m.user.toString(), m.isDeleted]),
-    );
-
-    const toRestore: string[] = [];
-    const toInsert: string[] = [];
-
-    for (const id of userIds) {
-      const isDeleted = existingMap.get(id);
-      if (isDeleted === undefined) toInsert.push(id);
-      else if (isDeleted === true) toRestore.push(id);
-      // else active → skip
-    }
-
-    // 6. Restore deleted
-    if (toRestore.length > 0) {
-      await this.membersRepository.updateMany({
-        query: {
-          space: spaceObjectId,
-          user: { $in: toRestore.map((id) => new Types.ObjectId(id)) },
-          isDeleted: true,
-        },
-        dto: {
-          isDeleted: false,
-          isBanned: false,
-          bannedAt: null,
-          deletedAt: null,
-          joinedAt: new Date(),
-        },
-      });
-    }
-
-    // 7. Insert new
-    if (toInsert.length > 0) {
-      await this.membersRepository.insertMany({
-        documents: toInsert.map((userId) => ({
-          user: new Types.ObjectId(userId),
-          space: spaceObjectId,
-          role: SpaceMemberRole.MEMBER,
-          joinedAt: new Date(),
-          isPined: false,
-          isMuted: false,
-          isArchived: false,
-          permissions: [],
-        })),
-      });
-    }
-
-    // 8. Update count
-    const total = toRestore.length + toInsert.length;
-    if (total === 0) {
-      return this.spacesRepository.findOne({ query: { _id: spaceObjectId } });
-    }
-
-    return this.spacesRepository.updateOne({
-      query: { _id: spaceObjectId },
-      dto: { $inc: { membersCount: total } },
-    });
   }
 
   public async joinToSpace({ spaceId, authUser }) {
@@ -1487,5 +1336,177 @@ export class SpacesService {
       // dto: { membersCount:9 },
     });
     return updatedSpace;
+  }
+
+  public async delete({ spaceId, dto, authUser }) {
+    const { everybody } = dto;
+    const spaceObjectId = new Types.ObjectId(spaceId);
+    const userObjectId = new Types.ObjectId(authUser?._id);
+    const findMember: any = await this.membersRepository.findOne({
+      query: {
+        space: spaceObjectId,
+        user: userObjectId,
+      },
+      populate: [
+        {
+          path: 'space',
+          model: 'Space',
+        },
+      ],
+    });
+
+    if (!findMember) throw new NotFoundException('spaces.notFound');
+
+    const space = findMember?.space;
+    const isOwner = findMember.role === SpaceMemberRole.OWNER;
+    const isChannel = space?.type === SpaceTypes.CHANNEL;
+    const isGroup = space?.type === SpaceTypes.GROUP;
+    const isPrivate = space?.type === SpaceTypes.PRIVATE;
+
+    if (isChannel && !isOwner)
+      throw new BadRequestException('spaces.notDeleted');
+    if (isGroup && !isOwner) throw new BadRequestException('spaces.notDeleted');
+    const remainingMembers = await this.membersRepository.count({
+      query: { space: spaceObjectId, isDeleted: false },
+    });
+
+    if (
+      everybody ||
+      isChannel ||
+      isGroup ||
+      (isPrivate && remainingMembers <= 1)
+    ) {
+      if (space?.parentSpace && (isChannel || isGroup)) {
+        const decField = isChannel ? 'channelsCount' : 'groupsCount';
+        await this.spacesRepository.updateOne({
+          query: { _id: space.parentSpace },
+          dto: { $inc: { [decField]: -1 } },
+        });
+      }
+
+      await this.membersRepository.deleteMany({
+        query: { space: spaceObjectId },
+      });
+
+      await this.messagesRepository.deleteMany({
+        query: { space: spaceObjectId },
+      });
+
+      const item = await this.spacesRepository.deleteOne({
+        query: { _id: spaceObjectId },
+      });
+
+      if (!item) throw new NotFoundException('spaces.notDeleted');
+
+      return item;
+    } else {
+      await this.membersRepository.updateOne({
+        query: { user: userObjectId, space: spaceObjectId },
+        dto: { isDeleted: true, deletedAt: new Date() },
+      });
+
+      const item = await this.spacesRepository.findOne({
+        query: { _id: spaceObjectId },
+      });
+
+      return item;
+    }
+  }
+
+  public async addMembersToSpace({ spaceId, dto, authUser }) {
+    const { contacts } = dto;
+    const spaceObjectId = new Types.ObjectId(spaceId);
+    const userObjectId = new Types.ObjectId(authUser._id);
+
+    // 1. Check owner
+    const member = await this.membersRepository.findOne({
+      query: { space: spaceObjectId, user: userObjectId, isDeleted: false },
+    });
+    if (!member) throw new NotFoundException('members.notFound');
+    if (member.role !== SpaceMemberRole.OWNER)
+      throw new BadRequestException('spaces.cantAddMembers');
+
+    // 2. Get valid contacts
+    const contactDocs = await this.contactsRepository.findMany({
+      query: {
+        contact: { $in: contacts.map((id) => new Types.ObjectId(id)) },
+        me: userObjectId,
+      },
+      select: 'contact',
+    });
+    if (contactDocs.length === 0)
+      throw new NotFoundException('contacts.notFound');
+
+    // 3. Dedupe user IDs
+    const userIds = [...new Set(contactDocs.map((c) => c.contact.toString()))];
+
+    // 4. Get existing members (active + deleted)
+    const existing = await this.membersRepository.findMany({
+      query: {
+        space: spaceObjectId,
+        user: { $in: userIds.map((id) => new Types.ObjectId(id)) },
+      },
+      select: 'user isDeleted',
+    });
+
+    // 5. Build lookup map: userId → isDeleted
+    const existingMap = new Map(
+      existing.map((m) => [m.user.toString(), m.isDeleted]),
+    );
+
+    const toRestore: string[] = [];
+    const toInsert: string[] = [];
+
+    for (const id of userIds) {
+      const isDeleted = existingMap.get(id);
+      if (isDeleted === undefined) toInsert.push(id);
+      else if (isDeleted === true) toRestore.push(id);
+      // else active → skip
+    }
+
+    // 6. Restore deleted
+    if (toRestore.length > 0) {
+      await this.membersRepository.updateMany({
+        query: {
+          space: spaceObjectId,
+          user: { $in: toRestore.map((id) => new Types.ObjectId(id)) },
+          isDeleted: true,
+        },
+        dto: {
+          isDeleted: false,
+          isBanned: false,
+          bannedAt: null,
+          deletedAt: null,
+          joinedAt: new Date(),
+        },
+      });
+    }
+
+    // 7. Insert new
+    if (toInsert.length > 0) {
+      await this.membersRepository.insertMany({
+        documents: toInsert.map((userId) => ({
+          user: new Types.ObjectId(userId),
+          space: spaceObjectId,
+          role: SpaceMemberRole.MEMBER,
+          joinedAt: new Date(),
+          isPined: false,
+          isMuted: false,
+          isArchived: false,
+          permissions: [],
+        })),
+      });
+    }
+
+    // 8. Update count
+    const total = toRestore.length + toInsert.length;
+    if (total === 0) {
+      return this.spacesRepository.findOne({ query: { _id: spaceObjectId } });
+    }
+
+    return this.spacesRepository.updateOne({
+      query: { _id: spaceObjectId },
+      dto: { $inc: { membersCount: total } },
+    });
   }
 }

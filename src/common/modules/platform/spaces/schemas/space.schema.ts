@@ -18,6 +18,12 @@ export class Space {
   @Prop({ default: 0 })
   membersCount: number;
 
+  @Prop({ default: 0 })
+  channelsCount: number;
+
+  @Prop({ default: 0 })
+  groupsCount: number;
+
   @Prop()
   avatar: string;
 
