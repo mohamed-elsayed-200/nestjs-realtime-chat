@@ -37,20 +37,17 @@ export class CommunitySettings {
   @Prop({ enum: PermissionLevel, default: PermissionLevel.EVERYBODY })
   enableViewMembersList: PermissionLevel;
 
-  @Prop({ enum: PermissionLevel, default: PermissionLevel.ADMINS })
-  allowCreateSpace: PermissionLevel;
+  @Prop({ enum: PermissionLevel, default: PermissionLevel.EVERYBODY })
+  enableViewChannelsCount: PermissionLevel;
 
-  @Prop({ enum: PermissionLevel, default: PermissionLevel.ADMINS })
-  allowInvite: PermissionLevel;
+  @Prop({ enum: PermissionLevel, default: PermissionLevel.EVERYBODY })
+  enableViewChannelsList: PermissionLevel;
 
-  @Prop({ enum: PermissionLevel, default: PermissionLevel.ADMINS })
-  allowEditInfo: PermissionLevel;
+  @Prop({ enum: PermissionLevel, default: PermissionLevel.EVERYBODY })
+  enableViewGroupsCount: PermissionLevel;
 
-  @Prop({ enum: PermissionLevel, default: PermissionLevel.ADMINS })
-  allowDelete: PermissionLevel;
-
-  @Prop({ enum: PermissionLevel, default: PermissionLevel.ADMINS })
-  allowBanMember: PermissionLevel;
+  @Prop({ enum: PermissionLevel, default: PermissionLevel.EVERYBODY })
+  enableViewGroupsList: PermissionLevel;
 
   @Prop({ type: [CommunityCategorySchema], default: [] })
   categories: CommunityCategory[];

@@ -50,23 +50,19 @@ export class CommunitySettingsDto {
 
   @IsOptional()
   @IsEnum(PermissionLevel)
-  allowCreateSpace?: PermissionLevel;
+  enableViewChannelsCount?: PermissionLevel;
 
   @IsOptional()
   @IsEnum(PermissionLevel)
-  allowInvite?: PermissionLevel;
+  enableViewChannelsList?: PermissionLevel;
 
   @IsOptional()
   @IsEnum(PermissionLevel)
-  allowEditInfo?: PermissionLevel;
+  enableViewGroupsCount?: PermissionLevel;
 
   @IsOptional()
   @IsEnum(PermissionLevel)
-  allowDelete?: PermissionLevel;
-
-  @IsOptional()
-  @IsEnum(PermissionLevel)
-  allowBanMember?: PermissionLevel;
+  enableViewGroupsList?: PermissionLevel;
 
   @IsOptional()
   @IsArray()

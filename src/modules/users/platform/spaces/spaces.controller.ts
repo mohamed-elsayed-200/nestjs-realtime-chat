@@ -46,6 +46,15 @@ export class SpacesController {
     return this.spacesService.getOne({ spaceOrUserId, authUser });
   }
 
+  @Get('/subspaces/:spaceId')
+  @ResponseMeta({ message: 'spaces.subspaces' })
+  public async getSubSpaces(
+    @Param('spaceId', ValidateObjectIdPipe) spaceId: string,
+    @GetUser() authUser: any,
+  ) {
+    return this.spacesService.getSubSpaces({ spaceId, authUser });
+  }
+
   @Post('/open-link')
   @ResponseMeta({ message: 'spaces.opened', statusCode: 201 })
   public async openLink(@GetUser() authUser: any, @Body() dto: OpenLinkDto) {

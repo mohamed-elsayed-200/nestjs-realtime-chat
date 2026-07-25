@@ -235,6 +235,8 @@ export class SpacesService {
       query = { 'settings.channel.channelLink': linkText };
     } else if (linkType === SpaceTypes.GROUP) {
       query = { 'settings.group.groupLink': linkText };
+    } else if (linkType === SpaceTypes.COMMUNITY) {
+      query = { 'settings.community.communityLink': linkText };
     } else {
       throw new BadRequestException('spaces.invalidLinkType');
     }
@@ -580,19 +582,132 @@ export class SpacesService {
     return spaces;
   }
 
-  public async getCommunitySubSpaces({ communityId, authUser }) {
-    const commId = new Types.ObjectId(communityId);
-    const userId = new Types.ObjectId(authUser._id);
+  public async getSubSpaces({ spaceId, authUser }) {
+    const spaceObjectId = new Types.ObjectId(spaceId);
+    const userObjectId = new Types.ObjectId(authUser._id);
 
-    const member = await this.membersRepository.findOne({
-      query: { user: userId, space: commId },
+    // 1. Verify user is an active member of the parent community
+    const parentMember = await this.membersRepository.findOne({
+      query: {
+        user: userObjectId,
+        space: spaceObjectId,
+        isDeleted: false,
+        isBanned: false,
+      },
     });
-    if (!member) throw new NotFoundException('members.notFoundOne');
+    if (!parentMember) throw new NotFoundException('members.notFoundOne');
 
-    return this.spacesRepository.findAll({
-      query: { parentSpace: commId },
-      options: { sort: { createdAt: 1 } },
+    // 2. Get subspaces (groups/channels) under this community where user is a member
+    const subSpaces = await this.membersRepository.findAll({
+      query: {
+        user: userObjectId,
+        isDeleted: false,
+        isBanned: false,
+      },
+      options: {
+        pipelines: [
+          // Lookup spaces that belong to the given parent space
+          {
+            $lookup: {
+              from: 'spaces',
+              let: { memberSpaceId: '$space' },
+              pipeline: [
+                {
+                  $match: {
+                    $expr: {
+                      $and: [
+                        { $eq: ['$_id', '$$memberSpaceId'] },
+                        { $eq: ['$parentSpace', spaceObjectId] },
+                      ],
+                    },
+                  },
+                },
+              ],
+              as: 'space',
+            },
+          },
+          // Filter: only keep members of subspaces under this community
+          { $match: { 'space.0': { $exists: true } } },
+          { $unwind: '$space' },
+
+          // Lookup last message (global for group/channel subspaces)
+          {
+            $lookup: {
+              from: 'messages',
+              localField: 'space.lastMessage',
+              foreignField: '_id',
+              as: 'lastMessageData',
+            },
+          },
+          {
+            $unwind: {
+              path: '$lastMessageData',
+              preserveNullAndEmptyArrays: true,
+            },
+          },
+
+          // Project final shape (consistent with getAll)
+          {
+            $project: {
+              _id: '$space._id',
+              memberId: '$_id',
+              unreadCount: 1,
+              isPined: 1,
+              isMuted: 1,
+              isArchived: 1,
+              permissions: 1,
+              role: 1,
+              folder: { $ifNull: ['$folder', null] },
+
+              type: '$space.type',
+              status: '$space.status',
+              name: '$space.name',
+              bio: '$space.bio',
+              avatar: '$space.avatar',
+              profileColor: '$space.profileColor',
+              wallpaper: {
+                $cond: {
+                  if: {
+                    $and: [
+                      { $ne: ['$space.wallpaper', null] },
+                      { $ne: ['$space.wallpaper', ''] },
+                    ],
+                  },
+                  then: '$space.wallpaper',
+                  else: '$wallpaper',
+                },
+              },
+              membersCount: '$space.membersCount',
+              settings: '$space.settings',
+              parentSpace: '$space.parentSpace',
+              createdAt: '$space.createdAt',
+              updatedAt: '$space.updatedAt',
+
+              lastMessage: {
+                $cond: {
+                  if: { $ne: ['$lastMessageData', null] },
+                  then: {
+                    isOutgoing: {
+                      $eq: ['$lastMessageData.sender', userObjectId],
+                    },
+                    id: '$lastMessageData._id',
+                    status: '$lastMessageData.status',
+                    text: '$lastMessageData.text',
+                    createdAt: '$lastMessageData.createdAt',
+                  },
+                  else: null,
+                },
+              },
+            },
+          },
+
+          // Sort: pinned first, then by updatedAt desc
+          { $sort: { isPined: -1, updatedAt: -1 } },
+        ],
+      },
     });
+
+    return subSpaces;
   }
 
   public async changeWallpaper({ spaceId, dto, authUser }) {
