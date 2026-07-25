@@ -58,6 +58,10 @@ export class CreateGlobalSpaceDto {
   avatar?: string;
 
   @IsOptional()
+  @IsMongoId({ message: 'spaces.validation.avatar.isMongoId' })
+  parentSpace?: string;
+
+  @IsOptional()
   @IsString({ message: 'spaces.validation.profileColor.isString' })
   profileColor?: string;
 

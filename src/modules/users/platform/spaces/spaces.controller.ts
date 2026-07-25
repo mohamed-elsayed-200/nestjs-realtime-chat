@@ -51,8 +51,9 @@ export class SpacesController {
   public async getSubSpaces(
     @Param('spaceId', ValidateObjectIdPipe) spaceId: string,
     @GetUser() authUser: any,
+    @Query() query: QueryDto,
   ) {
-    return this.spacesService.getSubSpaces({ spaceId, authUser });
+    return this.spacesService.getSubSpaces({ query, spaceId, authUser });
   }
 
   @Post('/open-link')

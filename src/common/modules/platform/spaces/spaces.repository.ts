@@ -35,11 +35,31 @@ export class SpacesRepository {
 
   public async createOne({ dto }) {
     if (dto?.createdBy) dto.createdBy = new Types.ObjectId(dto?.createdBy);
+    if (dto?.parentSpace)
+      dto.parentSpace = new Types.ObjectId(dto?.parentSpace);
+    if (dto?.received) dto.received = new Types.ObjectId(dto?.received);
+    if (dto?.sender) dto.sender = new Types.ObjectId(dto?.sender);
+    if (dto?.receivedContact)
+      dto.receivedContact = new Types.ObjectId(dto?.receivedContact);
+    if (dto?.senderContact)
+      dto.senderContact = new Types.ObjectId(dto?.senderContact);
+    if (dto?.lastMessage)
+      dto.lastMessage = new Types.ObjectId(dto?.lastMessage);
     return this.spaceModel.create(dto);
   }
 
   public async updateOne({ query, dto }) {
     if (dto?.createdBy) dto.createdBy = new Types.ObjectId(dto?.createdBy);
+    if (dto?.parentSpace)
+      dto.parentSpace = new Types.ObjectId(dto?.parentSpace);
+    if (dto?.received) dto.received = new Types.ObjectId(dto?.received);
+    if (dto?.sender) dto.sender = new Types.ObjectId(dto?.sender);
+    if (dto?.receivedContact)
+      dto.receivedContact = new Types.ObjectId(dto?.receivedContact);
+    if (dto?.senderContact)
+      dto.senderContact = new Types.ObjectId(dto?.senderContact);
+    if (dto?.lastMessage)
+      dto.lastMessage = new Types.ObjectId(dto?.lastMessage);
     return this.spaceModel.findOneAndUpdate(query, dto, { new: true });
   }
 

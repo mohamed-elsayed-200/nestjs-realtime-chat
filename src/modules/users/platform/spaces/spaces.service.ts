@@ -290,6 +290,15 @@ export class SpacesService {
           },
           { $unwind: '$space' },
 
+          {
+            $match: {
+              $or: [
+                { 'space.parentSpace': { $exists: false } },
+                { 'space.parentSpace': null },
+              ],
+            },
+          },
+
           // 3. Lookup user details for private spaces
           {
             $lookup: {
@@ -582,55 +591,38 @@ export class SpacesService {
     return spaces;
   }
 
-  public async getSubSpaces({ spaceId, authUser }) {
+  public async getSubSpaces({ query, spaceId, authUser }) {
     const spaceObjectId = new Types.ObjectId(spaceId);
     const userObjectId = new Types.ObjectId(authUser._id);
 
-    // 1. Verify user is an active member of the parent community
-    const parentMember = await this.membersRepository.findOne({
-      query: {
-        user: userObjectId,
-        space: spaceObjectId,
-        isDeleted: false,
-        isBanned: false,
-      },
-    });
-    if (!parentMember) throw new NotFoundException('members.notFoundOne');
-
-    // 2. Get subspaces (groups/channels) under this community where user is a member
     const subSpaces = await this.membersRepository.findAll({
-      query: {
-        user: userObjectId,
-        isDeleted: false,
-        isBanned: false,
-      },
+      query,
       options: {
         pipelines: [
-          // Lookup spaces that belong to the given parent space
+          // 1. ALL memberships for this user (not just the parent space)
+          {
+            $match: {
+              user: userObjectId,
+              isDeleted: false,
+            },
+          },
+
+          // 2. Lookup space
           {
             $lookup: {
               from: 'spaces',
-              let: { memberSpaceId: '$space' },
-              pipeline: [
-                {
-                  $match: {
-                    $expr: {
-                      $and: [
-                        { $eq: ['$_id', '$$memberSpaceId'] },
-                        { $eq: ['$parentSpace', spaceObjectId] },
-                      ],
-                    },
-                  },
-                },
-              ],
+              localField: 'space',
+              foreignField: '_id',
               as: 'space',
             },
           },
-          // Filter: only keep members of subspaces under this community
-          { $match: { 'space.0': { $exists: true } } },
           { $unwind: '$space' },
 
-          // Lookup last message (global for group/channel subspaces)
+          {
+            $match: { 'space.parentSpace': spaceObjectId },
+          },
+
+          // 3. Lookup last message
           {
             $lookup: {
               from: 'messages',
@@ -646,7 +638,7 @@ export class SpacesService {
             },
           },
 
-          // Project final shape (consistent with getAll)
+          // 4. Project
           {
             $project: {
               _id: '$space._id',
@@ -701,7 +693,7 @@ export class SpacesService {
             },
           },
 
-          // Sort: pinned first, then by updatedAt desc
+          // 5. Sort
           { $sort: { isPined: -1, updatedAt: -1 } },
         ],
       },
@@ -1083,6 +1075,10 @@ export class SpacesService {
       type: dto?.type,
       createdBy: new Types.ObjectId(authUser._id),
       membersCount: members?.length,
+      parentSpace:
+        (isGroup || isChannel) && dto?.parentSpace
+          ? new Types.ObjectId(dto?.parentSpace)
+          : undefined,
     };
 
     // ── Link check (fixed community path) ──
@@ -1258,60 +1254,6 @@ export class SpacesService {
     }
 
     return space;
-  }
-
-  public async createCommunitySubSpace({ communityId, dto, authUser }) {
-    const commId = new Types.ObjectId(communityId);
-    const userId = new Types.ObjectId(authUser._id);
-
-    const community = await this.spacesRepository.findOne({
-      query: { _id: commId, type: SpaceTypes.COMMUNITY },
-    });
-    if (!community) throw new NotFoundException('spaces.communityNotFound');
-
-    const member = await this.membersRepository.findOne({
-      query: { user: userId, space: commId },
-    });
-    if (!member) throw new NotFoundException('members.notFoundOne');
-
-    const canCreate =
-      member.role === SpaceMemberRole.OWNER ||
-      member.role === SpaceMemberRole.ADMIN;
-    if (!canCreate) throw new BadRequestException('spaces.notAuthorized');
-
-    const count = await this.spacesRepository.count({
-      query: { parentSpace: commId },
-    });
-    if (count >= 500) {
-      throw new BadRequestException('spaces.communitySubSpacesLimitReached');
-    }
-
-    const isGroup = dto.type === SpaceTypes.GROUP;
-    const isChannel = dto.type === SpaceTypes.CHANNEL;
-
-    if (!isGroup && !isChannel) {
-      throw new BadRequestException('spaces.invalidSubSpaceType');
-    }
-
-    const subSpace = await this.spacesRepository.createOne({
-      dto: {
-        name: dto.name,
-        bio: dto.bio,
-        avatar: dto.avatar,
-        profileColor: dto.profileColor || community.profileColor,
-        wallpaper: dto.wallpaper,
-        type: dto.type,
-        parentSpace: commId,
-        status: ActivationStatus.ACTIVE,
-        createdBy: userId,
-        membersCount: community.membersCount,
-        settings: isGroup
-          ? { group: { groupLink: dto.settings?.group?.groupLink } }
-          : { channel: { channelLink: dto.settings?.channel?.channelLink } },
-      },
-    });
-
-    return subSpace;
   }
 
   public async addMembersToSpace({ spaceId, dto, authUser }) {
