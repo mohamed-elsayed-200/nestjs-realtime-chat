@@ -594,43 +594,56 @@ export class SpacesService {
 
     return spaces;
   }
-
   public async getSubSpaces({ query, spaceId, authUser }) {
     const spaceObjectId = new Types.ObjectId(spaceId);
     const userObjectId = new Types.ObjectId(authUser._id);
 
-    const subSpaces = await this.membersRepository.findAll({
-      query,
+    const subSpaces = await this.spacesRepository.findAll({
+      query: query,
       options: {
         pipelines: [
-          // 1. ALL memberships for this user (not just the parent space)
+          // 1. Match subspaces under this community
           {
             $match: {
-              user: userObjectId,
-              isDeleted: false,
+              parentSpace: spaceObjectId,
             },
           },
 
-          // 2. Lookup space
+          // 2. Lookup user's membership (left join — returns array even if not member)
           {
             $lookup: {
-              from: 'spaces',
-              localField: 'space',
-              foreignField: '_id',
-              as: 'space',
+              from: 'members',
+              let: { spaceId: '$_id' },
+              pipeline: [
+                {
+                  $match: {
+                    $expr: {
+                      $and: [
+                        { $eq: ['$space', '$$spaceId'] },
+                        { $eq: ['$user', userObjectId] },
+                        { $eq: ['$isDeleted', false] },
+                      ],
+                    },
+                  },
+                },
+              ],
+              as: 'memberData',
             },
           },
-          { $unwind: '$space' },
 
+          // 3. Unwind member data (preserveNullAndEmptyArrays = true عشان لو مش member)
           {
-            $match: { 'space.parentSpace': spaceObjectId },
+            $unwind: {
+              path: '$memberData',
+              preserveNullAndEmptyArrays: true,
+            },
           },
 
-          // 3. Lookup last message
+          // 4. Lookup last message
           {
             $lookup: {
               from: 'messages',
-              localField: 'space.lastMessage',
+              localField: 'lastMessage',
               foreignField: '_id',
               as: 'lastMessageData',
             },
@@ -642,42 +655,42 @@ export class SpacesService {
             },
           },
 
-          // 4. Project
+          // 5. Project — use member data if exists, otherwise defaults
           {
             $project: {
-              _id: '$space._id',
-              memberId: '$_id',
-              unreadCount: 1,
-              isPined: 1,
-              isMuted: 1,
-              isArchived: 1,
-              permissions: 1,
-              role: 1,
-              folder: { $ifNull: ['$folder', null] },
+              _id: 1,
+              memberId: '$memberData._id',
+              unreadCount: { $ifNull: ['$memberData.unreadCount', 0] },
+              isPined: { $ifNull: ['$memberData.isPined', false] },
+              isMuted: { $ifNull: ['$memberData.isMuted', false] },
+              isArchived: { $ifNull: ['$memberData.isArchived', false] },
+              permissions: { $ifNull: ['$memberData.permissions', []] },
+              role: { $ifNull: ['$memberData.role', null] },
+              folder: { $ifNull: ['$memberData.folder', null] },
 
-              type: '$space.type',
-              status: '$space.status',
-              name: '$space.name',
-              bio: '$space.bio',
-              avatar: '$space.avatar',
-              profileColor: '$space.profileColor',
+              type: 1,
+              status: 1,
+              name: 1,
+              bio: 1,
+              avatar: 1,
+              profileColor: 1,
               wallpaper: {
                 $cond: {
                   if: {
                     $and: [
-                      { $ne: ['$space.wallpaper', null] },
-                      { $ne: ['$space.wallpaper', ''] },
+                      { $ne: ['$wallpaper', null] },
+                      { $ne: ['$wallpaper', ''] },
                     ],
                   },
-                  then: '$space.wallpaper',
-                  else: '$wallpaper',
+                  then: '$wallpaper',
+                  else: { $ifNull: ['$memberData.wallpaper', null] },
                 },
               },
-              membersCount: '$space.membersCount',
-              settings: '$space.settings',
-              parentSpace: '$space.parentSpace',
-              createdAt: '$space.createdAt',
-              updatedAt: '$space.updatedAt',
+              membersCount: 1,
+              settings: 1,
+              parentSpace: 1,
+              createdAt: 1,
+              updatedAt: 1,
 
               lastMessage: {
                 $cond: {
@@ -696,13 +709,15 @@ export class SpacesService {
               },
             },
           },
+
+          // 6. Sort
+          { $sort: { isPined: -1, updatedAt: -1 } },
         ],
       },
     });
 
     return subSpaces;
   }
-
   public async changeWallpaper({ spaceId, dto, authUser }) {
     const { wallpaper, everybody } = dto;
     const userObjectId = new Types.ObjectId(authUser._id);
