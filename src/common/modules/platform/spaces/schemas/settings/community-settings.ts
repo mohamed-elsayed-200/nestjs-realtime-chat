@@ -8,6 +8,9 @@ import {
 @Schema({ _id: false })
 export class CommunityCategory {
   @Prop({ required: true })
+  id: string;
+
+  @Prop({ required: true })
   name: string;
 
   @Prop({ default: 0 })

@@ -594,6 +594,7 @@ export class SpacesService {
 
     return spaces;
   }
+  
   public async getSubSpaces({ query, spaceId, authUser }) {
     const spaceObjectId = new Types.ObjectId(spaceId);
     const userObjectId = new Types.ObjectId(authUser._id);

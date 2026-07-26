@@ -15,6 +15,9 @@ import {
 
 class CommunityCategoryDto {
   @IsString()
+  id: string;
+
+  @IsString()
   name: string;
 
   @IsOptional()
