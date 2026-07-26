@@ -696,9 +696,6 @@ export class SpacesService {
               },
             },
           },
-
-          // 5. Sort
-          { $sort: { isPined: -1, updatedAt: -1 } },
         ],
       },
     });
