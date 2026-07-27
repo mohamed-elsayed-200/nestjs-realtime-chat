@@ -63,6 +63,7 @@ export enum SpaceMemberPermission {
   ADD_STORIES = 'add-stories',
   EDIT_ANY_STORY = 'edit-any-story',
   DELETE_ANY_STORY = 'delete-any-story',
+  ADD_SPACES_IN_COMMUNITY = 'add-spaces-community',
 }
 
 export const memberPermissionList: string[] = [
@@ -96,6 +97,7 @@ export const adminPermissionList: string[] = [
   SpaceMemberPermission.ADD_STORIES,
   SpaceMemberPermission.EDIT_ANY_STORY,
   SpaceMemberPermission.DELETE_ANY_STORY,
+  SpaceMemberPermission.ADD_SPACES_IN_COMMUNITY,
 ];
 
 export enum CommentType {

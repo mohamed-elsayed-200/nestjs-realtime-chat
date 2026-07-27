@@ -19,6 +19,7 @@ import {
   memberPermissionList,
   MessageStatus,
   MessageType,
+  SpaceMemberPermission,
   SpaceMemberRole,
   SpaceTypes,
 } from '../../../../common/types/enums';
@@ -1032,7 +1033,47 @@ export class SpacesService {
           : undefined,
     };
 
-    // ── Link check (fixed community path) ──
+    // ── Permission check for creating spaces inside a community ──
+    if (newSpace.parentSpace && (isGroup || isChannel)) {
+      const parentSpace = await this.spacesRepository.findOne({
+        query: { _id: newSpace.parentSpace },
+      });
+
+      if (!parentSpace) throw new NotFoundException('spaces.parentNotFound');
+
+      if (parentSpace.type === SpaceTypes.COMMUNITY) {
+        const parentMember = await this.membersRepository.findOne({
+          query: {
+            user: new Types.ObjectId(authUser._id),
+            space: newSpace.parentSpace,
+          },
+        });
+
+        if (!parentMember)
+          throw new BadRequestException('spaces.noPermissionToAddSpace');
+
+        const isOwner = parentMember.role === SpaceMemberRole.OWNER;
+        const isAdmin = parentMember.role === SpaceMemberRole.ADMIN;
+
+        // Owner: allowed without permission check
+        if (!isOwner) {
+          // FIX: must be Admin AND have ADD_SPACES_IN_COMMUNITY
+          if (!isAdmin) {
+            throw new BadRequestException('spaces.noPermissionToAddSpace');
+          }
+
+          const hasAddSpacePermission = parentMember.permissions?.includes(
+            SpaceMemberPermission.ADD_SPACES_IN_COMMUNITY,
+          );
+
+          if (!hasAddSpacePermission) {
+            throw new BadRequestException('spaces.noPermissionToAddSpace');
+          }
+        }
+      }
+    }
+
+    // ── Link check ──
     const linkToCheck = isChannel
       ? dto?.settings?.channel?.channelLink
       : isGroup
