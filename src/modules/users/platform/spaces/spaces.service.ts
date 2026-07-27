@@ -594,7 +594,7 @@ export class SpacesService {
 
     return spaces;
   }
-  
+
   public async getSubSpaces({ query, spaceId, authUser }) {
     const spaceObjectId = new Types.ObjectId(spaceId);
     const userObjectId = new Types.ObjectId(authUser._id);
@@ -719,6 +719,7 @@ export class SpacesService {
 
     return subSpaces;
   }
+
   public async changeWallpaper({ spaceId, dto, authUser }) {
     const { wallpaper, everybody } = dto;
     const userObjectId = new Types.ObjectId(authUser._id);

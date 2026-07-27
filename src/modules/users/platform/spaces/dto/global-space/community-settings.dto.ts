@@ -21,6 +21,10 @@ class CommunityCategoryDto {
   name: string;
 
   @IsOptional()
+  @IsString()
+  color?: string;
+
+  @IsOptional()
   @IsNumber()
   position?: number;
 

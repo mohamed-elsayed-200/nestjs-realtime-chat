@@ -13,6 +13,9 @@ export class CommunityCategory {
   @Prop({ required: true })
   name: string;
 
+  @Prop()
+  color: string;
+
   @Prop({ default: 0 })
   position: number;
 
