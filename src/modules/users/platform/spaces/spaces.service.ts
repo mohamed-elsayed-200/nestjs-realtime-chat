@@ -636,7 +636,6 @@ export class SpacesService {
               permissions: { $ifNull: ['$memberData.permissions', []] },
               role: { $ifNull: ['$memberData.role', null] },
               folder: { $ifNull: ['$memberData.folder', null] },
-
               type: 1,
               status: 1,
               name: 1,
