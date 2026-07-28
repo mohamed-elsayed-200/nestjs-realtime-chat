@@ -119,7 +119,7 @@ export class SpacesController {
   }
 
   @Post('/private-space')
-  @ResponseMeta({ message: 'spaces.created', statusCode: 201 })
+  @ResponseMeta({ message: 'spaces.createdPrivate', statusCode: 201 })
   public async createPrivateSpace(
     @Body() dto: CreatePrivateSpaceDto,
     @GetUser() authUser: any,
@@ -128,7 +128,7 @@ export class SpacesController {
   }
 
   @Post('/global-space')
-  @ResponseMeta({ message: 'spaces.created', statusCode: 201 })
+  @ResponseMeta({ message: 'spaces.createdGlobal', statusCode: 201 })
   public async createGlobalSpace(
     @Body() dto: CreateGlobalSpaceDto,
     @GetUser() authUser: any,
@@ -137,7 +137,7 @@ export class SpacesController {
   }
 
   @Put('/global-space/:spaceId')
-  @ResponseMeta({ message: 'spaces.created', statusCode: 201 })
+  @ResponseMeta({ message: 'spaces.updated' })
   public async updateGlobalSpace(
     @Param('spaceId', ValidateObjectIdPipe) spaceId: string,
     @Body() dto: UpdateGlobalSpaceDto,
@@ -147,7 +147,7 @@ export class SpacesController {
   }
 
   @Post('/add-members/:spaceId')
-  @ResponseMeta({ message: 'spaces.joined', statusCode: 201 })
+  @ResponseMeta({ message: 'spaces.addedMembers', statusCode: 201 })
   public async addSubscribes(
     @Param('spaceId', ValidateObjectIdPipe) spaceId: string,
     @GetUser() authUser: any,
@@ -166,21 +166,11 @@ export class SpacesController {
   }
 
   @Post('/leave/:spaceId')
-  @ResponseMeta({ message: 'spaces.joined', statusCode: 201 })
+  @ResponseMeta({ message: 'spaces.leaved', statusCode: 201 })
   public async leave(
     @Param('spaceId', ValidateObjectIdPipe) spaceId: string,
     @GetUser() authUser: any,
   ) {
     return this.spacesService.leaveFromSpace({ spaceId, authUser });
-  }
-
-  @Put('/:spaceId')
-  @ResponseMeta({ message: 'spaces.updated', statusCode: 201 })
-  public async update(
-    @Param('spaceId', ValidateObjectIdPipe) spaceId: string,
-    @Body() dto: UpdateGlobalSpaceDto,
-    @GetUser() authUser: any,
-  ) {
-    return this.spacesService.updateGlobalSpace({ spaceId, dto, authUser });
   }
 }

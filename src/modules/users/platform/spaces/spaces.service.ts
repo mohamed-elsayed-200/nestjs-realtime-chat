@@ -1269,6 +1269,19 @@ export class SpacesService {
 
     if (!space) throw new InternalServerErrorException('spaces.notUpdated');
 
+    const withMemberData = (spaceData: any) => ({
+      ...spaceData,
+      unreadCount: member?.unreadCount,
+      isPined: member?.isPined,
+      isMuted: member?.isMuted,
+      isArchived: member?.isArchived,
+      folder: member?.folder,
+      role: member?.role,
+      permissions: member?.permissions,
+      joinedAt: member?.joinedAt,
+      wallpaper: member?.wallpaper,
+    });
+
     if (dto?.wallpaper) {
       const updateWallpaper = await this.membersRepository.updateMany({
         query: { space: spaceObjectId },
@@ -1296,7 +1309,7 @@ export class SpacesService {
       if (!updateWallpaper)
         new InternalServerErrorException('spaces.notUpdated');
 
-      return {
+      return withMemberData({
         ...dto,
         id: spaceId,
         lastMessage: {
@@ -1311,10 +1324,10 @@ export class SpacesService {
           isOutgoing:
             lastMessage?.sender?.toString() === userObjectId?.toString(),
         },
-      };
+      });
     }
 
-    return space;
+    return withMemberData(space?.toObject());
   }
 
   public async joinToSpace({ spaceId, authUser }) {
