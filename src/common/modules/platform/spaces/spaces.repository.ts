@@ -29,6 +29,13 @@ export class SpacesRepository {
     return await base.lean().exec();
   }
 
+  public async findLean({ query, populate, select }: FindOneProps) {
+    const base = this.spaceModel.find(query);
+    if (select) base.select(select);
+    if (populate) base.populate(populate);
+    return await base.lean().exec();
+  }
+
   public async count({ query }) {
     return this.spaceModel.countDocuments(query);
   }

@@ -39,14 +39,12 @@ export class SpacesService {
     const userId = new Types.ObjectId(authUser._id);
     const spaceId = new Types.ObjectId(spaceOrUserId);
 
-    // 1. Find member first (to get per-user lastMessage for private chats)
     const member = await this.membersRepository.findOne({
       query: { space: spaceId, user: userId },
     });
 
     const isMember = Boolean(member?._id);
 
-    // 2. Get space with populated fields
     const findSpace: any = await this.spacesRepository.findOne({
       query: { _id: spaceId },
       populate: [
@@ -75,15 +73,11 @@ export class SpacesService {
     });
 
     if (findSpace) {
-      // FIX: Determine effective lastMessage ID
-      // Private -> member.lastMessage (per-user)
-      // Group/Channel -> space.lastMessage (global)
       const isPrivate = findSpace?.type === SpaceTypes.PRIVATE;
       const effectiveLastMessageId = isPrivate
         ? member?.lastMessage
         : findSpace?.lastMessage;
 
-      // FIX: Lookup last message details
       let lastMessageData = null;
       if (effectiveLastMessageId) {
         lastMessageData = await this.messagesRepository.findOne({
@@ -92,19 +86,16 @@ export class SpacesService {
         });
       }
 
-      // 3. Get user's contact for this space (if private space)
       let userContact = null;
       let otherParty = null;
 
       if (isPrivate) {
-        // Get the other user
         if (findSpace?.sender?._id.toString() === userId.toString()) {
           otherParty = findSpace?.received;
         } else {
           otherParty = findSpace?.sender;
         }
 
-        // Get user's contact with the other person
         userContact = await this.contactsRepository.findOne({
           query: {
             me: userId,
@@ -114,7 +105,6 @@ export class SpacesService {
         });
       }
 
-      // 4. Format the response
       const dataMember = isMember
         ? {
             unreadCount: member?.unreadCount,
@@ -138,7 +128,7 @@ export class SpacesService {
                   bio: otherParty?.bio,
                 }
               : null,
-            // FIX: Use lastMessageData instead of findSpace.lastMessage
+
             lastMessage: lastMessageData
               ? {
                   isOutgoing:
@@ -154,7 +144,6 @@ export class SpacesService {
         : {};
 
       const response = {
-        // Space fields
         _id: findSpace?._id,
         type: findSpace?.type,
         status: findSpace?.status,
@@ -167,25 +156,21 @@ export class SpacesService {
         bio: findSpace?.bio || otherParty?.bio,
         createdBy: findSpace?.createdBy,
         wallpaper: findSpace?.wallpaper || member?.wallpaper,
-        // Name
+
         name: isPrivate
           ? userContact?.name || otherParty?.name || null
           : findSpace?.name,
 
-        // Avatar
         avatar: isPrivate
           ? userContact?.avatar || otherParty?.avatar || null
           : findSpace?.avatar,
 
-        // Profile Color
         profileColor: isPrivate
           ? userContact?.profileColor || otherParty?.profileColor || null
           : findSpace?.profileColor,
 
-        // isContact
         isContact: isPrivate ? !!userContact : false,
 
-        // Member fields
         ...dataMember,
       };
 
@@ -258,7 +243,6 @@ export class SpacesService {
     });
     const getSpace = await this.getOne({ spaceOrUserId: spaceId, authUser });
 
-    // already a member → return full space via getOne
     return {
       ...getSpace,
       joinRequest: findRequest || undefined,
@@ -274,7 +258,6 @@ export class SpacesService {
         allowedSearchFields: ['name', 'bio'],
         allowedFilterFields: ['status', 'type', 'archive'],
         pipelines: [
-          // 1. Filter by user
           {
             $match: {
               user: userId,
@@ -282,7 +265,6 @@ export class SpacesService {
             },
           },
 
-          // 2. Lookup space
           {
             $lookup: {
               from: 'spaces',
@@ -302,7 +284,6 @@ export class SpacesService {
             },
           },
 
-          // 3. Lookup user details for private spaces
           {
             $lookup: {
               from: 'users',
@@ -336,7 +317,6 @@ export class SpacesService {
             },
           },
 
-          // 4. Lookup user's contacts (where current user is 'me')
           {
             $lookup: {
               from: 'contacts',
@@ -374,7 +354,6 @@ export class SpacesService {
             },
           },
 
-          // 5. Lookup only the contact document that belongs to the CURRENT user
           {
             $addFields: {
               myContactId: {
@@ -411,7 +390,6 @@ export class SpacesService {
             },
           },
 
-          // 6. Determine other party and set fields
           {
             $addFields: {
               otherParty: {
@@ -433,7 +411,6 @@ export class SpacesService {
             },
           },
 
-          // 6.1 Resolve unified display fields once
           {
             $addFields: {
               resolvedName: {
@@ -462,9 +439,6 @@ export class SpacesService {
             },
           },
 
-          // 7. FIX: Determine effective lastMessage ID
-          // Private -> member.lastMessage (per-user)
-          // Group/Channel -> space.lastMessage (global)
           {
             $addFields: {
               effectiveLastMessageId: {
@@ -477,7 +451,6 @@ export class SpacesService {
             },
           },
 
-          // 8. Lookup last message details
           {
             $lookup: {
               from: 'messages',
@@ -493,7 +466,6 @@ export class SpacesService {
             },
           },
 
-          // 9. Final projection
           {
             $project: {
               _id: '$space._id',
@@ -604,14 +576,12 @@ export class SpacesService {
       query: query,
       options: {
         pipelines: [
-          // 1. Match subspaces under this community
           {
             $match: {
               parentSpace: spaceObjectId,
             },
           },
 
-          // 2. Lookup user's membership (left join — returns array even if not member)
           {
             $lookup: {
               from: 'members',
@@ -633,7 +603,6 @@ export class SpacesService {
             },
           },
 
-          // 3. Unwind member data (preserveNullAndEmptyArrays = true عشان لو مش member)
           {
             $unwind: {
               path: '$memberData',
@@ -641,7 +610,6 @@ export class SpacesService {
             },
           },
 
-          // 4. Lookup last message
           {
             $lookup: {
               from: 'messages',
@@ -657,7 +625,6 @@ export class SpacesService {
             },
           },
 
-          // 5. Project — use member data if exists, otherwise defaults
           {
             $project: {
               _id: 1,
@@ -712,7 +679,6 @@ export class SpacesService {
             },
           },
 
-          // 6. Sort
           { $sort: { isPined: -1, updatedAt: -1 } },
         ],
       },
@@ -726,7 +692,6 @@ export class SpacesService {
     const userObjectId = new Types.ObjectId(authUser._id);
     const spaceObjectId = new Types.ObjectId(spaceId);
 
-    // check member inside space
     const findMember = await this.membersRepository.findOne({
       query: { space: spaceObjectId, user: userObjectId },
     });
@@ -734,7 +699,6 @@ export class SpacesService {
       new NotFoundException('spaces.notFoundOne');
 
     if (everybody) {
-      // change wallpaper for every body
       const updateWallpaper = await this.membersRepository.updateMany({
         query: { space: spaceObjectId },
         dto: { wallpaper, $inc: { unreadCount: 1 } },
@@ -778,7 +742,6 @@ export class SpacesService {
         },
       };
     } else {
-      // change wallpaper for every one
       const updateWallpaper = await this.membersRepository.updateMany({
         query: { space: spaceObjectId, user: userObjectId },
         dto: { wallpaper },
@@ -995,7 +958,6 @@ export class SpacesService {
     if (isPrivate || isBot)
       throw new NotFoundException('spaces.checkSpaceType');
 
-    // ── Clean unrelated settings ──
     if (isGroup && dto?.settings) {
       dto.settings.channel = undefined;
       dto.settings.community = undefined;
@@ -1008,8 +970,20 @@ export class SpacesService {
       dto.settings.group = undefined;
       dto.settings.channel = undefined;
     }
+    let finalSettings = dto?.settings;
+    if (isCommunity && finalSettings?.community?.categories?.length > 0) {
+      finalSettings = {
+        ...finalSettings,
+        community: {
+          ...finalSettings.community,
+          categories: finalSettings.community.categories.map((cat) => ({
+            ...cat,
+            createdBy: new Types.ObjectId(authUser._id),
+          })),
+        },
+      };
+    }
 
-    // ── Members: fallback to [] if undefined ──
     const members = [
       ...(dto?.members || []).filter((id) => id !== authUser._id.toString()),
       authUser._id.toString(),
@@ -1021,7 +995,7 @@ export class SpacesService {
       avatar: dto?.avatar,
       profileColor: dto?.profileColor || this.usersRepository.getRandomColor(),
       wallpaper: dto?.wallpaper || undefined,
-      settings: dto?.settings,
+      settings: finalSettings,
       isArchived: false,
       status: ActivationStatus.ACTIVE,
       type: dto?.type,
@@ -1033,7 +1007,6 @@ export class SpacesService {
           : undefined,
     };
 
-    // ── Permission check for creating spaces inside a community ──
     if (newSpace.parentSpace && (isGroup || isChannel)) {
       const parentSpace = await this.spacesRepository.findOne({
         query: { _id: newSpace.parentSpace },
@@ -1055,9 +1028,7 @@ export class SpacesService {
         const isOwner = parentMember.role === SpaceMemberRole.OWNER;
         const isAdmin = parentMember.role === SpaceMemberRole.ADMIN;
 
-        // Owner: allowed without permission check
         if (!isOwner) {
-          // FIX: must be Admin AND have ADD_SPACES_IN_COMMUNITY
           if (!isAdmin) {
             throw new BadRequestException('spaces.noPermissionToAddSpace');
           }
@@ -1073,7 +1044,6 @@ export class SpacesService {
       }
     }
 
-    // ── Link check ──
     const linkToCheck = isChannel
       ? dto?.settings?.channel?.channelLink
       : isGroup
@@ -1143,7 +1113,6 @@ export class SpacesService {
     if (isPrivate || isBot)
       throw new BadRequestException('spaces.checkSpaceType');
 
-    // ── Clean unrelated settings ──
     if (isGroup && dto?.settings) {
       dto.settings.channel = null;
       dto.settings.community = null;
@@ -1169,13 +1138,105 @@ export class SpacesService {
 
     if (!member) throw new NotFoundException('members.notFoundOne');
 
-    const canUpdate =
-      member.role === SpaceMemberRole.OWNER ||
-      member.role === SpaceMemberRole.ADMIN;
+    const isOwner = member.role === SpaceMemberRole.OWNER;
+    const isAdmin = member.role === SpaceMemberRole.ADMIN;
 
-    if (!canUpdate) throw new InternalServerErrorException('spaces.notUpdated');
+    const canAttempt = isOwner || isAdmin;
+    if (!canAttempt)
+      throw new InternalServerErrorException('spaces.notUpdated');
 
-    // ── Link check (fixed: added community) ──
+    const hasChangeSettings = member.permissions?.includes(
+      SpaceMemberPermission.CHANGE_SETTINGS,
+    );
+    const hasAddSpacesPermission = member.permissions?.includes(
+      SpaceMemberPermission.ADD_SPACES_IN_COMMUNITY,
+    );
+    const hasChangeInfo = member.permissions?.includes(
+      SpaceMemberPermission.CHANGE_INFO,
+    );
+
+    const INFO_FIELDS = ['name', 'bio', 'avatar', 'profileColor', 'wallpaper'];
+
+    if (!isOwner) {
+      const { settings, type, ...rest } = dto ?? {};
+
+      const touchesInfo = Object.keys(rest).some((k) =>
+        INFO_FIELDS.includes(k),
+      );
+
+      const touchesUnknownTopLevel = Object.keys(rest).some(
+        (k) => !INFO_FIELDS.includes(k),
+      );
+
+      let touchesCategories = false;
+      let touchesOtherSettings = false;
+
+      if (settings) {
+        for (const key of Object.keys(settings)) {
+          if (key === 'community') {
+            const community = settings.community;
+            if (community) {
+              for (const ck of Object.keys(community)) {
+                if (ck === 'categories') touchesCategories = true;
+                else touchesOtherSettings = true;
+              }
+            }
+          } else {
+            touchesOtherSettings = true;
+          }
+        }
+      }
+
+      if (!hasChangeSettings) {
+        if (touchesUnknownTopLevel || touchesOtherSettings) {
+          throw new BadRequestException('spaces.noPermissionToUpdateSettings');
+        }
+        if (touchesCategories && !hasAddSpacesPermission) {
+          throw new BadRequestException(
+            'spaces.noPermissionToUpdateCategories',
+          );
+        }
+        if (touchesInfo && !hasChangeInfo) {
+          throw new BadRequestException('spaces.noPermissionToUpdateInfo');
+        }
+      }
+    }
+
+    const incomingCategories = dto?.settings?.community?.categories;
+    if (isCommunity && incomingCategories && incomingCategories.length > 0) {
+      dto.settings.community.categories = incomingCategories.map((cat: any) => {
+        if (cat.id?.startsWith('temp-') && !cat.createdBy) {
+          return { ...cat, createdBy: new Types.ObjectId(authUser._id) };
+        }
+        return cat;
+      });
+
+      if (!isOwner) {
+        const existingSpace = await this.spacesRepository.findOne({
+          query: { _id: spaceObjectId },
+        });
+        const existingCats =
+          existingSpace?.settings?.community?.categories || [];
+
+        for (const cat of dto.settings.community.categories) {
+          if (cat.id?.startsWith('temp-')) continue;
+
+          const existingCat = existingCats.find((c: any) => c.id === cat.id);
+
+          if (existingCat && existingCat.createdBy) {
+            const catCreator =
+              existingCat.createdBy.toString?.() ||
+              existingCat.createdBy?.toString?.() ||
+              existingCat.createdBy;
+
+            if (catCreator !== authUser._id.toString()) {
+              throw new BadRequestException('spaces.notCategoryCreator');
+            }
+          }
+        }
+      }
+    }
+
     const linkToCheck = isChannel
       ? dto?.settings?.channel?.channelLink
       : isGroup
@@ -1208,7 +1269,6 @@ export class SpacesService {
 
     if (!space) throw new InternalServerErrorException('spaces.notUpdated');
 
-    // Update wallpaper
     if (dto?.wallpaper) {
       const updateWallpaper = await this.membersRepository.updateMany({
         query: { space: spaceObjectId },
@@ -1261,7 +1321,6 @@ export class SpacesService {
     const spaceObjectId = new Types.ObjectId(spaceId);
     const userObjectId = new Types.ObjectId(authUser._id);
 
-    // check space already exist
     const findSpace: any = await this.spacesRepository.findOne({
       query: { _id: spaceObjectId },
       populate: [
@@ -1274,21 +1333,70 @@ export class SpacesService {
 
     if (!findSpace) throw new NotFoundException('spaces.notFound');
     const isChannel = findSpace?.type === SpaceTypes.CHANNEL;
+    const isGroup = findSpace?.type === SpaceTypes.GROUP;
     const isPrivate = findSpace?.type === SpaceTypes.PRIVATE;
     const isBot = findSpace?.type === SpaceTypes.BOT;
     if (isPrivate || isBot)
       throw new BadRequestException('spaces.checkSpaceType');
 
-    // check is private channel
     const settings = isChannel
       ? findSpace?.settings?.channel
       : findSpace?.settings?.group;
-    const inviteOnly = settings.joinApproval === JoinApproval.INVITE_ONLY;
-    const needApproval = settings.joinApproval === JoinApproval.NEED_APPROVAL;
+    const inviteOnly = settings?.joinApproval === JoinApproval.INVITE_ONLY;
+    const needApproval = settings?.joinApproval === JoinApproval.NEED_APPROVAL;
     const isSecure = inviteOnly || needApproval;
     if (isSecure) throw new BadRequestException('spaces.isSecure');
 
-    // check if member already joined
+    if ((isChannel || isGroup) && findSpace.parentSpace) {
+      const parentSpaceId = new Types.ObjectId(findSpace.parentSpace);
+
+      const parentSpace = await this.spacesRepository.findOne({
+        query: { _id: parentSpaceId },
+      });
+
+      if (parentSpace && parentSpace.type === SpaceTypes.COMMUNITY) {
+        const existingParentMember = await this.membersRepository.findOne({
+          query: { space: parentSpaceId, user: userObjectId },
+        });
+
+        if (existingParentMember && existingParentMember.isBanned) {
+          throw new BadRequestException('spaces.youAreBanned');
+        }
+
+        if (!existingParentMember || existingParentMember.isDeleted) {
+          if (existingParentMember) {
+            await this.membersRepository.updateOne({
+              query: { _id: existingParentMember._id },
+              dto: {
+                isDeleted: false,
+                deletedAt: null,
+                role: SpaceMemberRole.MEMBER,
+                permission: existingParentMember.permissions?.filter(
+                  (perm: string) => memberPermissionList?.includes(perm),
+                ),
+                joinedAt: new Date(),
+              },
+            });
+          } else {
+            await this.membersRepository.createOne({
+              dto: {
+                user: userObjectId,
+                space: parentSpaceId,
+                role: SpaceMemberRole.MEMBER,
+                joinedAt: new Date(),
+                permissions: memberPermissionList,
+              },
+            });
+          }
+
+          await this.spacesRepository.updateOne({
+            query: { _id: parentSpaceId },
+            dto: { $inc: { membersCount: 1 } },
+          });
+        }
+      }
+    }
+
     const existingMember = await this.membersRepository.findOne({
       query: { space: spaceObjectId, user: userObjectId },
     });
@@ -1331,6 +1439,56 @@ export class SpacesService {
       updatedSpace = s?.toObject();
     }
 
+    if (findSpace.type === SpaceTypes.COMMUNITY) {
+      const subSpaces = await this.spacesRepository.findLean({
+        query: { parentSpace: spaceObjectId },
+      });
+
+      await Promise.all(
+        subSpaces.map(async (subSpace: any) => {
+          const existingSubMember = await this.membersRepository.findOne({
+            query: { space: subSpace._id, user: userObjectId },
+          });
+
+          if (existingSubMember && existingSubMember.isBanned) return;
+
+          if (existingSubMember) {
+            await this.membersRepository.updateOne({
+              query: { _id: existingSubMember._id },
+              dto: {
+                isDeleted: false,
+                deletedAt: null,
+                role: SpaceMemberRole.MEMBER,
+                permission: existingSubMember.permissions?.filter(
+                  (perm: string) => memberPermissionList?.includes(perm),
+                ),
+                joinedAt: new Date(),
+              },
+            });
+          } else {
+            await this.membersRepository.createOne({
+              dto: {
+                user: userObjectId,
+                space: subSpace._id,
+                role: SpaceMemberRole.MEMBER,
+                joinedAt: new Date(),
+                permissions: memberPermissionList,
+              },
+            });
+          }
+
+          const wasInactiveSub =
+            !existingSubMember || existingSubMember.isDeleted;
+          if (wasInactiveSub) {
+            await this.spacesRepository.updateOne({
+              query: { _id: subSpace._id },
+              dto: { $inc: { membersCount: 1 } },
+            });
+          }
+        }),
+      );
+    }
+
     return {
       ...updatedSpace,
       unreadCount: member?.unreadCount,
@@ -1362,6 +1520,11 @@ export class SpacesService {
     const spaceObjectId = new Types.ObjectId(spaceId);
     const userObjectId = new Types.ObjectId(authUser._id);
 
+    const space = await this.spacesRepository.findOne({
+      query: { _id: spaceObjectId },
+    });
+    if (!space) throw new NotFoundException('spaces.notFound');
+
     const member = await this.membersRepository.findOne({
       query: { space: spaceObjectId, user: userObjectId },
     });
@@ -1385,12 +1548,48 @@ export class SpacesService {
       },
     });
 
-    const updatedSpace = await this.spacesRepository.updateOne({
+    await this.spacesRepository.updateOne({
       query: { _id: spaceObjectId },
       dto: { $inc: { membersCount: -1 } },
-      // dto: { membersCount:9 },
     });
-    return updatedSpace;
+
+    if (space.type === SpaceTypes.COMMUNITY) {
+      const subSpaces = await this.spacesRepository.findLean({
+        query: { parentSpace: spaceObjectId },
+      });
+
+      await Promise.all(
+        subSpaces.map(async (subSpace: any) => {
+          const subMember = await this.membersRepository.findOne({
+            query: { space: subSpace._id, user: userObjectId },
+          });
+
+          if (!subMember || subMember.role === SpaceMemberRole.OWNER) return;
+
+          await this.membersRepository.updateOne({
+            query: { _id: subMember._id },
+            dto: {
+              isDeleted: true,
+              deletedAt: new Date(),
+              joinedAt: null,
+              role: null,
+              adminTag: null,
+              adminTagColor: null,
+              permission: subMember?.permissions?.filter((perm: string) =>
+                memberPermissionList?.includes(perm),
+              ),
+            },
+          });
+
+          await this.spacesRepository.updateOne({
+            query: { _id: subSpace._id },
+            dto: { $inc: { membersCount: -1 } },
+          });
+        }),
+      );
+    }
+
+    return space;
   }
 
   public async delete({ spaceId, dto, authUser }) {
@@ -1473,7 +1672,6 @@ export class SpacesService {
     const spaceObjectId = new Types.ObjectId(spaceId);
     const userObjectId = new Types.ObjectId(authUser._id);
 
-    // 1. Check owner
     const member = await this.membersRepository.findOne({
       query: { space: spaceObjectId, user: userObjectId, isDeleted: false },
     });
@@ -1481,7 +1679,6 @@ export class SpacesService {
     if (member.role !== SpaceMemberRole.OWNER)
       throw new BadRequestException('spaces.cantAddMembers');
 
-    // 2. Get valid contacts
     const contactDocs = await this.contactsRepository.findMany({
       query: {
         contact: { $in: contacts.map((id) => new Types.ObjectId(id)) },
@@ -1492,10 +1689,8 @@ export class SpacesService {
     if (contactDocs.length === 0)
       throw new NotFoundException('contacts.notFound');
 
-    // 3. Dedupe user IDs
     const userIds = [...new Set(contactDocs.map((c) => c.contact.toString()))];
 
-    // 4. Get existing members (active + deleted)
     const existing = await this.membersRepository.findMany({
       query: {
         space: spaceObjectId,
@@ -1504,7 +1699,6 @@ export class SpacesService {
       select: 'user isDeleted',
     });
 
-    // 5. Build lookup map: userId → isDeleted
     const existingMap = new Map(
       existing.map((m) => [m.user.toString(), m.isDeleted]),
     );
@@ -1516,10 +1710,8 @@ export class SpacesService {
       const isDeleted = existingMap.get(id);
       if (isDeleted === undefined) toInsert.push(id);
       else if (isDeleted === true) toRestore.push(id);
-      // else active → skip
     }
 
-    // 6. Restore deleted
     if (toRestore.length > 0) {
       await this.membersRepository.updateMany({
         query: {
@@ -1537,7 +1729,6 @@ export class SpacesService {
       });
     }
 
-    // 7. Insert new
     if (toInsert.length > 0) {
       await this.membersRepository.insertMany({
         documents: toInsert.map((userId) => ({
@@ -1553,7 +1744,6 @@ export class SpacesService {
       });
     }
 
-    // 8. Update count
     const total = toRestore.length + toInsert.length;
     if (total === 0) {
       return this.spacesRepository.findOne({ query: { _id: spaceObjectId } });

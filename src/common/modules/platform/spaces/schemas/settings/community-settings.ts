@@ -21,6 +21,9 @@ export class CommunityCategory {
 
   @Prop({ type: [{ type: Types.ObjectId, ref: 'Space' }], default: [] })
   spaces: Types.ObjectId[];
+
+  @Prop({ type: Types.ObjectId, ref: 'User' })
+  createdBy: Types.ObjectId;
 }
 
 export const CommunityCategorySchema =
