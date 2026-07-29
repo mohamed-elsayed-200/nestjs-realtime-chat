@@ -21,102 +21,20 @@ export class SpacesGateway {
     private readonly socketEmitter: SocketEmitterService,
   ) {}
 
-  @SubscribeMessage(SocketEvents.CHANNEL_JOIN)
-  onJoinChannel(
+  @SubscribeMessage(SocketEvents.SPACE_JOIN)
+  onJoinSpace(
     @ConnectedSocket() client: Socket,
     @MessageBody() dto: JoinLeaveSocketDto,
   ) {
-    return this.handleJoin(client, dto.spaceId, SocketEvents.CHANNEL_JOINED);
+    return this.handleJoin(client, dto.spaceId, SocketEvents.SPACE_JOINED);
   }
 
-  @SubscribeMessage(SocketEvents.CHANNEL_LEAVE)
-  onLeaveChannel(
+  @SubscribeMessage(SocketEvents.SPACE_LEAVE)
+  onLeaveSpace(
     @ConnectedSocket() client: Socket,
     @MessageBody() dto: JoinLeaveSocketDto,
   ) {
-    return this.handleLeave(client, dto.spaceId, SocketEvents.CHANNEL_LEFT);
-  }
-
-  @SubscribeMessage(SocketEvents.GROUP_JOIN)
-  onJoinGroup(
-    @ConnectedSocket() client: Socket,
-    @MessageBody() dto: JoinLeaveSocketDto,
-  ) {
-    return this.handleJoin(client, dto.spaceId, SocketEvents.GROUP_JOINED);
-  }
-
-  @SubscribeMessage(SocketEvents.GROUP_LEAVE)
-  onLeaveGroup(
-    @ConnectedSocket() client: Socket,
-    @MessageBody() dto: JoinLeaveSocketDto,
-  ) {
-    return this.handleLeave(client, dto.spaceId, SocketEvents.GROUP_LEFT);
-  }
-
-  @SubscribeMessage(SocketEvents.COMMUNITY_JOIN)
-  async onJoinCommunity(
-    @ConnectedSocket() client: Socket,
-    @MessageBody() dto: JoinLeaveSocketDto,
-  ) {
-    const userId = client.data.userId as string;
-    try {
-      const updatedSpace = await this.spacesService.joinToSpace({
-        spaceId: dto.spaceId,
-        authUser: { _id: userId },
-      });
-
-      client.join(RoomNames.space(dto.spaceId));
-      client.join(RoomNames.community(dto.spaceId));
-
-      client.emit(SocketEvents.COMMUNITY_JOINED, updatedSpace);
-      this.socketEmitter.emitToSpace(
-        dto.spaceId,
-        SocketEvents.COMMUNITY_JOINED,
-        {
-          spaceId: dto.spaceId,
-          userId,
-        },
-      );
-
-      return { success: true, space: updatedSpace };
-    } catch (err: any) {
-      client.emit('error', {
-        event: SocketEvents.COMMUNITY_JOIN,
-        message: err?.message ?? 'Failed to join community',
-      });
-      return { success: false, error: err?.message };
-    }
-  }
-
-  @SubscribeMessage(SocketEvents.COMMUNITY_LEAVE)
-  async onLeaveCommunity(
-    @ConnectedSocket() client: Socket,
-    @MessageBody() dto: JoinLeaveSocketDto,
-  ) {
-    const userId = client.data.userId as string;
-    try {
-      const updatedSpace = await this.spacesService.leaveFromSpace({
-        spaceId: dto.spaceId,
-        authUser: { _id: userId },
-      });
-
-      client.leave(RoomNames.space(dto.spaceId));
-      client.leave(RoomNames.community(dto.spaceId));
-
-      client.emit(SocketEvents.COMMUNITY_LEFT, { spaceId: dto.spaceId });
-      this.socketEmitter.emitToSpace(dto.spaceId, SocketEvents.COMMUNITY_LEFT, {
-        spaceId: dto.spaceId,
-        userId,
-      });
-
-      return { success: true, space: updatedSpace };
-    } catch (err: any) {
-      client.emit('error', {
-        event: SocketEvents.COMMUNITY_LEAVE,
-        message: err?.message ?? 'Failed to leave community',
-      });
-      return { success: false, error: err?.message };
-    }
+    return this.handleLeave(client, dto.spaceId, SocketEvents.SPACE_LEFT);
   }
 
   private async handleJoin(

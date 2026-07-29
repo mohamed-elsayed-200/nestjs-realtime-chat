@@ -153,6 +153,7 @@ export class MessagesGateway {
       this.socketEmitter.emitToSpace(dto.space, SocketEvents.MESSAGE_PINNED, {
         messages: result.pinnedIds,
         isPinned: dto.isPinned,
+        space: dto.space,
         systemMessage: result.systemMessage._id,
       });
 

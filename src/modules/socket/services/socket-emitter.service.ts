@@ -18,32 +18,4 @@ export class SocketEmitterService {
   emitToSpace(spaceId: string, event: SocketEvents, payload: unknown) {
     this.server.to(RoomNames.space(spaceId)).emit(event, payload);
   }
-
-  emitToCommunity(communityId: string, event: SocketEvents, payload: unknown) {
-    this.server.to(RoomNames.community(communityId)).emit(event, payload);
-  }
-
-  emitChannelInfoUpdated(spaceId: string, payload: unknown) {
-    this.emitToSpace(spaceId, SocketEvents.CHANNEL_INFO_UPDATED, payload);
-  }
-
-  emitGroupInfoUpdated(spaceId: string, payload: unknown) {
-    this.emitToSpace(spaceId, SocketEvents.GROUP_INFO_UPDATED, payload);
-  }
-
-  emitCommunityInfoUpdated(communityId: string, payload: unknown) {
-    this.emitToCommunity(
-      communityId,
-      SocketEvents.COMMUNITY_INFO_UPDATED,
-      payload,
-    );
-  }
-
-  emitCommunitySpaceAdded(communityId: string, payload: unknown) {
-    this.emitToCommunity(
-      communityId,
-      SocketEvents.COMMUNITY_SPACE_ADDED,
-      payload,
-    );
-  }
 }
