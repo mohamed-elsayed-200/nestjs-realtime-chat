@@ -12,6 +12,7 @@ export class SocketIoAdapter extends IoAdapter {
   createIOServer(port: number, options?: ServerOptions) {
     const server = super.createIOServer(port, {
       ...options,
+      path: '/socket.io',
       cors: {
         origin: '*',
         credentials: true,

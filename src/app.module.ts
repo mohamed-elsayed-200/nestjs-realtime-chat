@@ -12,6 +12,7 @@ import {
 } from 'nestjs-i18n';
 import * as path from 'path';
 import { UsersModule } from './modules/users/users.module';
+import { SocketModule } from './modules/socket/socket.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { UsersModule } from './modules/users/users.module';
     }),
     AdminModule,
     UsersModule,
+    SocketModule,
   ],
   controllers: [AppController],
   providers: [I18nValidationExceptionFilter],
