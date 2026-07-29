@@ -183,3 +183,30 @@ export enum SpaceHistory {
   VISIBLE = 'visible',
   HIDDEN = 'hidden',
 }
+
+export enum SocketEvents {
+  // Messages
+  MESSAGE_SEND = 'message:send',
+  MESSAGE_SENT = 'message:sent',
+  MESSAGE_NEW = 'message:new',
+  MESSAGE_DELETE = 'message:delete',
+  MESSAGE_DELETED = 'message:deleted',
+  MESSAGE_EDIT = 'message:edit',
+  MESSAGE_EDITED = 'message:edited',
+  MESSAGE_TYPING = 'message:typing',
+  MESSAGE_FORWARD = 'message:forward',
+  MESSAGE_PIN = 'message:pin',
+  MESSAGE_PINNED = 'message:pinned',
+
+  // Channel
+  SPACE_JOIN = 'space:join',
+  SPACE_JOINED = 'space:joined',
+  SPACE_LEAVE = 'space:leave',
+  SPACE_LEFT = 'space:left',
+  SPACE_INFO_UPDATE = 'space:info-update',
+  SPACE_INFO_UPDATED = 'space:info-updated',
+
+  // Presence
+  USER_ONLINE = 'user:online',
+  USER_OFFLINE = 'user:offline',
+}

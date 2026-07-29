@@ -1,13 +1,12 @@
 import { IsArray, IsMongoId, IsNotEmpty } from 'class-validator';
-import { Types } from 'mongoose';
 
 export class ForwardMessageDto {
   @IsArray()
   @IsMongoId({ each: true })
   @IsNotEmpty()
-  messageIds: Types.ObjectId[];
+  messages: string[];
 
   @IsMongoId()
   @IsNotEmpty()
-  targetSpaceId: Types.ObjectId;
+  targetSpace: string;
 }

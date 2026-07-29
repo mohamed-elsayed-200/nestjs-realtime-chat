@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { SpacesService } from './spaces.service';
 import { SpacesController } from './spaces.controller';
-import { SpacesGateway } from './spaces.gateway';
 import { BaseAuthModule } from '../../../../common/modules/auth/auth.module';
 import { BaseSpaceModule } from '../../../../common/modules/platform/spaces/spaces.module';
 import { BaseMemberModule } from '../../../../common/modules/platform/members/members.module';
@@ -19,7 +18,7 @@ import { BaseJoinRequests } from '../../../../common/modules/platform/join-reque
     BaseJoinRequests,
   ],
   controllers: [SpacesController],
-  providers: [SpacesService, SpacesGateway],
-  exports: [SpacesService, SpacesGateway],
+  providers: [SpacesService],
+  exports: [SpacesService],
 })
 export class SpacesModule {}

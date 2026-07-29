@@ -12,7 +12,7 @@ import {
 import { Types } from 'mongoose';
 import { MessageStatus, MessageType } from '../../../../../common/types/enums';
 
-export class CreateMessageDto {
+export class SendMessageDto {
   @IsNotEmpty()
   @IsMongoId()
   space: string;

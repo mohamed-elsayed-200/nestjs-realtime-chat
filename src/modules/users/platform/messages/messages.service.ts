@@ -389,11 +389,11 @@ export class MessagesService {
     };
   }
 
-  public async update({ messageId, dto, authUser }) {
+  public async update({ dto, authUser }) {
     const senderId = new Types.ObjectId(authUser?._id);
 
     const existingMessage = await this.messagesRepository.findOne({
-      query: { _id: messageId, sender: senderId },
+      query: { _id: dto?.message, sender: senderId },
     });
     if (!existingMessage) throw new NotFoundException('messages.notFound');
 
@@ -407,7 +407,7 @@ export class MessagesService {
     const isPrivate = space.type === SpaceTypes.PRIVATE;
 
     const message = await this.messagesRepository.updateOne({
-      query: { _id: messageId, sender: senderId },
+      query: { _id: dto?.message, sender: senderId },
       dto: { ...dto, isEdited: true },
     });
     if (!message) throw new NotFoundException('messages.notUpdated');
@@ -433,9 +433,8 @@ export class MessagesService {
   }
 
   public async delete({ dto, authUser }) {
-    const { messageIds, spaceId, everybody } = dto;
     const userObjectId = new Types.ObjectId(authUser?._id);
-    const spaceObjectId = new Types.ObjectId(spaceId);
+    const spaceObjectId = new Types.ObjectId(dto?.space);
 
     // 1. Get space
     const space = await this.spacesRepository.findOne({
@@ -468,7 +467,7 @@ export class MessagesService {
     // 4. Find messages
     const messages = await this.messagesRepository.findMany({
       query: {
-        _id: { $in: messageIds },
+        _id: { $in: dto?.messages },
         space: spaceObjectId,
         // FIX: If not owner/admin, only fetch user's own messages
         ...(!canDeleteAny && { sender: userObjectId }),
@@ -497,7 +496,7 @@ export class MessagesService {
     // FIX: In group/channel, sender can delete their own messages
     // deleteForAll = true only for owner/admin or sender deleting their own
     const deleteForAll = isPrivate
-      ? everybody && isSenderOfAll
+      ? dto?.everybody && isSenderOfAll
       : canDeleteAny || isSenderOfAll;
 
     if (deleteForAll && !isPrivate && !canDeleteAny && !isSenderOfAll) {
@@ -673,7 +672,7 @@ export class MessagesService {
       },
     });
 
-    return;
+    return forwardedMessages;
   }
 
   public async pin({ dto, authUser }) {
@@ -741,6 +740,9 @@ export class MessagesService {
       query: { space: spaceObjectId },
       dto: { $inc: { unreadCount: 1 } },
     });
-    return;
+    return {
+      systemMessage: lastMessage,
+      pinnedIds: messageIdsArray,
+    };
   }
 }

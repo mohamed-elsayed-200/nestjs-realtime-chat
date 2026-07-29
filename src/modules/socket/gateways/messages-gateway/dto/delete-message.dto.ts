@@ -11,11 +11,11 @@ export class DeleteMessageDto {
   @IsArray()
   @IsMongoId({ each: true })
   @IsNotEmpty()
-  messageIds: Types.ObjectId[];
+  messages: Types.ObjectId[];
 
   @IsMongoId()
   @IsNotEmpty()
-  spaceId: string;
+  space: string;
 
   @IsBoolean()
   @IsOptional()

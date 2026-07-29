@@ -4,6 +4,6 @@ import { Controller, Get } from '@nestjs/common';
 export class AppController {
   @Get()
   getHello(): string {
-    return '👋 Welcome to Eduvia App';
+    return '👋 Welcome to volix';
   }
 }

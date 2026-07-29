@@ -5,11 +5,11 @@ export class PinMessageDto {
   @IsArray()
   @IsMongoId({ each: true })
   @IsNotEmpty()
-  messages: Types.ObjectId[];
+  messages: string[];
 
   @IsMongoId()
   @IsNotEmpty()
-  space: Types.ObjectId;
+  space: string;
 
   @IsBoolean()
   @IsNotEmpty()

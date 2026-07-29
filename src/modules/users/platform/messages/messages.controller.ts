@@ -1,15 +1,4 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Param,
-  Post,
-  Put,
-  Query,
-  UseGuards,
-} from '@nestjs/common';
-import { CreateMessageDto } from './dto/create-message.dto';
+import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
 import { MessagesService } from './messages.service';
 import { AuthGuard } from '../../../../common/guards/auth.guard';
 import { ResponseMeta } from '../../../../common/decorators/response.decorator';
@@ -18,11 +7,7 @@ import { UserTypeGuard } from '../../../../common/guards/user-type.guard';
 import { UserType } from '../../../../common/types/enums';
 import { UserTypes } from '../../../../common/decorators/user-type.decorator';
 import { QueryDto } from '../../../../common/modules/dto/query.dto';
-import { UpdateMessageDto } from './dto/update-message.dto';
 import { GetUser } from '../../../../common/decorators/get-user.decorator';
-import { ForwardMessageDto } from './dto/forward-message.dto';
-import { DeleteMessageDto } from './dto/delete-messages.dto';
-import { PinMessageDto } from './dto/pin-message.dto';
 
 @Controller('/users/messages')
 @UseGuards(AuthGuard, UserTypeGuard)
@@ -37,42 +22,5 @@ export class MessagesController {
     @Query() query: QueryDto,
   ) {
     return this.messagesService.getAll({ query, spaceId, authUser });
-  }
-
-  @Post()
-  @ResponseMeta({ message: 'messages.created', statusCode: 201 })
-  public async create(@Body() dto: CreateMessageDto, @GetUser() authUser: any) {
-    return this.messagesService.create({ dto, authUser });
-  }
-
-  @Post('forward')
-  @ResponseMeta({ message: 'messages.forwarded', statusCode: 200 })
-  public async forwardMessages(
-    @Body() dto: ForwardMessageDto,
-    @GetUser() authUser: any,
-  ) {
-    return this.messagesService.forward({ dto, authUser });
-  }
-
-  @Post('/pin')
-  @ResponseMeta({ message: 'messages.updated', statusCode: 200 })
-  public async pin(@Body() dto: PinMessageDto, @GetUser() authUser: any) {
-    return this.messagesService.pin({ dto, authUser });
-  }
-
-  @Put('/:messageId')
-  @ResponseMeta({ message: 'messages.updated' })
-  public async update(
-    @Param('messageId', ValidateObjectIdPipe) messageId: string,
-    @Body() dto: UpdateMessageDto,
-    @GetUser() authUser: any,
-  ) {
-    return this.messagesService.update({ messageId, dto, authUser });
-  }
-
-  @Delete()
-  @ResponseMeta({ message: 'messages.deleted' })
-  public async delete(@GetUser() authUser: any, @Body() dto: DeleteMessageDto) {
-    return this.messagesService.delete({ dto, authUser });
   }
 }

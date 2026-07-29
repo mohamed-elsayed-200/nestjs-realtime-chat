@@ -7,11 +7,10 @@ import { ResInterceptor } from './common/interceptors/response.interceptor';
 import { Response } from 'express';
 import helmet from 'helmet';
 const cookieParser = require('cookie-parser');
-import { IoAdapter } from '@nestjs/platform-socket.io';
+import { SocketIoAdapter } from './modules/socket/adapters/socket-io.adapter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  app.useWebSocketAdapter(new IoAdapter(app));
 
   app.use(helmet());
   app.setGlobalPrefix('api');
@@ -44,6 +43,8 @@ async function bootstrap() {
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     allowedHeaders: ['Content-Type', 'Authorization', 'x-lang'],
   });
+
+  app.useWebSocketAdapter(new SocketIoAdapter(app));
 
   app.getHttpAdapter().get('/', (req: Request, res: Response) => {
     res.redirect('/api');
