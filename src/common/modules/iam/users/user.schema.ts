@@ -63,11 +63,15 @@ export class User {
 
   @Prop()
   bio: string;
+
+  @Prop({ type: Date, default: null })
+  lastSeenAt: Date;
 }
 export const UserSchema = SchemaFactory.createForClass(User);
 UserSchema.index({ email: 1 });
 UserSchema.index({ username: 1 });
 UserSchema.index({ userType: 1 });
+UserSchema.index({ lastSeenAt: 1 });
 
 UserSchema.set('toJSON', {
   virtuals: true,

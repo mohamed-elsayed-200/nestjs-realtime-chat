@@ -16,6 +16,7 @@ export class SocketIoAdapter extends IoAdapter {
     const server = super.createIOServer(port, {
       ...options,
       cors: { origin: '*', credentials: true },
+      transports: ['websocket', 'polling'],
     });
 
     const jwtService = this.app.get(JwtService);

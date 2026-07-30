@@ -3,7 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import * as bcrypt from 'bcrypt';
 import { UserType } from '../../../types/enums';
-import { FindOneProps } from '../../../types/interfaces';
+import { FindManyProps, FindOneProps } from '../../../types/interfaces';
 import { aggregateQuery } from '../../data-access/aggregate-query';
 import { User, UserDocument } from './user.schema';
 
@@ -19,6 +19,15 @@ export class UsersRepository {
         ...options,
       },
     });
+  }
+
+  public async findMany({ query, sort, select }: FindManyProps) {
+    if (query?.space) query.space = new Types.ObjectId(query.space);
+    if (query?.user) query.user = new Types.ObjectId(query.user);
+    let base = this.userModel.find(query);
+    if (sort) base.sort(sort);
+    if (select) base.select(select);
+    return await base.lean().exec();
   }
 
   public async findStatics({ pipelines }) {

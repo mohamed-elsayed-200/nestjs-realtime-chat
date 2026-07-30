@@ -48,10 +48,10 @@ export function createWsAuthMiddleware(
       if (!user) {
         return next(new Error('Unauthorized: user not found'));
       }
+      console.log('userId', userId);
 
       socket.data.userId = userId.toString();
       socket.data.sessionId = session._id?.toString();
-      socket.data.user = user;
 
       next();
     } catch (err: any) {

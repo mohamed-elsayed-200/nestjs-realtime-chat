@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { SocketServerRegistry } from './socket-server.registry';
-import { RoomNames } from '../../../common/utils/room-names';
-import { SocketEvents } from '../../../common/types/enums';
+import { RoomNames } from 'src/common/utils/room-names';
+import { SocketEvents } from 'src/common/types/enums';
 
 @Injectable()
 export class SocketEmitterService {
@@ -17,5 +17,9 @@ export class SocketEmitterService {
 
   emitToSpace(spaceId: string, event: SocketEvents, payload: unknown) {
     this.server.to(RoomNames.space(spaceId)).emit(event, payload);
+  }
+
+  emitToCommunity(communityId: string, event: SocketEvents, payload: unknown) {
+    this.server.to(RoomNames.community(communityId)).emit(event, payload);
   }
 }
