@@ -22,7 +22,8 @@ export class PresenceGateway
 {
   @WebSocketServer() server: Server;
 
-  private userSockets = new Map<string, Set<string>>();
+  private sessionConnections = new Map<string, Set<string>>();
+  private userSessions = new Map<string, Set<string>>();
 
   constructor(
     private readonly registry: SocketServerRegistry,
@@ -35,26 +36,42 @@ export class PresenceGateway
     this.registry.setServer(server);
   }
 
+  private getSessionKey(userId: string, sessionId: string): string {
+    return `${userId}:${sessionId}`;
+  }
+
   async handleConnection(@ConnectedSocket() client: Socket) {
     const userId = client.data.userId as string;
-    if (!userId) {
+    const sessionId = client.data.sessionId as string;
+
+    if (!userId || !sessionId) {
       client.disconnect();
       return;
     }
 
-    client.join(RoomNames.user(userId));
+    const sessionKey = this.getSessionKey(userId, sessionId);
+    console.log(`🟢 User connected: ${userId}, session: ${sessionId}`);
 
-    const sockets = this.userSockets.get(userId) ?? new Set<string>();
-    const isFirstConnection = sockets.size === 0;
-    sockets.add(client.id);
-    this.userSockets.set(userId, sockets);
+    client.join(RoomNames.user(userId));
+    client.join(RoomNames.session(sessionKey));
+
+    const sessionSockets =
+      this.sessionConnections.get(sessionKey) ?? new Set<string>();
+    const isFirstConnectionInSession = sessionSockets.size === 0;
+    sessionSockets.add(client.id);
+    this.sessionConnections.set(sessionKey, sessionSockets);
+
+    const userSessionSet = this.userSessions.get(userId) ?? new Set<string>();
+    const isNewSession = !userSessionSet.has(sessionKey);
+    userSessionSet.add(sessionKey);
+    this.userSessions.set(userId, userSessionSet);
 
     const memberships = await this.membersRepository.findMany({
       query: { user: userId, isDeleted: false },
       select: 'space',
     });
 
-    if (!this.userSockets.get(userId)?.has(client.id)) {
+    if (!this.sessionConnections.get(sessionKey)?.has(client.id)) {
       return;
     }
 
@@ -79,58 +96,131 @@ export class PresenceGateway
     });
 
     client.data.spaceIds = spaceIds;
+    client.data.sessionKey = sessionKey;
 
-    if (isFirstConnection) {
-      spaceIds.forEach((spaceId) => {
-        this.socketEmitter.emitToSpace(spaceId, SocketEvents.USER_ONLINE, {
-          userId,
-          spaceId,
+    if (isFirstConnectionInSession) {
+      if (isNewSession) {
+        console.log(`🟢 First session for user ${userId}, broadcasting ONLINE`);
+
+        spaceIds.forEach((spaceId) => {
+          this.socketEmitter.emitToSpace(spaceId, SocketEvents.USER_ONLINE, {
+            userId,
+            sessionId,
+            spaceId,
+          });
         });
-      });
+      } else {
+        console.log(
+          `🟢 New session for user ${userId}, notifying only the user`,
+        );
+
+        this.socketEmitter.emitToUser(userId, SocketEvents.USER_ONLINE, {
+          userId,
+          sessionId,
+          isSelf: true,
+        });
+      }
     }
   }
 
   async handleDisconnect(@ConnectedSocket() client: Socket) {
     const userId = client.data.userId as string;
-    if (!userId) return;
+    const sessionKey = client.data.sessionKey as string;
 
-    const spaceIds = (client.data.spaceIds as string[]) ?? [];
-    const sockets = this.userSockets.get(userId);
-
-    if (!sockets) return;
-
-    sockets.delete(client.id);
-
-    if (sockets.size > 0) {
+    if (!userId || !sessionKey) {
+      console.log('⚠️ Disconnect: missing userId or sessionKey');
       return;
     }
 
-    this.userSockets.delete(userId);
+    console.log(`🔴 User disconnected: ${userId}, session: ${sessionKey}`);
 
-    const lastSeenAt = new Date();
-    await this.usersRepository.updateOne({
-      query: { _id: userId },
-      dto: { lastSeenAt },
-    });
+    const spaceIds = (client.data.spaceIds as string[]) ?? [];
+    const sessionSockets = this.sessionConnections.get(sessionKey);
 
-    spaceIds.forEach((spaceId) => {
-      this.socketEmitter.emitToSpace(spaceId, SocketEvents.USER_OFFLINE, {
-        userId,
-        spaceId,
-        lastSeenAt: lastSeenAt.toISOString(),
+    if (!sessionSockets) {
+      console.log(`⚠️ No session found for ${sessionKey}`);
+      return;
+    }
+
+    sessionSockets.delete(client.id);
+
+    if (sessionSockets.size > 0) {
+      console.log(
+        `📊 Session ${sessionKey} has ${sessionSockets.size} remaining connections`,
+      );
+      return;
+    }
+
+    this.sessionConnections.delete(sessionKey);
+
+    const userSessionSet = this.userSessions.get(userId);
+    if (userSessionSet) {
+      userSessionSet.delete(sessionKey);
+
+      if (userSessionSet.size > 0) {
+        console.log(
+          `📊 User ${userId} has ${userSessionSet.size} other sessions`,
+        );
+        return;
+      }
+
+      this.userSessions.delete(userId);
+
+      const lastSeenAt = new Date();
+      await this.usersRepository.updateOne({
+        query: { _id: userId },
+        dto: { lastSeenAt },
       });
-    });
+
+      console.log(`📊 User ${userId} offline completely`);
+
+      spaceIds.forEach((spaceId) => {
+        this.socketEmitter.emitToSpace(spaceId, SocketEvents.USER_OFFLINE, {
+          userId,
+          sessionId: sessionKey.split(':')[1],
+          spaceId,
+          lastSeenAt: lastSeenAt.toISOString(),
+        });
+      });
+    }
   }
 
   @SubscribeMessage(SocketEvents.USER_LOGOUT)
   async handleLogout(@ConnectedSocket() client: Socket) {
     const userId = client.data.userId as string;
-    if (!userId) return { success: false, error: 'Unauthorized' };
+    const sessionKey = client.data.sessionKey as string;
+
+    if (!userId || !sessionKey) {
+      return { success: false, error: 'Unauthorized' };
+    }
+
+    console.log(`🚪 User logout: ${userId}, session: ${sessionKey}`);
 
     const spaceIds = (client.data.spaceIds as string[]) ?? [];
-    const socketIds = this.userSockets.get(userId);
+    const sessionId = sessionKey.split(':')[1];
 
-    this.userSockets.delete(userId);
+    this.sessionConnections.delete(sessionKey);
+
+    const userSessionSet = this.userSessions.get(userId);
+    if (userSessionSet) {
+      userSessionSet.delete(sessionKey);
+
+      if (userSessionSet.size > 0) {
+        console.log(
+          `📊 User ${userId} has ${userSessionSet.size} other sessions`,
+        );
+
+        this.socketEmitter.emitToUser(userId, SocketEvents.USER_OFFLINE, {
+          userId,
+          sessionId,
+          isSelf: true,
+        });
+
+        return { success: true };
+      }
+
+      this.userSessions.delete(userId);
+    }
 
     const lastSeenAt = new Date();
     await this.usersRepository.updateOne({
@@ -141,16 +231,23 @@ export class PresenceGateway
     spaceIds.forEach((spaceId) => {
       this.socketEmitter.emitToSpace(spaceId, SocketEvents.USER_OFFLINE, {
         userId,
+        sessionId,
         spaceId,
         lastSeenAt: lastSeenAt.toISOString(),
       });
     });
 
-    if (socketIds) {
-      socketIds.forEach((socketId) => {
-        if (socketId === client.id) return;
-        const socket = this.server.sockets.sockets.get(socketId);
-        if (socket) socket.disconnect(true);
+    if (userSessionSet) {
+      const remainingSessions = Array.from(userSessionSet);
+      remainingSessions.forEach((otherSessionKey) => {
+        const otherSockets = this.sessionConnections.get(otherSessionKey);
+        if (otherSockets) {
+          otherSockets.forEach((socketId) => {
+            const socket = this.server.sockets.sockets.get(socketId);
+            if (socket) socket.disconnect(true);
+          });
+          this.sessionConnections.delete(otherSessionKey);
+        }
       });
     }
 
@@ -161,7 +258,11 @@ export class PresenceGateway
   async onGetOnlineUsers(@MessageBody() dto: { userIds: string[] }) {
     const requestedIds = dto?.userIds ?? [];
 
-    const onlineUserIds = requestedIds.filter((id) => this.userSockets.has(id));
+    const onlineUserIds = requestedIds.filter((id) => {
+      const sessions = this.userSessions.get(id);
+      return sessions && sessions.size > 0;
+    });
+
     const onlineSet = new Set(onlineUserIds);
     const offlineIds = requestedIds.filter((id) => !onlineSet.has(id));
 
@@ -180,5 +281,16 @@ export class PresenceGateway
     }
 
     return { success: true, onlineUserIds, lastSeenMap };
+  }
+
+  @SubscribeMessage(SocketEvents.PRESENCE_ONLINE_SESSIONS)
+  async getUserSessions(@MessageBody() dto: { userId: string }) {
+    const sessions = this.userSessions.get(dto.userId);
+    return {
+      success: true,
+      userId: dto.userId,
+      sessionCount: sessions ? sessions.size : 0,
+      sessions: sessions ? Array.from(sessions) : [],
+    };
   }
 }

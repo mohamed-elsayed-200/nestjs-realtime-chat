@@ -208,6 +208,7 @@ export enum SocketEvents {
 
   // Presence
   PRESENCE_ONLINE_USERS = 'presence:online-users',
+  PRESENCE_ONLINE_SESSIONS = 'presence:online-sessions',
   USER_ONLINE = 'user:online',
   USER_OFFLINE = 'user:offline',
   USER_LOGOUT = 'user:logout',

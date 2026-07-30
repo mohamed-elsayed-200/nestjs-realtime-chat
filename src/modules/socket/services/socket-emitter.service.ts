@@ -11,15 +11,32 @@ export class SocketEmitterService {
     return this.registry.getServer();
   }
 
+  // 🔥 إرسال لمستخدم معين (جميع الـ sessions بتاعته)
   emitToUser(userId: string, event: SocketEvents, payload: unknown) {
-    this.server.to(RoomNames.user(userId)).emit(event, payload);
+    const room = RoomNames.user(userId);
+    this.server.to(room).emit(event, payload);
   }
 
+  // 🔥 إرسال لـ session معين فقط
+  emitToSession(sessionKey: string, event: SocketEvents, payload: unknown) {
+    const room = RoomNames.session(sessionKey);
+    this.server.to(room).emit(event, payload);
+  }
+
+  // 🔥 إرسال لـ space معين
   emitToSpace(spaceId: string, event: SocketEvents, payload: unknown) {
-    this.server.to(RoomNames.space(spaceId)).emit(event, payload);
+    const room = RoomNames.space(spaceId);
+    this.server.to(room).emit(event, payload);
   }
 
+  // 🔥 إرسال لـ community معين
   emitToCommunity(communityId: string, event: SocketEvents, payload: unknown) {
-    this.server.to(RoomNames.community(communityId)).emit(event, payload);
+    const room = RoomNames.community(communityId);
+    this.server.to(room).emit(event, payload);
+  }
+
+  // 🔥 إرسال للكل
+  emitToAll(event: SocketEvents, payload: unknown) {
+    this.server.emit(event, payload);
   }
 }
