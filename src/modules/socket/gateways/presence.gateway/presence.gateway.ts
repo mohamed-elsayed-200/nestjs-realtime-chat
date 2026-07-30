@@ -22,9 +22,6 @@ export class PresenceGateway
 {
   @WebSocketServer() server: Server;
 
-  // Track live socket ids per user instead of a plain counter.
-  // A counter can't tell "never connected" apart from "just went to zero",
-  // which is what caused the online/offline race in the previous version.
   private userSockets = new Map<string, Set<string>>();
 
   constructor(
@@ -47,11 +44,6 @@ export class PresenceGateway
 
     client.join(RoomNames.user(userId));
 
-    // Register this socket immediately (synchronously), BEFORE any await.
-    // This closes the race window: if a disconnect fires while the DB
-    // lookup below is still pending, handleDisconnect will already see
-    // this socket id in the set and can correctly remove it, rather than
-    // finding "no entry" and guessing.
     const sockets = this.userSockets.get(userId) ?? new Set<string>();
     const isFirstConnection = sockets.size === 0;
     sockets.add(client.id);
@@ -62,8 +54,6 @@ export class PresenceGateway
       select: 'space',
     });
 
-    // The socket may have disconnected while we were awaiting the query above.
-    // If so, don't join rooms or announce presence for a socket that's already gone.
     if (!this.userSockets.get(userId)?.has(client.id)) {
       return;
     }
@@ -112,7 +102,6 @@ export class PresenceGateway
     sockets.delete(client.id);
 
     if (sockets.size > 0) {
-      // user still has other active tabs/devices — stay online
       return;
     }
 
@@ -124,9 +113,30 @@ export class PresenceGateway
       dto: { lastSeenAt },
     });
 
-    // If the user reconnected (e.g. new tab) while we were awaiting the
-    // write above, don't announce them offline — they're back online.
-    if (this.userSockets.has(userId)) return;
+    spaceIds.forEach((spaceId) => {
+      this.socketEmitter.emitToSpace(spaceId, SocketEvents.USER_OFFLINE, {
+        userId,
+        spaceId,
+        lastSeenAt: lastSeenAt.toISOString(),
+      });
+    });
+  }
+
+  @SubscribeMessage(SocketEvents.USER_LOGOUT)
+  async handleLogout(@ConnectedSocket() client: Socket) {
+    const userId = client.data.userId as string;
+    if (!userId) return { success: false, error: 'Unauthorized' };
+
+    const spaceIds = (client.data.spaceIds as string[]) ?? [];
+    const socketIds = this.userSockets.get(userId);
+
+    this.userSockets.delete(userId);
+
+    const lastSeenAt = new Date();
+    await this.usersRepository.updateOne({
+      query: { _id: userId },
+      dto: { lastSeenAt },
+    });
 
     spaceIds.forEach((spaceId) => {
       this.socketEmitter.emitToSpace(spaceId, SocketEvents.USER_OFFLINE, {
@@ -135,6 +145,16 @@ export class PresenceGateway
         lastSeenAt: lastSeenAt.toISOString(),
       });
     });
+
+    if (socketIds) {
+      socketIds.forEach((socketId) => {
+        if (socketId === client.id) return;
+        const socket = this.server.sockets.sockets.get(socketId);
+        if (socket) socket.disconnect(true);
+      });
+    }
+
+    return { success: true };
   }
 
   @SubscribeMessage(SocketEvents.PRESENCE_ONLINE_USERS)
