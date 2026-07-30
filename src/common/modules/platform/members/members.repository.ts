@@ -28,6 +28,8 @@ export class MembersRepository {
     });
   }
   public async findMany({ query, sort, select }: FindManyProps) {
+    if (query?.space) query.space = new Types.ObjectId(query.space);
+    if (query?.user) query.user = new Types.ObjectId(query.user);
     let base = this.memberModel.find(query);
     if (sort) base.sort(sort);
     if (select) base.select(select);

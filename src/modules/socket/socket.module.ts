@@ -1,7 +1,7 @@
 import { Module, Global } from '@nestjs/common';
 import { MessagesGateway } from './gateways/messages-gateway/messages.gateway';
 import { SpacesGateway } from './gateways/spaces.gateway';
-import { PresenceGateway } from './gateways/presence.gateway';
+import { PresenceGateway } from './gateways/presence.gateway/presence.gateway';
 import { SocketEmitterService } from './services/socket-emitter.service';
 import { SocketServerRegistry } from './services/socket-server.registry';
 import { MessagesModule } from '../users/platform/messages/messages.module';

@@ -207,6 +207,7 @@ export enum SocketEvents {
   SPACE_INFO_UPDATED = 'space:info-updated',
 
   // Presence
+  PRESENCE_ONLINE_USERS = 'presence:online-users',
   USER_ONLINE = 'user:online',
   USER_OFFLINE = 'user:offline',
 }

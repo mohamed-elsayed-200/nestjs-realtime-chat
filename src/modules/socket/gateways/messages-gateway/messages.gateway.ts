@@ -6,8 +6,8 @@ import {
 } from '@nestjs/websockets';
 import { Socket } from 'socket.io';
 import { SocketEmitterService } from '../../services/socket-emitter.service';
-import { MessagesService } from 'src/modules/users/platform/messages/messages.service';
-import { SocketEvents } from 'src/common/types/enums';
+import { MessagesService } from '../../../../modules/users/platform/messages/messages.service';
+import { SocketEvents } from '../../../../common/types/enums';
 import { SendMessageDto } from './dto/send-message.dto';
 import { UpdateMessageDto } from './dto/update-message.dto';
 import { DeleteMessageDto } from './dto/delete-message.dto';

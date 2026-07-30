@@ -6,9 +6,9 @@ import {
 } from '@nestjs/websockets';
 import { Socket } from 'socket.io';
 import { SocketEmitterService } from '../services/socket-emitter.service';
-import { SpacesService } from 'src/modules/users/platform/spaces/spaces.service';
-import { SocketEvents } from 'src/common/types/enums';
-import { RoomNames } from 'src/common/utils/room-names';
+import { SpacesService } from '../../../modules/users/platform/spaces/spaces.service';
+import { SocketEvents } from '../../../common/types/enums';
+import { RoomNames } from '../../../common/utils/room-names';
 
 interface JoinLeaveSocketDto {
   spaceId: string;
