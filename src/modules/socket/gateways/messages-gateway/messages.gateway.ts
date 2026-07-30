@@ -27,18 +27,14 @@ export class MessagesGateway {
     @ConnectedSocket() client: Socket,
     @MessageBody() dto: SendMessageDto,
   ) {
-    const userId = client.data.userId as string;
+    const authUser = client.data.user as string;
     try {
       const message = await this.messagesService.create({
         dto,
-        authUser: { _id: userId },
+        authUser,
       });
 
-      this.socketEmitter.emitToSpace(
-        dto.space,
-        SocketEvents.MESSAGE_NEW,
-        message,
-      );
+      client.to(`space:${dto.space}`).emit(SocketEvents.MESSAGE_NEW, message);
 
       return { success: true, message };
     } catch (err: any) {

@@ -385,7 +385,13 @@ export class MessagesService {
 
     return {
       ...message.toObject(),
-      isOutgoing: true,
+      sender: {
+        _id: authUser?._id,
+        name: authUser?.name,
+        username: authUser?.username,
+        avatar: authUser?.avatar,
+        profileColor: authUser?.profileColor,
+      },
     };
   }
 
