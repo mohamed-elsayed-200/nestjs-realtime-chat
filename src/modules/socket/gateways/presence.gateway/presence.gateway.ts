@@ -6,6 +6,7 @@ import {
   OnGatewayDisconnect,
   SubscribeMessage,
   MessageBody,
+  ConnectedSocket,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { SocketServerRegistry } from '../../services/socket-server.registry';
@@ -20,7 +21,11 @@ export class PresenceGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
 {
   @WebSocketServer() server: Server;
-  private onlineConnectionsCount = new Map<string, number>();
+
+  // Track live socket ids per user instead of a plain counter.
+  // A counter can't tell "never connected" apart from "just went to zero",
+  // which is what caused the online/offline race in the previous version.
+  private userSockets = new Map<string, Set<string>>();
 
   constructor(
     private readonly registry: SocketServerRegistry,
@@ -33,7 +38,7 @@ export class PresenceGateway
     this.registry.setServer(server);
   }
 
-  async handleConnection(client: Socket) {
+  async handleConnection(@ConnectedSocket() client: Socket) {
     const userId = client.data.userId as string;
     if (!userId) {
       client.disconnect();
@@ -42,10 +47,26 @@ export class PresenceGateway
 
     client.join(RoomNames.user(userId));
 
+    // Register this socket immediately (synchronously), BEFORE any await.
+    // This closes the race window: if a disconnect fires while the DB
+    // lookup below is still pending, handleDisconnect will already see
+    // this socket id in the set and can correctly remove it, rather than
+    // finding "no entry" and guessing.
+    const sockets = this.userSockets.get(userId) ?? new Set<string>();
+    const isFirstConnection = sockets.size === 0;
+    sockets.add(client.id);
+    this.userSockets.set(userId, sockets);
+
     const memberships = await this.membersRepository.findMany({
       query: { user: userId, isDeleted: false },
       select: 'space',
     });
+
+    // The socket may have disconnected while we were awaiting the query above.
+    // If so, don't join rooms or announce presence for a socket that's already gone.
+    if (!this.userSockets.get(userId)?.has(client.id)) {
+      return;
+    }
 
     const spaceIds: string[] = [];
 
@@ -69,10 +90,7 @@ export class PresenceGateway
 
     client.data.spaceIds = spaceIds;
 
-    const count = (this.onlineConnectionsCount.get(userId) ?? 0) + 1;
-    this.onlineConnectionsCount.set(userId, count);
-
-    if (count === 1) {
+    if (isFirstConnection) {
       spaceIds.forEach((spaceId) => {
         this.socketEmitter.emitToSpace(spaceId, SocketEvents.USER_ONLINE, {
           userId,
@@ -82,43 +100,51 @@ export class PresenceGateway
     }
   }
 
-  async handleDisconnect(client: Socket) {
+  async handleDisconnect(@ConnectedSocket() client: Socket) {
     const userId = client.data.userId as string;
-    const spaceIds = (client.data.spaceIds as string[]) ?? [];
-
     if (!userId) return;
 
-    const count = (this.onlineConnectionsCount.get(userId) ?? 1) - 1;
+    const spaceIds = (client.data.spaceIds as string[]) ?? [];
+    const sockets = this.userSockets.get(userId);
 
-    if (count <= 0) {
-      this.onlineConnectionsCount.delete(userId);
+    if (!sockets) return;
 
-      const lastSeenAt = new Date();
-      await this.usersRepository.updateOne({
-        query: { _id: userId },
-        dto: { lastSeenAt },
-      });
+    sockets.delete(client.id);
 
-      spaceIds.forEach((spaceId) => {
-        this.socketEmitter.emitToSpace(spaceId, SocketEvents.USER_OFFLINE, {
-          userId,
-          spaceId,
-          lastSeenAt: lastSeenAt.toISOString(),
-        });
-      });
-    } else {
-      this.onlineConnectionsCount.set(userId, count);
+    if (sockets.size > 0) {
+      // user still has other active tabs/devices — stay online
+      return;
     }
+
+    this.userSockets.delete(userId);
+
+    const lastSeenAt = new Date();
+    await this.usersRepository.updateOne({
+      query: { _id: userId },
+      dto: { lastSeenAt },
+    });
+
+    // If the user reconnected (e.g. new tab) while we were awaiting the
+    // write above, don't announce them offline — they're back online.
+    if (this.userSockets.has(userId)) return;
+
+    spaceIds.forEach((spaceId) => {
+      this.socketEmitter.emitToSpace(spaceId, SocketEvents.USER_OFFLINE, {
+        userId,
+        spaceId,
+        lastSeenAt: lastSeenAt.toISOString(),
+      });
+    });
   }
+
   @SubscribeMessage(SocketEvents.PRESENCE_ONLINE_USERS)
   async onGetOnlineUsers(@MessageBody() dto: { userIds: string[] }) {
     const requestedIds = dto?.userIds ?? [];
 
-    const onlineUserIds = requestedIds.filter((id) =>
-      this.onlineConnectionsCount.has(id),
-    );
+    const onlineUserIds = requestedIds.filter((id) => this.userSockets.has(id));
+    const onlineSet = new Set(onlineUserIds);
+    const offlineIds = requestedIds.filter((id) => !onlineSet.has(id));
 
-    const offlineIds = requestedIds.filter((id) => !onlineUserIds.includes(id));
     const lastSeenMap: Record<string, string | null> = {};
 
     if (offlineIds.length > 0) {
