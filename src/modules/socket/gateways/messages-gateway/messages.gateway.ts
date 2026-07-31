@@ -165,12 +165,15 @@ export class MessagesGateway {
 
   @SubscribeMessage(SocketEvents.MESSAGE_TYPING)
   onTyping(@ConnectedSocket() client: Socket, @MessageBody() dto: TypingDto) {
-    const userId = client.data.userId as string;
+    const user = client.data.user;
 
     client.to(`space:${dto.space}`).emit(SocketEvents.MESSAGE_TYPING, {
-      userId,
-      space: dto.space,
       isTyping: dto.isTyping,
+      spaceId: dto.space,
+      userId: user?.id,
+      name: user?.name || user?.username || 'user',
+      avatar: user?.avatar,
+      profileColor: user?.profileColor,
     });
   }
 }

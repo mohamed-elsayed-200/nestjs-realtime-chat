@@ -206,6 +206,7 @@ export enum SocketEvents {
   SPACE_INFO_UPDATE = 'space:info-update',
   SPACE_INFO_UPDATED = 'space:info-updated',
   SPACE_READ = 'space:read',
+  SPACE_READABLE = 'space:readable',
 
   // Presence
   PRESENCE_ONLINE_USERS = 'presence:online-users',

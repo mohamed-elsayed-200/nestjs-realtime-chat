@@ -34,18 +34,14 @@ export class SpacesGateway {
         authUser: { _id: userId },
       });
 
-      client.to(RoomNames.space(dto.spaceId)).emit(SocketEvents.SPACE_READ, {
+      this.socketEmitter.emitToUser(userId, SocketEvents.SPACE_READABLE, {
         spaceId: dto.spaceId,
-        userId: userId,
+        userId,
         readAt: new Date().toISOString(),
       });
 
       return { success: true };
     } catch (err: any) {
-      client.emit('error', {
-        event: SocketEvents.SPACE_READ,
-        message: err?.message ?? 'Failed to mark space as read',
-      });
       return { success: false, error: err?.message };
     }
   }
