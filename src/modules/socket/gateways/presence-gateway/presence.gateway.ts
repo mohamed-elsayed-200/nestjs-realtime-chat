@@ -11,10 +11,11 @@ import {
 import { Server, Socket } from 'socket.io';
 import { SocketServerRegistry } from '../../services/socket-server.registry';
 import { SocketEmitterService } from '../../services/socket-emitter.service';
-import { MembersRepository } from '../../../../common/modules/platform/members/members.repository';
 import { RoomNames } from '../../../../common/utils/room-names';
-import { SocketEvents, SpaceTypes } from '../../../../common/types/enums';
+import { SocketEvents } from '../../../../common/types/enums';
 import { UsersRepository } from '../../../../common/modules/iam/users/users.repository';
+
+const MAX_WATCH_USERS = parseInt(process.env.MAX_WATCH_USERS || '100', 10);
 
 @WebSocketGateway({ cors: true })
 export class PresenceGateway
@@ -24,11 +25,11 @@ export class PresenceGateway
 
   private sessionConnections = new Map<string, Set<string>>();
   private userSessions = new Map<string, Set<string>>();
+  private userWatchers = new Map<string, Set<string>>();
 
   constructor(
     private readonly registry: SocketServerRegistry,
     private readonly socketEmitter: SocketEmitterService,
-    private readonly membersRepository: MembersRepository,
     private readonly usersRepository: UsersRepository,
   ) {}
 
@@ -38,6 +39,156 @@ export class PresenceGateway
 
   private getSessionKey(userId: string, sessionId: string): string {
     return `${userId}:${sessionId}`;
+  }
+
+  @SubscribeMessage(SocketEvents.PRESENCE_SUBSCRIBE)
+  async handlePresenceSubscribe(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() dto: { userIds: string[] },
+  ) {
+    const currentUserId = client.data.userId as string;
+
+    if (!currentUserId) {
+      return { success: false, error: 'Unauthorized' };
+    }
+
+    const targetUserIds = dto?.userIds ?? [];
+    const uniqueUserIds = [...new Set(targetUserIds)];
+    const validUserIds = uniqueUserIds.filter((id) => id !== currentUserId);
+
+    if (validUserIds.length === 0) {
+      return {
+        success: true,
+        onlineUserIds: [],
+        lastSeenMap: {},
+      };
+    }
+
+    const currentWatched = client.data.watchedUsers?.size || 0;
+    if (currentWatched + validUserIds.length > MAX_WATCH_USERS) {
+      return {
+        success: false,
+        error: `Cannot watch more than ${MAX_WATCH_USERS} users at once`,
+      };
+    }
+
+    const onlineUserIds: string[] = [];
+    const lastSeenMap: Record<string, string | null> = {};
+    const offlineIds: string[] = [];
+
+    for (const userId of validUserIds) {
+      const sessions = this.userSessions.get(userId);
+      const isOnline = sessions && sessions.size > 0;
+
+      if (isOnline) {
+        onlineUserIds.push(userId);
+        lastSeenMap[userId] = null;
+      } else {
+        offlineIds.push(userId);
+        lastSeenMap[userId] = null;
+      }
+    }
+
+    if (offlineIds.length > 0) {
+      const users = await this.usersRepository.findMany({
+        query: { _id: { $in: offlineIds } },
+        select: '_id lastSeenAt',
+      });
+
+      users.forEach((u: any) => {
+        lastSeenMap[u._id.toString()] = u.lastSeenAt
+          ? new Date(u.lastSeenAt).toISOString()
+          : null;
+      });
+    }
+
+    const watchedUsers = client.data.watchedUsers ?? new Set<string>();
+
+    for (const targetUserId of validUserIds) {
+      const watchers = this.userWatchers.get(targetUserId) ?? new Set();
+      watchers.add(currentUserId);
+      this.userWatchers.set(targetUserId, watchers);
+
+      client.join(RoomNames.presenceWatch(targetUserId));
+      watchedUsers.add(targetUserId);
+    }
+
+    client.data.watchedUsers = watchedUsers;
+
+    console.log(
+      `👀 User ${currentUserId} subscribed to ${validUserIds.length} users ` +
+        `(total watching: ${watchedUsers.size})`,
+    );
+
+    return {
+      success: true,
+      onlineUserIds,
+      lastSeenMap,
+    };
+  }
+
+  @SubscribeMessage(SocketEvents.PRESENCE_UNSUBSCRIBE)
+  async handlePresenceUnsubscribe(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() dto: { userIds?: string[] },
+  ) {
+    const currentUserId = client.data.userId as string;
+
+    if (!currentUserId) {
+      return { success: false, error: 'Unauthorized' };
+    }
+
+    const targetUserIds = dto?.userIds ?? [];
+    const watchedUsers = client.data.watchedUsers ?? new Set<string>();
+
+    const userIdsToUnsubscribe: string[] =
+      targetUserIds.length > 0 ? targetUserIds : Array.from(watchedUsers);
+
+    if (userIdsToUnsubscribe.length === 0) {
+      return { success: true };
+    }
+
+    for (const targetUserId of userIdsToUnsubscribe) {
+      const watchers = this.userWatchers.get(targetUserId);
+      if (watchers) {
+        watchers.delete(currentUserId);
+        if (watchers.size === 0) {
+          this.userWatchers.delete(targetUserId);
+        }
+      }
+
+      client.leave(RoomNames.presenceWatch(targetUserId));
+      watchedUsers.delete(targetUserId);
+    }
+
+    client.data.watchedUsers = watchedUsers;
+
+    console.log(
+      `👀 User ${currentUserId} unsubscribed from ${userIdsToUnsubscribe.length} users ` +
+        `(remaining: ${watchedUsers.size})`,
+    );
+
+    return { success: true };
+  }
+
+  private broadcastToWatchers(
+    userId: string,
+    event: SocketEvents,
+    payload: any,
+  ) {
+    const watchers = this.userWatchers.get(userId);
+    if (!watchers || watchers.size === 0) return;
+
+    const watcherArray = Array.from(watchers);
+    watcherArray.forEach((watcherId) => {
+      this.socketEmitter.emitToUser(watcherId, event, payload);
+    });
+
+    if (watcherArray.length > 0) {
+      console.log(
+        `📡 Broadcasted ${event} to ${watcherArray.length} watchers of user ${userId}`,
+      );
+    }
   }
 
   async handleConnection(@ConnectedSocket() client: Socket) {
@@ -66,48 +217,27 @@ export class PresenceGateway
     userSessionSet.add(sessionKey);
     this.userSessions.set(userId, userSessionSet);
 
-    const memberships = await this.membersRepository.findMany({
-      query: { user: userId, isDeleted: false },
-      select: 'space',
-    });
-
-    if (!this.sessionConnections.get(sessionKey)?.has(client.id)) {
-      return;
-    }
-
-    const spaceIds: string[] = [];
-
-    memberships.forEach((m: any) => {
-      const space = m.space;
-      if (!space) return;
-
-      const spaceId = space._id.toString();
-      spaceIds.push(spaceId);
-
-      client.join(RoomNames.space(spaceId));
-
-      if (space.parentSpace) {
-        client.join(RoomNames.community(space.parentSpace.toString()));
-      }
-
-      if (space.type === SpaceTypes.COMMUNITY) {
-        client.join(RoomNames.community(spaceId));
-      }
-    });
-
-    client.data.spaceIds = spaceIds;
     client.data.sessionKey = sessionKey;
+
+    const onlinePayload = {
+      userId,
+      sessionId,
+    };
 
     if (isFirstConnectionInSession) {
       if (isNewSession) {
         console.log(`🟢 First session for user ${userId}, broadcasting ONLINE`);
 
-        spaceIds.forEach((spaceId) => {
-          this.socketEmitter.emitToSpace(spaceId, SocketEvents.USER_ONLINE, {
-            userId,
-            sessionId,
-            spaceId,
-          });
+        this.broadcastToWatchers(userId, SocketEvents.PRESENCE_USER_ONLINE, {
+          userId,
+          sessionId,
+          isOnline: true,
+        });
+
+        this.socketEmitter.emitToUser(userId, SocketEvents.USER_ONLINE, {
+          userId,
+          sessionId,
+          isSelf: true,
         });
       } else {
         console.log(
@@ -134,7 +264,6 @@ export class PresenceGateway
 
     console.log(`🔴 User disconnected: ${userId}, session: ${sessionKey}`);
 
-    const spaceIds = (client.data.spaceIds as string[]) ?? [];
     const sessionSockets = this.sessionConnections.get(sessionKey);
 
     if (!sessionSockets) {
@@ -165,24 +294,33 @@ export class PresenceGateway
       }
 
       this.userSessions.delete(userId);
+    }
 
-      const lastSeenAt = new Date();
-      await this.usersRepository.updateOne({
+    const lastSeenAt = new Date();
+
+    this.usersRepository
+      .updateOne({
         query: { _id: userId },
         dto: { lastSeenAt },
+      })
+      .catch((err) => {
+        console.error(`Failed to update lastSeenAt for ${userId}:`, err);
       });
 
-      console.log(`📊 User ${userId} offline completely`);
+    console.log(`📊 User ${userId} offline completely`);
 
-      spaceIds.forEach((spaceId) => {
-        this.socketEmitter.emitToSpace(spaceId, SocketEvents.USER_OFFLINE, {
-          userId,
-          sessionId: sessionKey.split(':')[1],
-          spaceId,
-          lastSeenAt: lastSeenAt.toISOString(),
-        });
-      });
-    }
+    const offlinePayload = {
+      userId,
+      sessionId: sessionKey.split(':')[1],
+      lastSeenAt: lastSeenAt.toISOString(),
+    };
+
+    this.broadcastToWatchers(userId, SocketEvents.PRESENCE_USER_OFFLINE, {
+      userId,
+      sessionId: sessionKey.split(':')[1],
+      lastSeenAt: lastSeenAt.toISOString(),
+      isOnline: false,
+    });
   }
 
   @SubscribeMessage(SocketEvents.USER_LOGOUT)
@@ -196,7 +334,6 @@ export class PresenceGateway
 
     console.log(`🚪 User logout: ${userId}, session: ${sessionKey}`);
 
-    const spaceIds = (client.data.spaceIds as string[]) ?? [];
     const sessionId = sessionKey.split(':')[1];
 
     this.sessionConnections.delete(sessionKey);
@@ -223,18 +360,27 @@ export class PresenceGateway
     }
 
     const lastSeenAt = new Date();
-    await this.usersRepository.updateOne({
-      query: { _id: userId },
-      dto: { lastSeenAt },
-    });
 
-    spaceIds.forEach((spaceId) => {
-      this.socketEmitter.emitToSpace(spaceId, SocketEvents.USER_OFFLINE, {
-        userId,
-        sessionId,
-        spaceId,
-        lastSeenAt: lastSeenAt.toISOString(),
+    this.usersRepository
+      .updateOne({
+        query: { _id: userId },
+        dto: { lastSeenAt },
+      })
+      .catch((err) => {
+        console.error(`Failed to update lastSeenAt for ${userId}:`, err);
       });
+
+    const offlinePayload = {
+      userId,
+      sessionId,
+      lastSeenAt: lastSeenAt.toISOString(),
+    };
+
+    this.broadcastToWatchers(userId, SocketEvents.PRESENCE_USER_OFFLINE, {
+      userId,
+      sessionId,
+      lastSeenAt: lastSeenAt.toISOString(),
+      isOnline: false,
     });
 
     if (userSessionSet) {
@@ -252,35 +398,6 @@ export class PresenceGateway
     }
 
     return { success: true };
-  }
-
-  @SubscribeMessage(SocketEvents.PRESENCE_ONLINE_USERS)
-  async onGetOnlineUsers(@MessageBody() dto: { userIds: string[] }) {
-    const requestedIds = dto?.userIds ?? [];
-
-    const onlineUserIds = requestedIds.filter((id) => {
-      const sessions = this.userSessions.get(id);
-      return sessions && sessions.size > 0;
-    });
-
-    const onlineSet = new Set(onlineUserIds);
-    const offlineIds = requestedIds.filter((id) => !onlineSet.has(id));
-
-    const lastSeenMap: Record<string, string | null> = {};
-
-    if (offlineIds.length > 0) {
-      const users = await this.usersRepository.findMany({
-        query: { _id: { $in: offlineIds } },
-        select: '_id lastSeenAt',
-      });
-      users.forEach((u: any) => {
-        lastSeenMap[u._id.toString()] = u.lastSeenAt
-          ? new Date(u.lastSeenAt).toISOString()
-          : null;
-      });
-    }
-
-    return { success: true, onlineUserIds, lastSeenMap };
   }
 
   @SubscribeMessage(SocketEvents.PRESENCE_ONLINE_SESSIONS)

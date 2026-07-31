@@ -3,4 +3,5 @@ export const RoomNames = {
   space: (spaceId: string) => `space:${spaceId}`,
   session: (sessionKey: string) => `session:${sessionKey}`,
   community: (communityId: string) => `community:${communityId}`,
+  presenceWatch: (userId: string) => `presence-watch:${userId}`,
 } as const;

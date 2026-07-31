@@ -208,10 +208,15 @@ export enum SocketEvents {
   SPACE_READ = 'space:read',
   SPACE_READABLE = 'space:readable',
 
-  // Presence
-  PRESENCE_ONLINE_USERS = 'presence:online-users',
-  PRESENCE_ONLINE_SESSIONS = 'presence:online-sessions',
+  // User
   USER_ONLINE = 'user:online',
   USER_OFFLINE = 'user:offline',
   USER_LOGOUT = 'user:logout',
+
+  // Presence
+  PRESENCE_SUBSCRIBE = 'presence:subscribe',
+  PRESENCE_UNSUBSCRIBE = 'presence:unsubscribe',
+  PRESENCE_USER_ONLINE = 'presence:user:online',
+  PRESENCE_USER_OFFLINE = 'presence:user:offline',
+  PRESENCE_ONLINE_SESSIONS = 'presence:online:sessions',
 }
