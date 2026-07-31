@@ -198,13 +198,14 @@ export enum SocketEvents {
   MESSAGE_PIN = 'message:pin',
   MESSAGE_PINNED = 'message:pinned',
 
-  // Channel
+  // Spaces
   SPACE_JOIN = 'space:join',
   SPACE_JOINED = 'space:joined',
   SPACE_LEAVE = 'space:leave',
   SPACE_LEFT = 'space:left',
   SPACE_INFO_UPDATE = 'space:info-update',
   SPACE_INFO_UPDATED = 'space:info-updated',
+  SPACE_READ = 'space:read',
 
   // Presence
   PRESENCE_ONLINE_USERS = 'presence:online-users',
