@@ -14,6 +14,7 @@ import { DeleteMessageDto } from './dto/delete-message.dto';
 import { TypingDto } from './dto/typing-dto';
 import { ForwardMessageDto } from './dto/forward-message.dto';
 import { PinMessageDto } from './dto/pin-message.dto';
+import { RoomNames } from 'src/common/utils/room-names';
 
 @WebSocketGateway({ cors: true })
 export class MessagesGateway {
@@ -167,10 +168,10 @@ export class MessagesGateway {
   onTyping(@ConnectedSocket() client: Socket, @MessageBody() dto: TypingDto) {
     const user = client.data.user;
 
-    client.to(`space:${dto.space}`).emit(SocketEvents.MESSAGE_TYPING, {
+    client.to(RoomNames.space(dto.spaceId)).emit(SocketEvents.MESSAGE_TYPING, {
       isTyping: dto.isTyping,
-      spaceId: dto.space,
-      userId: user?.id,
+      spaceId: dto.spaceId,
+      userId: dto?.userId,
       name: user?.name || user?.username || 'user',
       avatar: user?.avatar,
       profileColor: user?.profileColor,

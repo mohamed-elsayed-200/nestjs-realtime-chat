@@ -12,8 +12,9 @@ import { Server, Socket } from 'socket.io';
 import { SocketServerRegistry } from '../../services/socket-server.registry';
 import { SocketEmitterService } from '../../services/socket-emitter.service';
 import { RoomNames } from '../../../../common/utils/room-names';
-import { SocketEvents } from '../../../../common/types/enums';
+import { SocketEvents, SpaceTypes } from '../../../../common/types/enums';
 import { UsersRepository } from '../../../../common/modules/iam/users/users.repository';
+import { MembersRepository } from '../../../../common/modules/platform/members/members.repository';
 
 const MAX_WATCH_USERS = parseInt(process.env.MAX_WATCH_USERS || '100', 10);
 
@@ -31,6 +32,7 @@ export class PresenceGateway
     private readonly registry: SocketServerRegistry,
     private readonly socketEmitter: SocketEmitterService,
     private readonly usersRepository: UsersRepository,
+    private readonly membersRepository: MembersRepository,
   ) {}
 
   afterInit(server: Server) {
@@ -191,6 +193,38 @@ export class PresenceGateway
     }
   }
 
+  private async joinUserToSpaceRooms(
+    client: Socket,
+    userId: string,
+  ): Promise<string[]> {
+    const memberships = await this.membersRepository.findMany({
+      query: { user: userId, isDeleted: false },
+      select: 'space',
+    });
+
+    const spaceIds: string[] = [];
+
+    memberships.forEach((m: any) => {
+      const space = m.space;
+      if (!space) return;
+
+      const spaceId = space._id.toString();
+      spaceIds.push(spaceId);
+
+      client.join(RoomNames.space(spaceId));
+
+      if (space.parentSpace) {
+        client.join(RoomNames.community(space.parentSpace.toString()));
+      }
+
+      if (space.type === SpaceTypes.COMMUNITY) {
+        client.join(RoomNames.community(spaceId));
+      }
+    });
+
+    return spaceIds;
+  }
+
   async handleConnection(@ConnectedSocket() client: Socket) {
     const userId = client.data.userId as string;
     const sessionId = client.data.sessionId as string;
@@ -217,12 +251,14 @@ export class PresenceGateway
     userSessionSet.add(sessionKey);
     this.userSessions.set(userId, userSessionSet);
 
-    client.data.sessionKey = sessionKey;
+    const spaceIds = await this.joinUserToSpaceRooms(client, userId);
 
-    const onlinePayload = {
-      userId,
-      sessionId,
-    };
+    if (!this.sessionConnections.get(sessionKey)?.has(client.id)) {
+      return;
+    }
+
+    client.data.spaceIds = spaceIds;
+    client.data.sessionKey = sessionKey;
 
     if (isFirstConnectionInSession) {
       if (isNewSession) {
@@ -232,6 +268,14 @@ export class PresenceGateway
           userId,
           sessionId,
           isOnline: true,
+        });
+
+        spaceIds.forEach((spaceId) => {
+          this.socketEmitter.emitToSpace(spaceId, SocketEvents.USER_ONLINE, {
+            userId,
+            sessionId,
+            spaceId,
+          });
         });
 
         this.socketEmitter.emitToUser(userId, SocketEvents.USER_ONLINE, {
@@ -264,6 +308,7 @@ export class PresenceGateway
 
     console.log(`🔴 User disconnected: ${userId}, session: ${sessionKey}`);
 
+    const spaceIds = (client.data.spaceIds as string[]) ?? [];
     const sessionSockets = this.sessionConnections.get(sessionKey);
 
     if (!sessionSockets) {
@@ -309,17 +354,20 @@ export class PresenceGateway
 
     console.log(`📊 User ${userId} offline completely`);
 
-    const offlinePayload = {
-      userId,
-      sessionId: sessionKey.split(':')[1],
-      lastSeenAt: lastSeenAt.toISOString(),
-    };
-
     this.broadcastToWatchers(userId, SocketEvents.PRESENCE_USER_OFFLINE, {
       userId,
       sessionId: sessionKey.split(':')[1],
       lastSeenAt: lastSeenAt.toISOString(),
       isOnline: false,
+    });
+
+    spaceIds.forEach((spaceId) => {
+      this.socketEmitter.emitToSpace(spaceId, SocketEvents.USER_OFFLINE, {
+        userId,
+        sessionId: sessionKey.split(':')[1],
+        spaceId,
+        lastSeenAt: lastSeenAt.toISOString(),
+      });
     });
   }
 

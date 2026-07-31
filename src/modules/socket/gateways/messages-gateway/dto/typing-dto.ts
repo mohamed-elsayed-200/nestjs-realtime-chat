@@ -13,7 +13,7 @@ export class TypingDto {
 
   @IsNotEmpty()
   @IsMongoId()
-  space: string;
+  spaceId: string;
 
   @IsOptional()
   @IsString({ message: 'user.validation.avatar.isString' })
