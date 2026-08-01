@@ -16,7 +16,7 @@ import { SocketEvents, SpaceTypes } from '../../../../common/types/enums';
 import { UsersRepository } from '../../../../common/modules/iam/users/users.repository';
 import { MembersRepository } from '../../../../common/modules/platform/members/members.repository';
 
-const MAX_WATCH_USERS = parseInt(process.env.MAX_WATCH_USERS || '100', 10);
+const MAX_WATCH_USERS = 300;
 
 @WebSocketGateway({ cors: true })
 export class PresenceGateway
@@ -63,14 +63,30 @@ export class PresenceGateway
         success: true,
         onlineUserIds: [],
         lastSeenMap: {},
+        skippedUserIds: [],
       };
     }
 
-    const currentWatched = client.data.watchedUsers?.size || 0;
-    if (currentWatched + validUserIds.length > MAX_WATCH_USERS) {
+    const watchedUsers = client.data.watchedUsers ?? new Set<string>();
+    const remainingCapacity = MAX_WATCH_USERS - watchedUsers.size;
+
+    // Accept as many as fit instead of rejecting the whole batch. The
+    // frontend drains a shared queue and treats "already sent" (refcount
+    // incremented) as done regardless of the ack result - so an all-or-
+    // nothing rejection here permanently strands whichever ids land in an
+    // over-capacity batch: their refcount stays > 0 on the client, so no
+    // future subscribeToUsers() call will ever retry them.
+    const acceptedUserIds = validUserIds.slice(
+      0,
+      Math.max(0, remainingCapacity),
+    );
+    const skippedUserIds = validUserIds.slice(acceptedUserIds.length);
+
+    if (acceptedUserIds.length === 0) {
       return {
         success: false,
         error: `Cannot watch more than ${MAX_WATCH_USERS} users at once`,
+        skippedUserIds: validUserIds,
       };
     }
 
@@ -78,7 +94,7 @@ export class PresenceGateway
     const lastSeenMap: Record<string, string | null> = {};
     const offlineIds: string[] = [];
 
-    for (const userId of validUserIds) {
+    for (const userId of acceptedUserIds) {
       const sessions = this.userSessions.get(userId);
       const isOnline = sessions && sessions.size > 0;
 
@@ -104,9 +120,7 @@ export class PresenceGateway
       });
     }
 
-    const watchedUsers = client.data.watchedUsers ?? new Set<string>();
-
-    for (const targetUserId of validUserIds) {
+    for (const targetUserId of acceptedUserIds) {
       const watchers = this.userWatchers.get(targetUserId) ?? new Set();
       watchers.add(currentUserId);
       this.userWatchers.set(targetUserId, watchers);
@@ -117,8 +131,15 @@ export class PresenceGateway
 
     client.data.watchedUsers = watchedUsers;
 
+    if (skippedUserIds.length > 0) {
+      console.warn(
+        `⚠️ User ${currentUserId} hit the ${MAX_WATCH_USERS}-user watch cap - ` +
+          `accepted ${acceptedUserIds.length}, skipped ${skippedUserIds.length}`,
+      );
+    }
+
     console.log(
-      `👀 User ${currentUserId} subscribed to ${validUserIds.length} users ` +
+      `👀 User ${currentUserId} subscribed to ${acceptedUserIds.length} users ` +
         `(total watching: ${watchedUsers.size})`,
     );
 
@@ -126,6 +147,9 @@ export class PresenceGateway
       success: true,
       onlineUserIds,
       lastSeenMap,
+      // Tell the client which ids did NOT get subscribed, so it can roll
+      // back their refcount instead of treating them as watched forever.
+      skippedUserIds,
     };
   }
 

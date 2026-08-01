@@ -34,7 +34,7 @@ export class SpacesGateway {
         authUser: { _id: userId },
       });
 
-      this.socketEmitter.emitToUser(userId, SocketEvents.SPACE_READABLE, {
+      this.socketEmitter.emitToSpace(dto.spaceId, SocketEvents.SPACE_READABLE, {
         spaceId: dto.spaceId,
         userId,
         readAt: new Date().toISOString(),
