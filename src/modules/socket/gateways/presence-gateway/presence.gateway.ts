@@ -49,8 +49,8 @@ export class PresenceGateway
 
   private getWatchedUserIds(client: Socket): string[] {
     return Array.from(client.rooms)
-      .filter((room) => room.startsWith('presence-watch'))
-      .map((room) => room.slice('presence-watch'.length));
+      .filter((room) => room.startsWith('presence-watch:'))
+      .map((room) => room.slice('presence-watch:'.length));
   }
 
   private broadcastPresence(
