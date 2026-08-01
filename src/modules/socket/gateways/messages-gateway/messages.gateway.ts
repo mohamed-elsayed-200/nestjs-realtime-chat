@@ -14,7 +14,7 @@ import { DeleteMessageDto } from './dto/delete-message.dto';
 import { TypingDto } from './dto/typing-dto';
 import { ForwardMessageDto } from './dto/forward-message.dto';
 import { PinMessageDto } from './dto/pin-message.dto';
-import { RoomNames } from 'src/common/utils/room-names';
+import { RoomNames } from '../../../../common/utils/room-names';
 
 @WebSocketGateway({ cors: true })
 export class MessagesGateway {
