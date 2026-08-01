@@ -349,8 +349,6 @@ export class MessagesService {
     });
     if (!space) throw new NotFoundException('spaces.notFoundOne');
 
-    const isPrivate = space.type === SpaceTypes.PRIVATE;
-
     const message = await this.messagesRepository.createOne({
       dto: { ...dto, sender: senderId },
     });
@@ -371,6 +369,7 @@ export class MessagesService {
     });
 
     // Update lastMessage based on space type
+    const isPrivate = space.type === SpaceTypes.PRIVATE;
     if (isPrivate) {
       await this.membersRepository.updateMany({
         query: { space: spaceId },
@@ -681,7 +680,7 @@ export class MessagesService {
     return forwardedMessages;
   }
 
-  public async pin({ dto, authUser }) {
+  public async togglePin({ dto, authUser }) {
     const { messages, space, isPinned } = dto;
     const userObjectId = new Types.ObjectId(authUser?._id);
     const spaceObjectId = new Types.ObjectId(space);
@@ -697,12 +696,8 @@ export class MessagesService {
     const findSpace = await this.spacesRepository.findOne({
       query: { _id: spaceObjectId },
     });
-    if (
-      findSpace?.type === SpaceTypes.CHANNEL &&
-      member.role === SpaceMemberRole.MEMBER
-    ) {
-      throw new BadRequestException('messages.noPermissionToPin');
-    }
+    const isPrivate = findSpace.type === SpaceTypes.PRIVATE;
+
     // Convert to array if single ID
     const messageIdsArray = Array.isArray(messages) ? messages : [messages];
     const messageObjectIds = messageIdsArray.map(
@@ -737,18 +732,37 @@ export class MessagesService {
       },
     });
 
-    await this.spacesRepository.updateOne({
-      query: { _id: findSpace._id },
-      dto: { lastMessage: lastMessage._id },
-    });
-
     await this.membersRepository.updateMany({
-      query: { space: spaceObjectId },
+      query: {
+        space: spaceObjectId,
+        user: { $ne: userObjectId },
+      },
       dto: { $inc: { unreadCount: 1 } },
     });
+
+    if (isPrivate) {
+      await this.membersRepository.updateMany({
+        query: { space: spaceObjectId },
+        dto: { lastMessage: lastMessage._id },
+      });
+    } else {
+      await this.spacesRepository.updateOne({
+        query: { _id: spaceObjectId },
+        dto: { lastMessage: lastMessage._id },
+      });
+    }
+
     return {
-      systemMessage: lastMessage,
       pinnedIds: messageIdsArray,
+      systemMessage: {
+        ...lastMessage.toObject(),
+        sender: {
+          id: authUser?.id,
+          name: authUser?.name,
+          avatar: authUser?.avatar,
+          profileColor: authUser?.profileColor,
+        },
+      },
     };
   }
 }

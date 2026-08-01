@@ -134,20 +134,18 @@ export class MessagesGateway {
     @ConnectedSocket() client: Socket,
     @MessageBody() dto: PinMessageDto,
   ) {
-    const userId = client.data.userId as string;
+    const authUser = client.data.user as string;
     try {
-      const result = await this.messagesService.pin({
+      const result = await this.messagesService.togglePin({
         dto,
-        authUser: { _id: userId },
+        authUser,
       });
 
-      this.socketEmitter.emitToSpace(
-        dto.space,
-        SocketEvents.MESSAGE_NEW,
-        result.systemMessage,
-      );
+      client
+        .to(RoomNames.space(dto.space))
+        .emit(SocketEvents.MESSAGE_NEW, result.systemMessage);
 
-      this.socketEmitter.emitToSpace(dto.space, SocketEvents.MESSAGE_PINNED, {
+      client.to(RoomNames.space(dto.space)).emit(SocketEvents.MESSAGE_PINNED, {
         messages: result.pinnedIds,
         isPinned: dto.isPinned,
         space: dto.space,

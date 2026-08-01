@@ -1,5 +1,4 @@
 import { IsArray, IsBoolean, IsMongoId, IsNotEmpty } from 'class-validator';
-import { Types } from 'mongoose';
 
 export class PinMessageDto {
   @IsArray()
