@@ -384,8 +384,10 @@ export class MessagesService {
 
     return {
       ...message.toObject(),
+      id: message?._id,
+      _id: undefined,
       sender: {
-        _id: authUser?._id,
+        id: authUser?._id,
         name: authUser?.name,
         username: authUser?.username,
         avatar: authUser?.avatar,
@@ -433,7 +435,8 @@ export class MessagesService {
 
     return {
       ...message.toObject(),
-      isOutgoing: true,
+      id: message?._id,
+      _id: undefined,
     };
   }
 
@@ -609,7 +612,11 @@ export class MessagesService {
 
     return {
       deletedCount: foundIds.length,
-      lastMessage: myLastMessage,
+      lastMessage: {
+        ...myLastMessage,
+        id: myLastMessage?._id,
+        _id: undefined,
+      },
     };
   }
 
@@ -797,6 +804,8 @@ export class MessagesService {
       pinnedIds: messageIdsArray,
       systemMessage: {
         ...lastMessage.toObject(),
+        id: lastMessage?._id,
+        _id: undefined,
         sender: {
           id: authUser?.id,
           name: authUser?.name,

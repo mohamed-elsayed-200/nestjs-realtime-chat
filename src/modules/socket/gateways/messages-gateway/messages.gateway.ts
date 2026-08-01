@@ -55,11 +55,11 @@ export class MessagesGateway {
     @ConnectedSocket() client: Socket,
     @MessageBody() dto: UpdateMessageDto,
   ) {
-    const userId = client.data.userId as string;
+    const authUser = client.data.user;
     try {
       const message = await this.messagesService.update({
         dto,
-        authUser: { _id: userId },
+        authUser,
       });
 
       this.socketEmitter.emitToSpace(
