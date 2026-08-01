@@ -209,8 +209,6 @@ export enum SocketEvents {
   SPACE_READABLE = 'space:readable',
 
   // User
-  USER_ONLINE = 'user:online',
-  USER_OFFLINE = 'user:offline',
   USER_LOGOUT = 'user:logout',
 
   // Presence
