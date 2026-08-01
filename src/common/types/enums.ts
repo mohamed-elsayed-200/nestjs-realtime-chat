@@ -197,6 +197,8 @@ export enum SocketEvents {
   MESSAGE_FORWARD = 'message:forward',
   MESSAGE_PIN = 'message:pin',
   MESSAGE_PINNED = 'message:pinned',
+  MESSAGE_REACTION = 'message:reaction',
+  MESSAGE_REACTED = 'message:reacted',
 
   // Spaces
   SPACE_JOIN = 'space:join',

@@ -9,6 +9,7 @@ import { SpacesModule } from '../users/platform/spaces/spaces.module';
 import { MembersModule } from '../users/platform/members/members.module';
 import { BaseAuthModule } from '../../common/modules/auth/auth.module';
 import { BaseMemberModule } from '../../common/modules/platform/members/members.module';
+import { ReactionsModule } from '../users/platform/reactions/reactions.module';
 
 @Global()
 @Module({
@@ -17,6 +18,7 @@ import { BaseMemberModule } from '../../common/modules/platform/members/members.
     MembersModule,
     MessagesModule,
     SpacesModule,
+    ReactionsModule,
     BaseAuthModule,
   ],
   providers: [
