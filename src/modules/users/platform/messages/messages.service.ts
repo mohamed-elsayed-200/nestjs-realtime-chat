@@ -681,10 +681,10 @@ export class MessagesService {
   }
 
   public async togglePin({ dto, authUser }) {
-    const { messages, space, isPinned } = dto;
+    const { messages, space, isPinned, everybody } = dto;
     const userObjectId = new Types.ObjectId(authUser?._id);
     const spaceObjectId = new Types.ObjectId(space);
-    // Check if user has permission to pin messages in this space
+
     const member = await this.membersRepository.findOne({
       query: {
         user: userObjectId,
@@ -692,18 +692,57 @@ export class MessagesService {
       },
     });
     if (!member) throw new NotFoundException('members.notFound');
-    // Check if user has permission to pin (admin, moderator, or channel admin)
+
     const findSpace = await this.spacesRepository.findOne({
       query: { _id: spaceObjectId },
     });
+    if (!findSpace) throw new NotFoundException('spaces.notFoundOne');
+
     const isPrivate = findSpace.type === SpaceTypes.PRIVATE;
 
-    // Convert to array if single ID
     const messageIdsArray = Array.isArray(messages) ? messages : [messages];
     const messageObjectIds = messageIdsArray.map(
       (id) => new Types.ObjectId(id),
     );
-    // Batch update all messages in one query
+
+    // FIX: everybody === false is a purely personal action - it only
+    // changes what THIS user sees, so no role/permission check applies
+    // (same principle as "delete for me" - anyone can always do it to
+    // their own view) and nothing is broadcast to the rest of the space.
+    if (everybody === false) {
+      const update = isPinned
+        ? { $addToSet: { pinnedFor: userObjectId } }
+        : { $pull: { pinnedFor: userObjectId } };
+
+      const result = await this.messagesRepository.updateMany({
+        query: { _id: { $in: messageObjectIds }, space: spaceObjectId },
+        dto: update,
+      });
+
+      if (result.modifiedCount === 0) {
+        throw new InternalServerErrorException('messages.notUpdated');
+      }
+
+      return {
+        everybody: false,
+        pinnedIds: messageIdsArray,
+        systemMessage: null,
+      };
+    }
+
+    // everybody === true (or omitted, for backwards compatibility): shared
+    // pin/unpin visible to the whole space - requires the same permission
+    // check as before.
+    const canPin =
+      isPrivate ||
+      member.role === SpaceMemberRole.OWNER ||
+      (member.role === SpaceMemberRole.ADMIN &&
+        member.permissions?.includes(SpaceMemberPermission.PIN_ANY_MESSAGE));
+
+    if (!canPin) {
+      throw new BadRequestException('messages.notAllowedToPin');
+    }
+
     const result = await this.messagesRepository.updateMany({
       query: { _id: { $in: messageObjectIds }, space: spaceObjectId },
       dto: { isPinned },
@@ -711,6 +750,7 @@ export class MessagesService {
     if (result.modifiedCount === 0) {
       throw new InternalServerErrorException('messages.notUpdated');
     }
+
     const findLastMessage = await this.messagesRepository.findOne({
       query: { _id: messageObjectIds[messageObjectIds?.length - 1] },
     });
@@ -753,6 +793,7 @@ export class MessagesService {
     }
 
     return {
+      everybody: true,
       pinnedIds: messageIdsArray,
       systemMessage: {
         ...lastMessage.toObject(),
