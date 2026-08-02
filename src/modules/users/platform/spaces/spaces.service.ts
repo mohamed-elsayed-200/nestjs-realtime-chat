@@ -1684,7 +1684,7 @@ export class SpacesService {
   }
 
   public async addMembersToSpace({ spaceId, dto, authUser }) {
-    const { contacts } = dto;
+    const { contacts: memberIds } = dto;
     const spaceObjectId = new Types.ObjectId(spaceId);
     const userObjectId = new Types.ObjectId(authUser._id);
 
@@ -1694,23 +1694,22 @@ export class SpacesService {
     if (!member) throw new NotFoundException('members.notFound');
     if (member.role !== SpaceMemberRole.OWNER)
       throw new BadRequestException('spaces.cantAddMembers');
-
-    const contactDocs = await this.contactsRepository.findMany({
+    const mappedIds: string[] = memberIds.map((id: any) => String(id));
+    const uniqueIds: string[] = [...new Set<string>(mappedIds)];
+    const validUsers = await this.usersRepository.findMany({
       query: {
-        contact: { $in: contacts.map((id) => new Types.ObjectId(id)) },
-        me: userObjectId,
+        _id: { $in: uniqueIds.map((id: string) => new Types.ObjectId(id)) },
       },
-      select: 'contact',
+      select: '_id',
     });
-    if (contactDocs.length === 0)
-      throw new NotFoundException('contacts.notFound');
+    if (validUsers.length === 0) throw new NotFoundException('users.notFound');
 
-    const userIds = [...new Set(contactDocs.map((c) => c.contact.toString()))];
+    const userIds: string[] = validUsers.map((u: any) => u._id.toString());
 
     const existing = await this.membersRepository.findMany({
       query: {
         space: spaceObjectId,
-        user: { $in: userIds.map((id) => new Types.ObjectId(id)) },
+        user: { $in: userIds.map((id: string) => new Types.ObjectId(id)) },
       },
       select: 'user isDeleted',
     });
