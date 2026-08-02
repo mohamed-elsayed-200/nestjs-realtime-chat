@@ -1684,7 +1684,7 @@ export class SpacesService {
   }
 
   public async addMembersToSpace({ spaceId, dto, authUser }) {
-    const { contacts: memberIds } = dto;
+    const { members: memberIds } = dto;
     const spaceObjectId = new Types.ObjectId(spaceId);
     const userObjectId = new Types.ObjectId(authUser._id);
 

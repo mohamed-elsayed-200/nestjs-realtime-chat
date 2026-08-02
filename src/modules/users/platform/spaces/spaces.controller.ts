@@ -23,8 +23,8 @@ import { OpenLinkDto } from './dto/open-space.dto';
 import { DeleteSpaceDto } from './dto/delete-space.dto';
 import { CreatePrivateSpaceDto } from './dto/private-space/create-private-space.dto';
 import { CreateGlobalSpaceDto } from './dto/global-space/create-global-space.dto';
-import { InviteContactsToGlobalDto } from './dto/global-space/invite-contacts-to-global-space.dto';
 import { UpdateGlobalSpaceDto } from './dto/global-space/update-global-space.dto';
+import { InviteMembersToGlobalDto } from './dto/global-space/invite-members-to-global-space.dto';
 
 @Controller('/users/spaces')
 @UseGuards(AuthGuard, UserTypeGuard)
@@ -151,7 +151,7 @@ export class SpacesController {
   public async addSubscribes(
     @Param('spaceId', ValidateObjectIdPipe) spaceId: string,
     @GetUser() authUser: any,
-    @Body() dto: InviteContactsToGlobalDto,
+    @Body() dto: InviteMembersToGlobalDto,
   ) {
     return this.spacesService.addMembersToSpace({ spaceId, dto, authUser });
   }
