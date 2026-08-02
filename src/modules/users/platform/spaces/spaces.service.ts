@@ -118,6 +118,8 @@ export class SpacesService {
             isBanned: member?.isBanned,
             bannedAt: member?.bannedAt,
             isDeleted: member?.isDeleted,
+            adminTag: member?.adminTag,
+            adminTagColor: member?.adminTagColor,
             received: isPrivate
               ? {
                   _id: otherParty?._id,
@@ -473,6 +475,8 @@ export class SpacesService {
               isPined: 1,
               isMuted: 1,
               isArchived: 1,
+              adminTag: 1,
+              adminTagColor: 1,
               permissions: 1,
               role: 1,
               folder: { $ifNull: ['$folder', null] },
