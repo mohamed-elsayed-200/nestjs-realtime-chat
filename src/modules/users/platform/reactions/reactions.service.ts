@@ -65,6 +65,13 @@ export class ReactionsService {
       messageId: messageId.toString(),
       emoji,
       action,
+      spaceId: dto.space,
+      user: {
+        id: authUser?.id,
+        name: authUser?.name,
+        profileColor: authUser?.profileColor,
+        avatar: authUser?.avatar,
+      },
     };
   }
 

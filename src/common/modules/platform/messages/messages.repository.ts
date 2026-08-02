@@ -50,6 +50,7 @@ export class MessagesRepository {
             select: 'name profileColor',
           },
         ],
+        select: 'sender text messageType content',
       },
     ]);
     return newMsg;

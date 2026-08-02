@@ -386,6 +386,9 @@ export class MessagesService {
       ...message.toObject(),
       id: message?._id,
       _id: undefined,
+      replyTo: message?.replyTo?.id
+        ? { ...message?.toObject()?.replyTo, id: message?.replyTo?.id }
+        : undefined,
       sender: {
         id: authUser?._id,
         name: authUser?.name,
@@ -406,12 +409,12 @@ export class MessagesService {
 
     const spaceId = new Types.ObjectId(existingMessage.space.toString());
 
-    const space = await this.spacesRepository.findOne({
+    const findSpace = await this.spacesRepository.findOne({
       query: { _id: spaceId },
     });
-    if (!space) throw new NotFoundException('spaces.notFoundOne');
+    if (!findSpace) throw new NotFoundException('spaces.notFoundOne');
 
-    const isPrivate = space.type === SpaceTypes.PRIVATE;
+    const isPrivate = findSpace.type === SpaceTypes.PRIVATE;
 
     const message = await this.messagesRepository.updateOne({
       query: { _id: dto?.message, sender: senderId },
@@ -421,16 +424,18 @@ export class MessagesService {
 
     const messageObjectId = new Types.ObjectId(message._id.toString());
 
-    if (isPrivate) {
-      await this.membersRepository.updateMany({
-        query: { space: spaceId },
-        dto: { lastMessage: messageObjectId },
-      });
-    } else {
-      await this.spacesRepository.updateOne({
-        query: { _id: spaceId },
-        dto: { lastMessage: messageObjectId },
-      });
+    if (findSpace?.lastMessage === message?._id) {
+      if (isPrivate) {
+        await this.membersRepository.updateMany({
+          query: { space: spaceId },
+          dto: { lastMessage: messageObjectId },
+        });
+      } else {
+        await this.spacesRepository.updateOne({
+          query: { _id: spaceId },
+          dto: { lastMessage: messageObjectId },
+        });
+      }
     }
 
     return {
@@ -800,8 +805,12 @@ export class MessagesService {
     }
 
     return {
-      everybody: true,
-      pinnedIds: messageIdsArray,
+      pinnedObj: {
+        everybody: true,
+        messages: messageIdsArray,
+        isPinned: dto?.isPinned,
+        space: dto.space,
+      },
       systemMessage: {
         ...lastMessage.toObject(),
         id: lastMessage?._id,

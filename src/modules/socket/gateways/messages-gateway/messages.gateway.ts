@@ -82,17 +82,30 @@ export class MessagesGateway {
     @ConnectedSocket() client: Socket,
     @MessageBody() dto: DeleteMessageDto,
   ) {
-    const userId = client.data.userId as string;
+    const authUser = client.data.user;
     try {
-      await this.messagesService.delete({
+      const result = await this.messagesService.delete({
         dto,
-        authUser: { _id: userId },
+        authUser,
       });
 
-      this.socketEmitter.emitToSpace(dto.space, SocketEvents.MESSAGE_DELETED, {
-        messageId: dto.messages[0],
-      });
-      return { success: true };
+      if (dto.everybody) {
+        this.socketEmitter.emitToSpace(
+          dto.space,
+          SocketEvents.MESSAGE_DELETED,
+          {
+            messageIds: dto.messages,
+            spaceId: dto.space,
+          },
+        );
+      } else {
+        client.emit(SocketEvents.MESSAGE_DELETED, {
+          messageIds: dto.messages,
+          spaceId: dto.space,
+        });
+      }
+
+      return { success: true, lastMessage: result?.lastMessage };
     } catch (err: any) {
       client.emit('error', {
         event: SocketEvents.MESSAGE_DELETE,
@@ -114,20 +127,13 @@ export class MessagesGateway {
         authUser,
       });
 
-      this.socketEmitter.emitToSpace(dto.space, SocketEvents.MESSAGE_REACTED, {
-        messageId: result.messageId,
-        emoji: result.emoji,
-        action: result.action,
-        spaceId: dto.space,
-        user: {
-          id: authUser?.id,
-          name: authUser?.name,
-          profileColor: authUser?.profileColor,
-          avatar: authUser?.avatar,
-        },
-      });
+      this.socketEmitter.emitToSpace(
+        dto.space,
+        SocketEvents.MESSAGE_REACTED,
+        result,
+      );
 
-      return { success: true, ...result };
+      return { success: true };
     } catch (err: any) {
       client.emit('error', {
         event: SocketEvents.MESSAGE_REACTION,
@@ -142,11 +148,11 @@ export class MessagesGateway {
     @ConnectedSocket() client: Socket,
     @MessageBody() dto: ForwardMessageDto,
   ) {
-    const userId = client.data.userId as string;
+    const authUser = client.data.user;
     try {
       const forwardedMessages = await this.messagesService.forward({
         dto,
-        authUser: { _id: userId },
+        authUser,
       });
 
       for (const msg of forwardedMessages) {
@@ -157,7 +163,7 @@ export class MessagesGateway {
         );
       }
 
-      return { success: true, messages: forwardedMessages };
+      return { success: true };
     } catch (err: any) {
       client.emit('error', {
         event: SocketEvents.MESSAGE_FORWARD,
@@ -183,14 +189,11 @@ export class MessagesGateway {
         .to(RoomNames.space(dto.space))
         .emit(SocketEvents.MESSAGE_NEW, result.systemMessage);
 
-      client.to(RoomNames.space(dto.space)).emit(SocketEvents.MESSAGE_PINNED, {
-        messages: result.pinnedIds,
-        isPinned: dto.isPinned,
-        space: dto.space,
-        systemMessage: result.systemMessage._id,
-      });
+      client
+        .to(RoomNames.space(dto.space))
+        .emit(SocketEvents.MESSAGE_PINNED, result.pinnedObj);
 
-      return { success: true, systemMessage: result.systemMessage };
+      return { success: true };
     } catch (err: any) {
       client.emit('error', {
         event: SocketEvents.MESSAGE_PIN,
