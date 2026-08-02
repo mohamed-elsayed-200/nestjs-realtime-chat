@@ -18,13 +18,10 @@ import { UserType } from '../../../../common/types/enums';
 import { UserTypes } from '../../../../common/decorators/user-type.decorator';
 import { QueryDto } from '../../../../common/modules/dto/query.dto';
 import { GetUser } from '../../../../common/decorators/get-user.decorator';
-import { ChangeWallpaperDto } from './dto/change-wallpaper.dto';
 import { OpenLinkDto } from './dto/open-space.dto';
-import { DeleteSpaceDto } from './dto/delete-space.dto';
 import { CreatePrivateSpaceDto } from './dto/private-space/create-private-space.dto';
 import { CreateGlobalSpaceDto } from './dto/global-space/create-global-space.dto';
 import { UpdateGlobalSpaceDto } from './dto/global-space/update-global-space.dto';
-import { InviteMembersToGlobalDto } from './dto/global-space/invite-members-to-global-space.dto';
 
 @Controller('/users/spaces')
 @UseGuards(AuthGuard, UserTypeGuard)
@@ -60,16 +57,6 @@ export class SpacesController {
   @ResponseMeta({ message: 'spaces.opened', statusCode: 201 })
   public async openLink(@GetUser() authUser: any, @Body() dto: OpenLinkDto) {
     return this.spacesService.openLink({ dto, authUser });
-  }
-
-  @Put('/:spaceId/change-wallpaper')
-  @ResponseMeta({ message: 'spaces.toggled', statusCode: 201 })
-  public async changeWallpaper(
-    @Param('spaceId', ValidateObjectIdPipe) spaceId: string,
-    @GetUser() authUser: any,
-    @Body() dto: ChangeWallpaperDto,
-  ) {
-    return this.spacesService.changeWallpaper({ spaceId, dto, authUser });
   }
 
   @Put('/:spaceId/toggle-pin')
@@ -108,16 +95,6 @@ export class SpacesController {
     return this.spacesService.markSpaceAsRead({ spaceId, authUser });
   }
 
-  @Delete(':spaceId')
-  @ResponseMeta({ message: 'spaces.deleted' })
-  public async delete(
-    @Param('spaceId', ValidateObjectIdPipe) spaceId: string,
-    @GetUser() authUser: any,
-    @Body() dto: DeleteSpaceDto,
-  ) {
-    return this.spacesService.delete({ spaceId, dto, authUser });
-  }
-
   @Post('/private-space')
   @ResponseMeta({ message: 'spaces.createdPrivate', statusCode: 201 })
   public async createPrivateSpace(
@@ -144,33 +121,5 @@ export class SpacesController {
     @GetUser() authUser: any,
   ) {
     return this.spacesService.updateGlobalSpace({ dto, spaceId, authUser });
-  }
-
-  @Post('/add-members/:spaceId')
-  @ResponseMeta({ message: 'spaces.addedMembers', statusCode: 201 })
-  public async addSubscribes(
-    @Param('spaceId', ValidateObjectIdPipe) spaceId: string,
-    @GetUser() authUser: any,
-    @Body() dto: InviteMembersToGlobalDto,
-  ) {
-    return this.spacesService.addMembersToSpace({ spaceId, dto, authUser });
-  }
-
-  @Post('/join/:spaceId')
-  @ResponseMeta({ message: 'spaces.joined', statusCode: 201 })
-  public async join(
-    @Param('spaceId', ValidateObjectIdPipe) spaceId: string,
-    @GetUser() authUser: any,
-  ) {
-    return this.spacesService.joinToSpace({ spaceId, authUser });
-  }
-
-  @Post('/leave/:spaceId')
-  @ResponseMeta({ message: 'spaces.leaved', statusCode: 201 })
-  public async leave(
-    @Param('spaceId', ValidateObjectIdPipe) spaceId: string,
-    @GetUser() authUser: any,
-  ) {
-    return this.spacesService.leaveFromSpace({ spaceId, authUser });
   }
 }

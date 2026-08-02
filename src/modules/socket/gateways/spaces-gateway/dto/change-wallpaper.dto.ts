@@ -1,4 +1,4 @@
-import { IsBoolean, IsNotEmpty, IsString } from 'class-validator';
+import { IsBoolean, IsMongoId, IsNotEmpty, IsString } from 'class-validator';
 
 export class ChangeWallpaperDto {
   @IsString()
@@ -8,4 +8,8 @@ export class ChangeWallpaperDto {
   @IsBoolean()
   @IsNotEmpty()
   everybody: boolean;
+
+  @IsNotEmpty()
+  @IsMongoId()
+  spaceId: string;
 }

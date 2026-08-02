@@ -9,10 +9,10 @@ import { SocketEmitterService } from '../../services/socket-emitter.service';
 import { SpacesService } from '../../../users/platform/spaces/spaces.service';
 import { SocketEvents } from '../../../../common/types/enums';
 import { RoomNames } from '../../../../common/utils/room-names';
-
-interface JoinLeaveSocketDto {
-  spaceId: string;
-}
+import { JoinToSpaceDto } from './dto/join-to-space.dto';
+import { LeaveFromSpaceDto } from './dto/leave-from-space.dto';
+import { DeleteSpaceDto } from './dto/delete-space.dto';
+import { ChangeWallpaperDto } from './dto/change-wallpaper.dto';
 
 @WebSocketGateway({ cors: true })
 export class SpacesGateway {
@@ -26,17 +26,17 @@ export class SpacesGateway {
     @ConnectedSocket() client: Socket,
     @MessageBody() dto: { spaceId: string },
   ) {
-    const userId = client.data.userId as string;
+    const authUser = client.data.user;
 
     try {
       await this.spacesService.markSpaceAsRead({
         spaceId: dto.spaceId,
-        authUser: { _id: userId },
+        authUser,
       });
 
       this.socketEmitter.emitToSpace(dto.spaceId, SocketEvents.SPACE_READABLE, {
         spaceId: dto.spaceId,
-        userId,
+        userId: authUser?._id,
         readAt: new Date().toISOString(),
       });
 
@@ -49,14 +49,14 @@ export class SpacesGateway {
   @SubscribeMessage(SocketEvents.SPACE_JOIN)
   async onJoinSpace(
     @ConnectedSocket() client: Socket,
-    @MessageBody() dto: JoinLeaveSocketDto,
+    @MessageBody() dto: JoinToSpaceDto,
   ) {
-    const userId = client.data.userId as string;
+    const authUser = client.data.user;
     const { spaceId } = dto;
     try {
       const updatedSpace = await this.spacesService.joinToSpace({
         spaceId,
-        authUser: { _id: userId },
+        authUser,
       });
 
       client.join(RoomNames.space(spaceId));
@@ -64,7 +64,7 @@ export class SpacesGateway {
       client.emit(SocketEvents.SPACE_JOINED, updatedSpace);
       this.socketEmitter.emitToSpace(spaceId, SocketEvents.SPACE_JOINED, {
         spaceId,
-        userId,
+        userId: authUser?._id,
       });
 
       return { success: true, space: updatedSpace };
@@ -80,15 +80,15 @@ export class SpacesGateway {
   @SubscribeMessage(SocketEvents.SPACE_LEAVE)
   async onLeaveSpace(
     @ConnectedSocket() client: Socket,
-    @MessageBody() dto: JoinLeaveSocketDto,
+    @MessageBody() dto: LeaveFromSpaceDto,
   ) {
-    const userId = client.data.userId as string;
+    const authUser = client.data.user;
     const { spaceId } = dto;
 
     try {
       const updatedSpace = await this.spacesService.leaveFromSpace({
         spaceId,
-        authUser: { _id: userId },
+        authUser,
       });
 
       client.leave(RoomNames.space(spaceId));
@@ -96,7 +96,7 @@ export class SpacesGateway {
       client.emit(SocketEvents.SPACE_LEFT, { spaceId });
       this.socketEmitter.emitToSpace(spaceId, SocketEvents.SPACE_LEFT, {
         spaceId,
-        userId,
+        userId: authUser?._id,
       });
 
       return { success: true, space: updatedSpace };
@@ -104,6 +104,64 @@ export class SpacesGateway {
       client.emit('error', {
         event: SocketEvents.SPACE_LEFT,
         message: err?.message ?? 'Failed to leave space',
+      });
+      return { success: false, error: err?.message };
+    }
+  }
+
+  @SubscribeMessage(SocketEvents.SPACE_DELETE)
+  async onDeleteSpace(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() dto: DeleteSpaceDto,
+  ) {
+    const authUser = client.data.user;
+    const { spaceId, ...payload } = dto;
+
+    try {
+      await this.spacesService.delete({ spaceId, dto: payload, authUser });
+
+      const room = RoomNames.space(spaceId);
+      const clientsInRoom = await client.nsp.in(room).fetchSockets();
+      clientsInRoom.forEach((s) => s.leave(room));
+
+      client.emit(SocketEvents.SPACE_DELETED, { spaceId });
+
+      return { success: true };
+    } catch (err: any) {
+      client.emit('error', {
+        event: SocketEvents.SPACE_DELETED,
+        message: err?.message ?? 'Failed to delete space',
+      });
+      return { success: false, error: err?.message };
+    }
+  }
+
+  @SubscribeMessage(SocketEvents.SPACE_CHANGE_WALLPAPER)
+  async onChangeWallpaper(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() dto: ChangeWallpaperDto,
+  ) {
+    const authUser = client.data.user;
+    const { spaceId, ...payload } = dto;
+
+    try {
+      const updatedSpace = await this.spacesService.changeWallpaper({
+        spaceId,
+        dto: payload,
+        authUser,
+      });
+
+      this.socketEmitter.emitToSpace(
+        spaceId,
+        SocketEvents.SPACE_WALLPAPER_CHANGED,
+        updatedSpace,
+      );
+
+      return { success: true, space: updatedSpace };
+    } catch (err: any) {
+      client.emit('error', {
+        event: SocketEvents.SPACE_WALLPAPER_CHANGED,
+        message: err?.message ?? 'Failed to change wallpaper',
       });
       return { success: false, error: err?.message };
     }

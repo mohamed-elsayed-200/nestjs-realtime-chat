@@ -185,6 +185,9 @@ export enum SpaceHistory {
 }
 
 export enum SocketEvents {
+  // User
+  USER_LOGOUT = 'user:logout',
+
   // Messages
   MESSAGE_SEND = 'message:send',
   MESSAGE_SENT = 'message:sent',
@@ -209,9 +212,28 @@ export enum SocketEvents {
   SPACE_INFO_UPDATED = 'space:info-updated',
   SPACE_READ = 'space:read',
   SPACE_READABLE = 'space:readable',
+  SPACE_DELETE = 'space:delete',
+  SPACE_DELETED = 'space:deleted',
+  SPACE_CHANGE_WALLPAPER = 'space:change-wallpaper',
+  SPACE_WALLPAPER_CHANGED = 'space:wallpaper-changed',
 
-  // User
-  USER_LOGOUT = 'user:logout',
+  // Members
+  MEMBER_ADD = 'member:add',
+  MEMBER_ADDED = 'member:added',
+  MEMBER_REMOVE = 'member:remove',
+  MEMBER_REMOVED = 'member:removed',
+  MEMBER_PROMOTE_ADMIN = 'member:promote-admin',
+  MEMBER_ADMIN_PROMOTED = 'member:admin-promoted',
+  MEMBER_DISMISS_ADMIN = 'member:dismiss-admin',
+  MEMBER_ADMIN_DISMISSED = 'member:admin-dismissed',
+  MEMBER_UPDATE_ADMIN_PERMISSIONS = 'member:update-admin-permissions',
+  MEMBER_ADMIN_PERMISSIONS_UPDATED = 'member:admin-permissions-updated',
+  MEMBER_UPDATE_PERMISSIONS = 'member:update-permissions',
+  MEMBER_PERMISSIONS_UPDATED = 'member:permissions-updated',
+  MEMBER_TRANSFER_OWNERSHIP = 'member:transfer-ownership',
+  MEMBER_OWNERSHIP_TRANSFERRED = 'member:ownership-transferred',
+  MEMBER_TOGGLE_BAN = 'member:toggle-ban',
+  MEMBER_BAN_TOGGLED = 'member:ban-toggled',
 
   // Presence
   PRESENCE_SUBSCRIBE = 'presence:subscribe',

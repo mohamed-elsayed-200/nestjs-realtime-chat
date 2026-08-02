@@ -13,11 +13,13 @@ import {
   SpaceMemberRole,
 } from '../../../../common/types/enums';
 import { SpacesRepository } from '../../../../common/modules/platform/spaces/spaces.repository';
+import { UsersRepository } from '../../../../common/modules/iam/users/users.repository';
 
 @Injectable()
 export class MembersService {
   constructor(
     private readonly membersRepository: MembersRepository,
+    private readonly usersRepository: UsersRepository,
     private readonly spacesRepository: SpacesRepository,
   ) {}
 
@@ -655,5 +657,92 @@ export class MembersService {
     if (!updated) throw new InternalServerErrorException('members.notUpdated');
 
     return updated;
+  }
+
+  public async addMembers({ space, dto, authUser }) {
+    const { members: memberIds } = dto;
+    const spaceObjectId = new Types.ObjectId(space);
+    const userObjectId = new Types.ObjectId(authUser._id);
+
+    const member = await this.membersRepository.findOne({
+      query: { space: spaceObjectId, user: userObjectId, isDeleted: false },
+    });
+    if (!member) throw new NotFoundException('members.notFound');
+    if (member.role !== SpaceMemberRole.OWNER)
+      throw new BadRequestException('spaces.cantAddMembers');
+    const mappedIds: string[] = memberIds.map((id: any) => String(id));
+    const uniqueIds: string[] = [...new Set<string>(mappedIds)];
+    const validUsers = await this.usersRepository.findMany({
+      query: {
+        _id: { $in: uniqueIds.map((id: string) => new Types.ObjectId(id)) },
+      },
+      select: '_id',
+    });
+    if (validUsers.length === 0) throw new NotFoundException('users.notFound');
+
+    const userIds: string[] = validUsers.map((u: any) => u._id.toString());
+
+    const existing = await this.membersRepository.findMany({
+      query: {
+        space: spaceObjectId,
+        user: { $in: userIds.map((id: string) => new Types.ObjectId(id)) },
+      },
+      select: 'user isDeleted',
+    });
+
+    const existingMap = new Map(
+      existing.map((m) => [m.user.toString(), m.isDeleted]),
+    );
+
+    const toRestore: string[] = [];
+    const toInsert: string[] = [];
+
+    for (const id of userIds) {
+      const isDeleted = existingMap.get(id);
+      if (isDeleted === undefined) toInsert.push(id);
+      else if (isDeleted === true) toRestore.push(id);
+    }
+
+    if (toRestore.length > 0) {
+      await this.membersRepository.updateMany({
+        query: {
+          space: spaceObjectId,
+          user: { $in: toRestore.map((id) => new Types.ObjectId(id)) },
+          isDeleted: true,
+        },
+        dto: {
+          isDeleted: false,
+          isBanned: false,
+          bannedAt: null,
+          deletedAt: null,
+          joinedAt: new Date(),
+        },
+      });
+    }
+
+    if (toInsert.length > 0) {
+      await this.membersRepository.insertMany({
+        documents: toInsert.map((userId) => ({
+          user: new Types.ObjectId(userId),
+          space: spaceObjectId,
+          role: SpaceMemberRole.MEMBER,
+          joinedAt: new Date(),
+          isPined: false,
+          isMuted: false,
+          isArchived: false,
+          permissions: [],
+        })),
+      });
+    }
+
+    const total = toRestore.length + toInsert.length;
+    if (total === 0) {
+      return this.spacesRepository.findOne({ query: { _id: spaceObjectId } });
+    }
+
+    return this.spacesRepository.updateOne({
+      query: { _id: spaceObjectId },
+      dto: { $inc: { membersCount: total } },
+    });
   }
 }
