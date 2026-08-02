@@ -196,7 +196,7 @@ export class MessagesService {
                   $unwind: '$userDetails',
                 },
                 {
-                  $sort: { createdAt: -1 }, // Sort by newest first
+                  $sort: { createdAt: -1 },
                 },
                 {
                   $group: {
@@ -227,7 +227,7 @@ export class MessagesService {
                     emoji: '$_id',
                     count: 1,
                     hasUserReacted: { $gt: ['$hasUserReacted', 0] },
-                    recentUsers: { $slice: ['$users', 3] }, // Take last 3 users
+                    recentUsers: { $slice: ['$users', 3] },
                   },
                 },
               ],
@@ -236,7 +236,6 @@ export class MessagesService {
           },
           {
             $addFields: {
-              // Convert reactions array to object format
               reactionsMap: {
                 $arrayToObject: {
                   $map: {
@@ -356,7 +355,6 @@ export class MessagesService {
 
     const messageObjectId = new Types.ObjectId(message._id.toString());
 
-    // Increment unread count for other participants
     await this.membersRepository.updateMany({
       query: {
         space: spaceId,
@@ -368,7 +366,6 @@ export class MessagesService {
       },
     });
 
-    // Update lastMessage based on space type
     const isPrivate = space.type === SpaceTypes.PRIVATE;
     if (isPrivate) {
       await this.membersRepository.updateMany({
@@ -449,7 +446,6 @@ export class MessagesService {
     const userObjectId = new Types.ObjectId(authUser?._id);
     const spaceObjectId = new Types.ObjectId(dto?.space);
 
-    // 1. Get space
     const space = await this.spacesRepository.findOne({
       query: { _id: spaceObjectId },
     });
@@ -457,7 +453,6 @@ export class MessagesService {
 
     const isPrivate = space.type === SpaceTypes.PRIVATE;
 
-    // 2. Get member (for groups/channels only)
     const member = !isPrivate
       ? await this.membersRepository.findOne({
           query: { space: spaceObjectId, user: userObjectId },
@@ -468,7 +463,6 @@ export class MessagesService {
       throw new BadRequestException('spaces.notMember');
     }
 
-    // 3. Check permissions
     const canDeleteAny =
       !isPrivate &&
       (member.role === SpaceMemberRole.OWNER ||
@@ -477,19 +471,17 @@ export class MessagesService {
             SpaceMemberPermission.DELETE_ANY_MESSAGE,
           )));
 
-    // 4. Find messages
     const messages = await this.messagesRepository.findMany({
       query: {
         _id: { $in: dto?.messages },
         space: spaceObjectId,
-        // FIX: If not owner/admin, only fetch user's own messages
+
         ...(!canDeleteAny && { sender: userObjectId }),
       },
     });
 
     if (messages.length === 0) throw new NotFoundException('messages.notFound');
 
-    // FIX: Validate that all found messages belong to user (if not owner/admin)
     if (!canDeleteAny) {
       const allBelongToUser = messages.every(
         (msg) => msg.sender?.toString() === userObjectId.toString(),
@@ -501,13 +493,10 @@ export class MessagesService {
 
     const foundIds = messages.map((m) => m._id.toString());
 
-    // 5. Determine delete scope
     const isSenderOfAll = messages.every(
       (msg) => msg.sender?.toString() === userObjectId.toString(),
     );
 
-    // FIX: In group/channel, sender can delete their own messages
-    // deleteForAll = true only for owner/admin or sender deleting their own
     const deleteForAll = isPrivate
       ? dto?.everybody && isSenderOfAll
       : canDeleteAny || isSenderOfAll;
@@ -516,7 +505,6 @@ export class MessagesService {
       throw new BadRequestException('messages.notAllowedToDeleteForEveryone');
     }
 
-    // 6. Get all participants
     let allParticipantIds: Types.ObjectId[] = [];
     if (isPrivate) {
       const privateMembers = await this.membersRepository.findMany({
@@ -534,12 +522,9 @@ export class MessagesService {
       );
     }
 
-    // 7. Determine target users for deletion
     const deleteTargetIds = deleteForAll ? allParticipantIds : [userObjectId];
 
-    // 8. Perform deletion
     if (isPrivate) {
-      // Private: soft delete with deletedFrom (per-user)
       await this.messagesRepository.updateMany({
         query: { _id: { $in: foundIds } },
         dto: {
@@ -547,15 +532,12 @@ export class MessagesService {
         },
       });
     } else {
-      // FIX: Group/Channel: HARD DELETE (remove completely from DB)
       await this.messagesRepository.deleteMany({
         query: { _id: { $in: foundIds } },
       });
     }
 
-    // 9. Update lastMessage
     if (isPrivate) {
-      // Get last visible message for each participant
       for (const uid of allParticipantIds) {
         const lastMsg = await this.messagesRepository.findOne({
           query: {
@@ -571,7 +553,6 @@ export class MessagesService {
         });
       }
 
-      // Decrement unreadCount only for UNSEEN messages in delete-for-all
       if (deleteForAll) {
         const unreadDeletedCount = messages.filter(
           (msg) => msg.status === MessageStatus.SENT,
@@ -589,7 +570,6 @@ export class MessagesService {
         }
       }
     } else {
-      // FIX: Group/Channel: update global lastMessage after hard delete
       const lastMsg = await this.messagesRepository.findOne({
         query: { space: spaceObjectId },
         sort: { createdAt: -1 },
@@ -601,7 +581,6 @@ export class MessagesService {
       });
     }
 
-    // 10. Return
     const myLastMessage = isPrivate
       ? await this.messagesRepository.findOne({
           query: {
@@ -626,13 +605,14 @@ export class MessagesService {
   }
 
   public async forward({ dto, authUser }) {
-    const { messageIds, targetSpaceId } = dto;
-    const userId = new Types.ObjectId(authUser?._id);
+    const { messages, targetSpace } = dto;
+    const userObjectId = new Types.ObjectId(authUser?._id);
+    const targetSpaceObjectId = new Types.ObjectId(targetSpace);
 
     const findMember: any = await this.membersRepository.findOne({
       query: {
-        user: userId,
-        space: new Types.ObjectId(targetSpaceId),
+        user: userObjectId,
+        space: targetSpaceObjectId,
       },
       populate: [
         {
@@ -645,16 +625,31 @@ export class MessagesService {
 
     if (!findMember) throw new NotFoundException('spaces.notFound');
 
-    if (
-      findMember.space.type === SpaceTypes.CHANNEL &&
-      findMember.role === SpaceMemberRole.MEMBER
-    ) {
-      throw new BadRequestException('channels.onlyAdminsCanForward');
+    const isPrivate = findMember.space.type === SpaceTypes.PRIVATE;
+    const isAdminOrOwner =
+      findMember.role === SpaceMemberRole.ADMIN ||
+      findMember.role === SpaceMemberRole.OWNER;
+
+    if (!isPrivate) {
+      const canSendMessages = findMember.permissions?.includes(
+        SpaceMemberPermission.SEND_MESSAGES,
+      );
+
+      if (!canSendMessages && !isAdminOrOwner) {
+        throw new BadRequestException('spaces.noPermissionToSendMessages');
+      }
+
+      if (
+        findMember.space.type === SpaceTypes.CHANNEL &&
+        findMember.role === SpaceMemberRole.MEMBER
+      ) {
+        throw new BadRequestException('channels.onlyAdminsCanForward');
+      }
     }
 
     const originalMessages = await this.messagesRepository.findMany({
       query: {
-        _id: { $in: messageIds },
+        _id: { $in: messages },
       },
     });
 
@@ -663,8 +658,8 @@ export class MessagesService {
     }
 
     const messagesToInsert = originalMessages.map((originalMessage) => ({
-      space: new Types.ObjectId(targetSpaceId),
-      sender: userId,
+      space: targetSpaceObjectId,
+      sender: userObjectId,
       messageType: originalMessage.messageType,
       content: originalMessage.content,
       text: originalMessage.text,
@@ -675,21 +670,75 @@ export class MessagesService {
       createdAt: new Date(),
     }));
 
-    const forwardedMessages = await this.messagesRepository.insertMany({
+    const insertedMessages = await this.messagesRepository.insertMany({
       documents: messagesToInsert,
     });
 
-    const lastForwardedMessage =
-      forwardedMessages[forwardedMessages.length - 1];
+    const lastForwardedMessage = insertedMessages[insertedMessages.length - 1];
+    const lastMessageId = new Types.ObjectId(
+      lastForwardedMessage._id?.toString(),
+    );
 
-    await this.spacesRepository.updateOne({
-      query: { _id: targetSpaceId },
-      dto: {
-        lastMessage: new Types.ObjectId(lastForwardedMessage._id?.toString()),
-      },
+    if (isPrivate) {
+      await this.membersRepository.updateMany({
+        query: { space: targetSpaceObjectId },
+        dto: { lastMessage: lastMessageId },
+      });
+    } else if (findMember?.space?.type !== SpaceTypes.COMMUNITY) {
+      await this.spacesRepository.updateOne({
+        query: { _id: targetSpaceObjectId },
+        dto: { lastMessage: lastMessageId },
+      });
+    }
+
+    const insertedIds = insertedMessages.map((m) => m._id);
+    const forwardedMessages = await this.messagesRepository.findMany({
+      query: { _id: { $in: insertedIds } },
+      populate: [
+        { path: 'sender', model: 'User', select: 'name avatar profileColor' },
+        {
+          path: 'forwardFrom',
+          model: 'User',
+          select: 'name avatar profileColor',
+        },
+      ],
     });
 
-    return forwardedMessages;
+    const format = forwardedMessages.map((msg: any) => {
+      msg.id = msg._id?.toString();
+      delete msg._id;
+      delete msg.__v;
+
+      if (msg.space) {
+        msg.space = msg.space?.toString?.() || msg.space;
+      }
+
+      if (msg.sender && typeof msg.sender === 'object') {
+        const sender =
+          typeof msg.sender.toObject === 'function'
+            ? msg.sender.toObject()
+            : { ...msg.sender };
+        sender.id = sender._id?.toString();
+        delete sender._id;
+        delete sender.__v;
+        msg.sender = sender;
+      }
+
+      if (msg.forwardFrom && typeof msg.forwardFrom === 'object') {
+        const forwardFrom =
+          typeof msg.forwardFrom.toObject === 'function'
+            ? msg.forwardFrom.toObject()
+            : { ...msg.forwardFrom };
+        forwardFrom.id = forwardFrom._id?.toString();
+        delete forwardFrom._id;
+        delete forwardFrom.__v;
+        msg.forwardFrom = forwardFrom;
+      }
+
+      return msg;
+    });
+
+    return format;
   }
 
   public async togglePin({ dto, authUser }) {
@@ -717,10 +766,6 @@ export class MessagesService {
       (id) => new Types.ObjectId(id),
     );
 
-    // FIX: everybody === false is a purely personal action - it only
-    // changes what THIS user sees, so no role/permission check applies
-    // (same principle as "delete for me" - anyone can always do it to
-    // their own view) and nothing is broadcast to the rest of the space.
     if (everybody === false) {
       const update = isPinned
         ? { $addToSet: { pinnedFor: userObjectId } }
@@ -742,9 +787,6 @@ export class MessagesService {
       };
     }
 
-    // everybody === true (or omitted, for backwards compatibility): shared
-    // pin/unpin visible to the whole space - requires the same permission
-    // check as before.
     const canPin =
       isPrivate ||
       member.role === SpaceMemberRole.OWNER ||

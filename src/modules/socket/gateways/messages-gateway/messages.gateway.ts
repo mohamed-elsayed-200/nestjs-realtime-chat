@@ -163,8 +163,13 @@ export class MessagesGateway {
         );
       }
 
-      return { success: true };
+      return {
+        success: true,
+        forwardedMessages: forwardedMessages?.map((el) => el?.id),
+      };
     } catch (err: any) {
+      console.log('error', err);
+
       client.emit('error', {
         event: SocketEvents.MESSAGE_FORWARD,
         message: err?.message ?? 'Failed to forward message',

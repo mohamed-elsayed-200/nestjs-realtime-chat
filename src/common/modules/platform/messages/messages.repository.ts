@@ -21,9 +21,10 @@ export class MessagesRepository {
     });
   }
 
-  public async findMany({ query, sort }: FindManyProps) {
+  public async findMany({ query, populate, sort }: FindManyProps) {
     let base = this.messageModel.find(query);
     if (sort) base.sort(sort);
+    if (populate) base.populate(populate);
     return await base.lean().exec();
   }
 

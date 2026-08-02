@@ -7,6 +7,7 @@ export interface FindOneProps {
 
 export interface FindManyProps {
   query: any;
+  populate?: any[];
   select?: string;
   limit?: number;
   skip?: number;
