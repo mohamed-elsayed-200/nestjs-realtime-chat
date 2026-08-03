@@ -1274,6 +1274,8 @@ export class SpacesService {
 
     const withMemberData = (spaceData: any) => ({
       ...spaceData,
+      id: spaceData?._id,
+      _id: undefined,
       unreadCount: member?.unreadCount,
       isPined: member?.isPined,
       isMuted: member?.isMuted,
