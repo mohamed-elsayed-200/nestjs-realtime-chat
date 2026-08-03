@@ -1505,23 +1505,24 @@ export class SpacesService {
 
     return {
       ...updatedSpace,
+      role: member?.role,
       unreadCount: member?.unreadCount,
       isPined: member?.isPined,
       isMuted: member?.isMuted,
       isArchived: member?.isArchived,
-      folder: member?.folder,
-      role: member?.role,
       permissions: member?.permissions,
-      joinedAt: member?.joinedAt,
-      wallpaper: member?.wallpaper,
+      id: updatedSpace?._id?.toString(),
+      _id: undefined,
       lastMessage: {
         ...findSpace?.lastMessage,
+        id: findSpace?.lastMessage?._id?.toString(),
+        _id: undefined,
         isOutgoing:
           findSpace?.lastMessage?.sender?.toString() ===
           userObjectId?.toString(),
         sender: {
           name: authUser?.name,
-          id: authUser?.id,
+          id: authUser?._id,
           username: authUser?.username,
           avatar: authUser?.avatar,
           profileColor: authUser?.profileColor,
@@ -1603,7 +1604,7 @@ export class SpacesService {
       );
     }
 
-    return space;
+    return space?._id?.toString();
   }
 
   public async delete({ spaceId, dto, authUser }) {

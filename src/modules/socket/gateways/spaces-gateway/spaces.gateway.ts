@@ -94,11 +94,12 @@ export class SpacesGateway {
 
       client.join(RoomNames.space(spaceId));
 
-      client.emit(SocketEvents.SPACE_JOINED, updatedSpace);
-      this.socketEmitter.emitToSpace(spaceId, SocketEvents.SPACE_JOINED, {
+      this.socketEmitter.emitToSpace(
         spaceId,
-        userId: authUser?._id,
-      });
+        SocketEvents.SPACE_JOINED,
+        spaceId,
+        client?.id,
+      );
 
       return { success: true, space: updatedSpace };
     } catch (err: any) {
@@ -126,11 +127,12 @@ export class SpacesGateway {
 
       client.leave(RoomNames.space(spaceId));
 
-      client.emit(SocketEvents.SPACE_LEFT, { spaceId });
-      this.socketEmitter.emitToSpace(spaceId, SocketEvents.SPACE_LEFT, {
+      this.socketEmitter.emitToSpace(
         spaceId,
-        userId: authUser?._id,
-      });
+        SocketEvents.SPACE_LEFT,
+        spaceId,
+        client?.id,
+      );
 
       return { success: true, space: updatedSpace };
     } catch (err: any) {
