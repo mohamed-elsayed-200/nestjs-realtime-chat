@@ -1,7 +1,6 @@
 import {
   Body,
   Controller,
-  Delete,
   Get,
   Param,
   Post,
@@ -21,7 +20,6 @@ import { GetUser } from '../../../../common/decorators/get-user.decorator';
 import { OpenLinkDto } from './dto/open-space.dto';
 import { CreatePrivateSpaceDto } from './dto/private-space/create-private-space.dto';
 import { CreateGlobalSpaceDto } from './dto/global-space/create-global-space.dto';
-import { UpdateGlobalSpaceDto } from './dto/global-space/update-global-space.dto';
 
 @Controller('/users/spaces')
 @UseGuards(AuthGuard, UserTypeGuard)
@@ -86,15 +84,6 @@ export class SpacesController {
     return this.spacesService.toggleArchive({ spaceId, authUser });
   }
 
-  @Put('/:spaceId/mark-as-read')
-  @ResponseMeta({ message: 'spaces.toggled', statusCode: 201 })
-  public async markAsRead(
-    @Param('spaceId', ValidateObjectIdPipe) spaceId: string,
-    @GetUser() authUser: any,
-  ) {
-    return this.spacesService.markSpaceAsRead({ spaceId, authUser });
-  }
-
   @Post('/private-space')
   @ResponseMeta({ message: 'spaces.createdPrivate', statusCode: 201 })
   public async createPrivateSpace(
@@ -111,15 +100,5 @@ export class SpacesController {
     @GetUser() authUser: any,
   ) {
     return this.spacesService.createGlobalSpace({ dto, authUser });
-  }
-
-  @Put('/global-space/:spaceId')
-  @ResponseMeta({ message: 'spaces.updated' })
-  public async updateGlobalSpace(
-    @Param('spaceId', ValidateObjectIdPipe) spaceId: string,
-    @Body() dto: UpdateGlobalSpaceDto,
-    @GetUser() authUser: any,
-  ) {
-    return this.spacesService.updateGlobalSpace({ dto, spaceId, authUser });
   }
 }

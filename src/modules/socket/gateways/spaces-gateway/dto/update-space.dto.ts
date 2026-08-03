@@ -1,5 +1,6 @@
 import {
   IsEnum,
+  IsMongoId,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -8,10 +9,10 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { ChannelSettingsDto } from './channel-settings.dto';
-import { GroupSettingsDto } from './group-settings.dto';
-import { SpaceTypes } from '../../../../../../common/types/enums';
-import { CommunitySettingsDto } from './community-settings.dto';
+import { ChannelSettingsDto } from '../../../../users/platform/spaces/dto/global-space/channel-settings.dto';
+import { GroupSettingsDto } from '../../../../users/platform/spaces/dto/global-space/group-settings.dto';
+import { SpaceTypes } from '../../../../../common/types/enums';
+import { CommunitySettingsDto } from '../../../../users/platform/spaces/dto/global-space/community-settings.dto';
 
 export class SpaceSettingsDto {
   @IsOptional()
@@ -30,7 +31,11 @@ export class SpaceSettingsDto {
   community?: CommunitySettingsDto;
 }
 
-export class UpdateGlobalSpaceDto {
+export class UpdateSpaceDto {
+  @IsNotEmpty()
+  @IsMongoId()
+  spaceId: string;
+
   @IsOptional()
   @IsString({ message: 'spaces.validation.name.isString' })
   @MinLength(2, { message: 'spaces.validation.name.minLength' })

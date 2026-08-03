@@ -13,6 +13,7 @@ import { JoinToSpaceDto } from './dto/join-to-space.dto';
 import { LeaveFromSpaceDto } from './dto/leave-from-space.dto';
 import { DeleteSpaceDto } from './dto/delete-space.dto';
 import { ChangeWallpaperDto } from './dto/change-wallpaper.dto';
+import { UpdateSpaceDto } from './dto/update-space.dto';
 
 @WebSocketGateway({ cors: true })
 export class SpacesGateway {
@@ -43,6 +44,36 @@ export class SpacesGateway {
       return { success: true };
     } catch (err: any) {
       return { success: false, error: err?.message };
+    }
+  }
+
+  @SubscribeMessage(SocketEvents.SPACE_INFO_UPDATE)
+  async onUpdateGlobalSpace(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() dto: UpdateSpaceDto,
+  ) {
+    const authUser = client.data.user;
+    const { spaceId, ...updateData } = dto;
+
+    try {
+      const updatedSpace = await this.spacesService.updateGlobalSpace({
+        spaceId,
+        dto: updateData,
+        authUser,
+      });
+
+      this.socketEmitter.emitToSpace(
+        spaceId,
+        SocketEvents.SPACE_INFO_UPDATED,
+        updatedSpace,
+      );
+
+      return { success: true, space: updatedSpace };
+    } catch (err: any) {
+      return {
+        success: false,
+        error: err?.message ?? 'Failed to update space',
+      };
     }
   }
 
