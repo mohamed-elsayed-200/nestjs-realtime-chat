@@ -21,9 +21,18 @@ export class SocketEmitterService {
     this.server.to(room).emit(event, payload);
   }
 
-  emitToSpace(spaceId: string, event: SocketEvents, payload: unknown) {
+  emitToSpace(
+    spaceId: string,
+    event: SocketEvents,
+    payload: unknown,
+    excludeSocketId?: string,
+  ) {
     const room = RoomNames.space(spaceId);
-    this.server.to(room).emit(event, payload);
+    if (excludeSocketId) {
+      this.server.to(room).except(excludeSocketId).emit(event, payload);
+    } else {
+      this.server.to(room).emit(event, payload);
+    }
   }
 
   emitToCommunity(communityId: string, event: SocketEvents, payload: unknown) {

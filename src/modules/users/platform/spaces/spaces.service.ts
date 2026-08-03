@@ -1272,7 +1272,10 @@ export class SpacesService {
 
     if (!space) throw new InternalServerErrorException('spaces.notUpdated');
 
-    const withMemberData = (spaceData: any) => ({
+    const withMemberData = (
+      spaceData: any,
+      overrides: Partial<{ wallpaper: string }> = {},
+    ) => ({
       ...spaceData,
       id: spaceData?._id,
       _id: undefined,
@@ -1284,7 +1287,7 @@ export class SpacesService {
       role: member?.role,
       permissions: member?.permissions,
       joinedAt: member?.joinedAt,
-      wallpaper: member?.wallpaper,
+      wallpaper: overrides.wallpaper ?? member?.wallpaper,
     });
 
     if (dto?.wallpaper) {
@@ -1314,25 +1317,32 @@ export class SpacesService {
       if (!updateWallpaper)
         new InternalServerErrorException('spaces.notUpdated');
 
-      return withMemberData({
-        ...dto,
-        id: spaceId,
-        lastMessage: {
-          ...lastMessage.toObject(),
-          sender: {
-            name: authUser?.name,
-            id: authUser?.id,
-            username: authUser?.username,
-            avatar: authUser?.avatar,
-            profileColor: authUser?.profileColor,
-          },
-          isOutgoing:
-            lastMessage?.sender?.toString() === userObjectId?.toString(),
+      const systemMessage = {
+        ...lastMessage.toObject(),
+        id: lastMessage._id?.toString(),
+        _id: undefined,
+        sender: {
+          name: authUser?.name,
+          id: authUser?.id,
+          username: authUser?.username,
+          avatar: authUser?.avatar,
+          profileColor: authUser?.profileColor,
         },
-      });
+      };
+
+      const updatedSpace = withMemberData(
+        {
+          ...dto,
+          _id: spaceId,
+          lastMessage: systemMessage,
+        },
+        { wallpaper: dto?.wallpaper },
+      );
+
+      return { space: updatedSpace, systemMessage };
     }
 
-    return withMemberData(space?.toObject());
+    return { space: withMemberData(space?.toObject()) };
   }
 
   public async joinToSpace({ spaceId, authUser }) {

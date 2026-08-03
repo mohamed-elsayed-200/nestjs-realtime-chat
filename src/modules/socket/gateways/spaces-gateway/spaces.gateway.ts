@@ -56,19 +56,21 @@ export class SpacesGateway {
     const { spaceId, ...updateData } = dto;
 
     try {
-      const updatedSpace = await this.spacesService.updateGlobalSpace({
-        spaceId,
-        dto: updateData,
-        authUser,
-      });
+      const { space: updatedSpace, systemMessage } =
+        await this.spacesService.updateGlobalSpace({
+          spaceId,
+          dto: updateData,
+          authUser,
+        });
 
       this.socketEmitter.emitToSpace(
         spaceId,
         SocketEvents.SPACE_INFO_UPDATED,
         updatedSpace,
+        client.id,
       );
 
-      return { success: true, space: updatedSpace };
+      return { success: true, space: updatedSpace, systemMessage };
     } catch (err: any) {
       return {
         success: false,
