@@ -1272,24 +1272,6 @@ export class SpacesService {
 
     if (!space) throw new InternalServerErrorException('spaces.notUpdated');
 
-    const withMemberData = (
-      spaceData: any,
-      overrides: Partial<{ wallpaper: string }> = {},
-    ) => ({
-      ...spaceData,
-      id: spaceData?._id,
-      _id: undefined,
-      unreadCount: member?.unreadCount,
-      isPined: member?.isPined,
-      isMuted: member?.isMuted,
-      isArchived: member?.isArchived,
-      folder: member?.folder,
-      role: member?.role,
-      permissions: member?.permissions,
-      joinedAt: member?.joinedAt,
-      wallpaper: overrides.wallpaper ?? member?.wallpaper,
-    });
-
     if (dto?.wallpaper) {
       const updateWallpaper = await this.membersRepository.updateMany({
         query: { space: spaceObjectId },
@@ -1307,7 +1289,7 @@ export class SpacesService {
         },
       });
 
-      await this.spacesRepository.updateOne({
+      const spaceUpdated = await this.spacesRepository.updateOne({
         query: { _id: spaceObjectId },
         dto: {
           lastMessage: lastMessage?._id,
@@ -1318,8 +1300,8 @@ export class SpacesService {
         new InternalServerErrorException('spaces.notUpdated');
 
       const systemMessage = {
-        ...lastMessage.toObject(),
-        id: lastMessage._id?.toString(),
+        ...lastMessage?.toObject(),
+        id: lastMessage?._id?.toString(),
         _id: undefined,
         sender: {
           name: authUser?.name,
@@ -1330,19 +1312,23 @@ export class SpacesService {
         },
       };
 
-      const updatedSpace = withMemberData(
-        {
-          ...dto,
-          _id: spaceId,
+      return {
+        space: {
+          ...spaceUpdated?.toObject(),
+          id: spaceId,
           lastMessage: systemMessage,
         },
-        { wallpaper: dto?.wallpaper },
-      );
-
-      return { space: updatedSpace, systemMessage };
+        systemMessage,
+      };
     }
 
-    return { space: withMemberData(space?.toObject()) };
+    return {
+      space: {
+        ...space?.toObject(),
+        id: space?.id?.toString(),
+        _id: undefined,
+      },
+    };
   }
 
   public async joinToSpace({ spaceId, authUser }) {
