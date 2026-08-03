@@ -641,7 +641,7 @@ export class MembersService {
             bannedAt: null,
             bannedBy: null,
             permission: memberPermissionList,
-            role: null,
+            role: SpaceMemberRole.MEMBER,
           }
         : {
             isBanned: true,
@@ -650,13 +650,18 @@ export class MembersService {
             isDeleted: true,
             permission: memberPermissionList,
             bannedBy: userObjectId,
-            role: null,
+            role: SpaceMemberRole.MEMBER,
           },
     });
 
     if (!updated) throw new InternalServerErrorException('members.notUpdated');
 
-    return updated;
+    return {
+      ...updated.toObject(),
+      id: updated?.id,
+      __v: undefined,
+      _id: undefined,
+    };
   }
 
   public async addMembers({ space, dto, authUser }) {
@@ -737,12 +742,26 @@ export class MembersService {
 
     const total = toRestore.length + toInsert.length;
     if (total === 0) {
-      return this.spacesRepository.findOne({ query: { _id: spaceObjectId } });
+      return {
+        space: await this.spacesRepository.findOne({
+          query: { _id: spaceObjectId },
+        }),
+        addedUserIds: [],
+      };
     }
 
-    return this.spacesRepository.updateOne({
+    const updateSpace = await this.spacesRepository.updateOne({
       query: { _id: spaceObjectId },
       dto: { $inc: { membersCount: total } },
     });
+
+    return {
+      space: {
+        ...updateSpace.toObject(),
+        id: updateSpace._id?.toString(),
+        _id: undefined,
+      },
+      addedUserIds: [...toInsert, ...toRestore],
+    };
   }
 }

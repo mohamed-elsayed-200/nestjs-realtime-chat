@@ -233,7 +233,6 @@ export enum SocketEvents {
   MEMBER_TRANSFER_OWNERSHIP = 'member:transfer-ownership',
   MEMBER_OWNERSHIP_TRANSFERRED = 'member:ownership-transferred',
   MEMBER_TOGGLE_BAN = 'member:toggle-ban',
-  MEMBER_BAN_TOGGLED = 'member:ban-toggled',
 
   // Presence
   PRESENCE_SUBSCRIBE = 'presence:subscribe',

@@ -27,14 +27,27 @@ export class MembersRepository {
       },
     });
   }
+
   public async findMany({ query, sort, select }: FindManyProps) {
-    if (query?.space) query.space = new Types.ObjectId(query.space);
-    if (query?.user) query.user = new Types.ObjectId(query.user);
+    const isQueryOperator = (val: any) =>
+      val &&
+      typeof val === 'object' &&
+      !Array.isArray(val) &&
+      !(val instanceof Types.ObjectId);
+
+    if (query?.space && !isQueryOperator(query.space)) {
+      query.space = new Types.ObjectId(query.space);
+    }
+    if (query?.user && !isQueryOperator(query.user)) {
+      query.user = new Types.ObjectId(query.user);
+    }
+
     let base = this.memberModel.find(query);
     if (sort) base.sort(sort);
     if (select) base.select(select);
     return await base.lean().exec();
   }
+
   public async findOne({ query, populate, select }: FindOneProps) {
     const base = this.memberModel.findOne(query);
     if (select) base.select(select);

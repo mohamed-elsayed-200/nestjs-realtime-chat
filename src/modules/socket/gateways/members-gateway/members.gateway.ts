@@ -33,13 +33,29 @@ export class MembersGateway {
     const { space, ...payload } = dto;
 
     try {
-      const updatedSpace = await this.membersService.addMembers({
-        space,
-        dto: payload,
-        authUser,
-      });
+      const { space: updatedSpace, addedUserIds } =
+        await this.membersService.addMembers({
+          space,
+          dto: payload,
+          authUser,
+        });
 
-      client.emit(SocketEvents.MEMBER_ADDED, updatedSpace);
+      this.socketEmitter.emitToSpace(
+        dto.space,
+        SocketEvents.MEMBER_ADDED,
+        updatedSpace,
+        client.id,
+      );
+
+      if (addedUserIds?.length > 0) {
+        for (const userId of addedUserIds) {
+          this.socketEmitter.emitToUser(
+            userId,
+            SocketEvents.MEMBER_ADDED,
+            updatedSpace,
+          );
+        }
+      }
 
       return { success: true, space: updatedSpace };
     } catch (err: any) {
@@ -66,35 +82,26 @@ export class MembersGateway {
 
       const isBanned = result?.isBanned;
 
-      this.socketEmitter.emitToSpace(
-        dto.space,
-        SocketEvents.MEMBER_BAN_TOGGLED,
-        {
-          ...result,
-          spaceId: dto.space,
-          actionBy: authUser?._id,
-        },
-      );
-
       if (isBanned) {
         this.socketEmitter.emitToUser(
           result.user?.toString(),
           SocketEvents.MEMBER_REMOVED,
-          { spaceId: dto.space, memberId: dto.member },
+          { spaceId: result?.space, memberId: result.id },
         );
 
         const room = RoomNames.space(dto.space);
         const sockets = await client.nsp.in(room).fetchSockets();
         const targetSocket = sockets.find(
-          (s) => s.data.user?._id?.toString() === result.user?.toString(),
+          (s) => s.data.userId === result.user?.toString(),
         );
+
         targetSocket?.leave(room);
       }
 
       return { success: true, result };
     } catch (err: any) {
       client.emit('error', {
-        event: SocketEvents.MEMBER_BAN_TOGGLED,
+        event: SocketEvents.MEMBER_TOGGLE_BAN,
         message: err?.message ?? 'Failed to toggle ban',
       });
       return { success: false, error: err?.message };

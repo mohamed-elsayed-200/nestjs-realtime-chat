@@ -10,6 +10,7 @@ import { MembersModule } from '../users/platform/members/members.module';
 import { BaseAuthModule } from '../../common/modules/auth/auth.module';
 import { BaseMemberModule } from '../../common/modules/platform/members/members.module';
 import { ReactionsModule } from '../users/platform/reactions/reactions.module';
+import { MembersGateway } from './gateways/members-gateway/members.gateway';
 
 @Global()
 @Module({
@@ -27,6 +28,7 @@ import { ReactionsModule } from '../users/platform/reactions/reactions.module';
     MessagesGateway,
     SpacesGateway,
     PresenceGateway,
+    MembersGateway,
   ],
   exports: [SocketEmitterService],
 })
