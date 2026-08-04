@@ -153,7 +153,7 @@ export class SpacesGateway {
     const { spaceId, ...payload } = dto;
 
     try {
-      await this.spacesService.delete({ spaceId, dto: payload, authUser });
+      await this.spacesService.deleteSpace({ spaceId, dto: payload, authUser });
 
       const room = RoomNames.space(spaceId);
       const clientsInRoom = await client.nsp.in(room).fetchSockets();

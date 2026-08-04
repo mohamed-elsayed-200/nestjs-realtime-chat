@@ -74,6 +74,9 @@ export class SpacesRepository {
     return this.spaceModel.findOneAndDelete(query);
   }
 
+  public async deleteMany({ query }) {
+    return this.spaceModel.deleteMany(query);
+  }
   public async updateMany({ query, dto }) {
     if (dto?.createdBy) dto.createdBy = new Types.ObjectId(dto?.createdBy);
     await this.spaceModel.updateMany(query, { $set: dto });

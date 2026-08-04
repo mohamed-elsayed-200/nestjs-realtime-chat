@@ -1608,7 +1608,7 @@ export class SpacesService {
     return space?._id?.toString();
   }
 
-  public async delete({ spaceId, dto, authUser }) {
+  public async deleteSpace({ spaceId, dto, authUser }) {
     const { everybody } = dto;
     const spaceObjectId = new Types.ObjectId(spaceId);
     const userObjectId = new Types.ObjectId(authUser?._id);
@@ -1630,6 +1630,7 @@ export class SpacesService {
     const space = findMember?.space;
     const isOwner = findMember.role === SpaceMemberRole.OWNER;
     const isChannel = space?.type === SpaceTypes.CHANNEL;
+    const isCommunity = space?.type === SpaceTypes.COMMUNITY;
     const isGroup = space?.type === SpaceTypes.GROUP;
     const isPrivate = space?.type === SpaceTypes.PRIVATE;
 
@@ -1644,6 +1645,7 @@ export class SpacesService {
       everybody ||
       isChannel ||
       isGroup ||
+      isCommunity ||
       (isPrivate && remainingMembers <= 1)
     ) {
       if (space?.parentSpace && (isChannel || isGroup)) {
@@ -1653,7 +1655,27 @@ export class SpacesService {
           dto: { $inc: { [decField]: -1 } },
         });
       }
+      if (isCommunity) {
+        const childSpaces = await this.spacesRepository.findLean({
+          query: { parentSpace: spaceObjectId },
+        });
 
+        if (childSpaces?.length) {
+          const childSpaceIds = childSpaces.map((child) => child._id);
+
+          await this.membersRepository.deleteMany({
+            query: { space: { $in: childSpaceIds } },
+          });
+
+          await this.messagesRepository.deleteMany({
+            query: { space: { $in: childSpaceIds } },
+          });
+
+          await this.spacesRepository.deleteMany({
+            query: { _id: { $in: childSpaceIds } },
+          });
+        }
+      }
       await this.membersRepository.deleteMany({
         query: { space: spaceObjectId },
       });
