@@ -159,9 +159,14 @@ export class SpacesGateway {
       const clientsInRoom = await client.nsp.in(room).fetchSockets();
       clientsInRoom.forEach((s) => s.leave(room));
 
-      client.emit(SocketEvents.SPACE_DELETED, { spaceId });
+      this.socketEmitter.emitToSpace(
+        spaceId,
+        SocketEvents.SPACE_DELETED,
+        spaceId,
+        client?.id,
+      );
 
-      return { success: true };
+      return { success: true, spaceId };
     } catch (err: any) {
       client.emit('error', {
         event: SocketEvents.SPACE_DELETED,
@@ -186,11 +191,14 @@ export class SpacesGateway {
         authUser,
       });
 
-      this.socketEmitter.emitToSpace(
-        spaceId,
-        SocketEvents.SPACE_WALLPAPER_CHANGED,
-        updatedSpace,
-      );
+      if (dto.everybody) {
+        this.socketEmitter.emitToSpace(
+          spaceId,
+          SocketEvents.SPACE_WALLPAPER_CHANGED,
+          updatedSpace,
+          client?.id,
+        );
+      }
 
       return { success: true, space: updatedSpace };
     } catch (err: any) {

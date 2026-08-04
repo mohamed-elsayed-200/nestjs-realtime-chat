@@ -730,9 +730,12 @@ export class SpacesService {
 
       return {
         ...dto,
-        spaceId,
+        id: spaceId,
         lastMessage: {
           ...lastMessage.toObject(),
+          id: lastMessage?._id?.toString(),
+          _id: undefined,
+          __v: undefined,
           sender: {
             name: authUser?.name,
             id: authUser?.id,
@@ -751,7 +754,7 @@ export class SpacesService {
       });
       if (!updateWallpaper)
         new InternalServerErrorException('spaces.notUpdated');
-      return dto;
+      return { ...dto, id: spaceId };
     }
   }
 
