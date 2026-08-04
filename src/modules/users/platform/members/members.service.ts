@@ -257,7 +257,9 @@ export class MembersService {
     if (!updated) throw new InternalServerErrorException('members.notUpdated');
 
     return {
-      id: updated?._id,
+      memberId: updated?._id?.toString(),
+      spaceId: updated?.space?.toString(),
+      userId: updated?.user?.toString(),
       promotedById: updated?.promotedBy,
       role: updated?.role,
       permissions: updated?.permissions,
@@ -644,12 +646,12 @@ export class MembersService {
             role: SpaceMemberRole.MEMBER,
           }
         : {
+            isDeleted: true,
             isBanned: true,
             bannedReason: bannedReason ?? null,
             bannedAt: new Date(),
-            isDeleted: true,
-            permission: memberPermissionList,
             bannedBy: userObjectId,
+            permission: memberPermissionList,
             role: SpaceMemberRole.MEMBER,
           },
     });

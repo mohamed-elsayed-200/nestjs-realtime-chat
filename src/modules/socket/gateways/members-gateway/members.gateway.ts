@@ -122,6 +122,7 @@ export class MembersGateway {
         dto.space,
         SocketEvents.MEMBER_ADMIN_PROMOTED,
         result,
+        client.id,
       );
 
       return { success: true, result };
