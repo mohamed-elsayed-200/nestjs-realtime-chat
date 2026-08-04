@@ -597,10 +597,10 @@ export class MembersService {
     if (!promoted) throw new InternalServerErrorException('members.notUpdated');
 
     return {
+      spaceId: spaceObjectId?.toString(),
       transferredFrom: demoted,
       transferredTo: promoted,
       spaceCreatedBy: targetMember.user,
-      spaceId: spaceObjectId?.toString(),
     };
   }
 
