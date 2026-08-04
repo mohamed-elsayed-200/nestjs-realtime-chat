@@ -176,9 +176,10 @@ export class MembersGateway {
       });
 
       this.socketEmitter.emitToSpace(
-        dto.space,
+        result.spaceId,
         SocketEvents.MEMBER_ADMIN_PERMISSIONS_UPDATED,
         result,
+        client?.id,
       );
 
       return { success: true, result };
