@@ -236,9 +236,10 @@ export class MembersGateway {
       });
 
       this.socketEmitter.emitToSpace(
-        dto.space,
+        result.spaceId,
         SocketEvents.MEMBER_OWNERSHIP_TRANSFERRED,
         result,
+        client?.id,
       );
 
       return { success: true, result };

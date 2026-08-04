@@ -581,7 +581,7 @@ export class MembersService {
       query: { space: spaceObjectId, _id: memberObjectId },
       dto: {
         role: SpaceMemberRole.OWNER,
-        permissions: [],
+        permissions: adminPermissionList,
         adminTag: 'Owner',
         adminTagColor: '#22c55e',
       },
@@ -597,9 +597,10 @@ export class MembersService {
     if (!promoted) throw new InternalServerErrorException('members.notUpdated');
 
     return {
+      transferredFrom: demoted,
       transferredTo: promoted,
       spaceCreatedBy: targetMember.user,
-      transferredFrom: demoted,
+      spaceId: spaceObjectId?.toString(),
     };
   }
 
