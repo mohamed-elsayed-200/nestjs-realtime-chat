@@ -119,7 +119,7 @@ export class MembersGateway {
       const result = await this.membersService.promoteAdmin({ dto, authUser });
 
       this.socketEmitter.emitToSpace(
-        dto.space,
+        result.spaceId,
         SocketEvents.MEMBER_ADMIN_PROMOTED,
         result,
         client.id,
@@ -146,9 +146,10 @@ export class MembersGateway {
       const result = await this.membersService.dismissAdmin({ dto, authUser });
 
       this.socketEmitter.emitToSpace(
-        dto.space,
+        result.spaceId,
         SocketEvents.MEMBER_ADMIN_DISMISSED,
         result,
+        client?.id,
       );
 
       return { success: true, result };

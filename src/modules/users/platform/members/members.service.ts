@@ -327,9 +327,12 @@ export class MembersService {
 
     if (!updated) throw new InternalServerErrorException('members.notUpdated');
     return {
-      id: updated?._id,
+      memberId: updated?._id?.toString(),
+      spaceId: updated?.space?.toString(),
+      userId: updated?.user?.toString(),
       role: updated?.role,
       permissions: updated?.permissions,
+      promotedBy: null,
       adminTag: null,
       adminTagColor: null,
     };
