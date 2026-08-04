@@ -193,7 +193,7 @@ export class SpacesGateway {
 
       if (dto.everybody) {
         this.socketEmitter.emitToSpace(
-          spaceId,
+          updatedSpace.id,
           SocketEvents.SPACE_WALLPAPER_CHANGED,
           updatedSpace,
           client?.id,

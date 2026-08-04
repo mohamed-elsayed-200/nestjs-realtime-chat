@@ -698,16 +698,12 @@ export class SpacesService {
     const findMember = await this.membersRepository.findOne({
       query: { space: spaceObjectId, user: userObjectId },
     });
+
     if (findMember?.space?.toString() !== spaceObjectId?.toString())
       new NotFoundException('spaces.notFoundOne');
 
     if (everybody) {
-      const updateWallpaper = await this.membersRepository.updateMany({
-        query: { space: spaceObjectId },
-        dto: { wallpaper, $inc: { unreadCount: 1 } },
-      });
-
-      const lastMessage = await this.messagesRepository.createOne({
+      const systemMessage = await this.messagesRepository.createOne({
         dto: {
           space: spaceObjectId,
           sender: userObjectId,
@@ -718,34 +714,36 @@ export class SpacesService {
         },
       });
 
-      await this.spacesRepository.updateOne({
+      const updateSpace = await this.spacesRepository.updateOne({
         query: { _id: spaceObjectId },
         dto: {
-          lastMessage: lastMessage?._id,
+          lastMessage: systemMessage?._id,
+          wallpaper,
         },
       });
 
-      if (!updateWallpaper)
-        new InternalServerErrorException('spaces.notUpdated');
+      if (!updateSpace) new InternalServerErrorException('spaces.notUpdated');
+
+      await this.membersRepository.updateMany({
+        query: { space: spaceObjectId },
+        dto: { $inc: { unreadCount: 1 } },
+      });
+
+      const formatSystemMessage = {
+        ...systemMessage.toObject(),
+        id: systemMessage?._id?.toString(),
+        _id: undefined,
+        __v: undefined,
+      };
 
       return {
-        ...dto,
-        id: spaceId,
-        lastMessage: {
-          ...lastMessage.toObject(),
-          id: lastMessage?._id?.toString(),
-          _id: undefined,
-          __v: undefined,
-          sender: {
-            name: authUser?.name,
-            id: authUser?.id,
-            username: authUser?.username,
-            avatar: authUser?.avatar,
-            profileColor: authUser?.profileColor,
-          },
-          isOutgoing:
-            lastMessage?.sender?.toString() === userObjectId?.toString(),
-        },
+        ...updateSpace?.toObject(),
+        id: updateSpace?._id?.toString(),
+        _id: undefined,
+        __v: undefined,
+        lastMessage: formatSystemMessage,
+        isOutgoing:
+          systemMessage?.sender?.toString() === userObjectId?.toString(),
       };
     } else {
       const updateWallpaper = await this.membersRepository.updateMany({
