@@ -84,7 +84,7 @@ export class ViewsService {
       dto: { $inc: { viewCount: 1 } },
     });
 
-    if (!updated) throw new NotFoundException('messages.notFoundOne');
+    if (!updated) throw new NotFoundException('messages.notUpdated');
 
     return {
       ...updated.toObject(),

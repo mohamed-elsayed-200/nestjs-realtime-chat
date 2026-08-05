@@ -24,6 +24,7 @@ export class ViewsGateway {
   ) {
     const { target } = dto;
     const authUser = client.data.user as string;
+
     try {
       const message = await this.viewsService.viewMessage({
         message: target,

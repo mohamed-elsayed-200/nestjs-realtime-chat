@@ -11,16 +11,19 @@ import { BaseAuthModule } from '../../common/modules/auth/auth.module';
 import { BaseMemberModule } from '../../common/modules/platform/members/members.module';
 import { ReactionsModule } from '../users/platform/reactions/reactions.module';
 import { MembersGateway } from './gateways/members-gateway/members.gateway';
+import { ViewsGateway } from './gateways/views-gateway/views.gateway';
+import { ViewsModule } from '../users/platform/views/views.module';
 
 @Global()
 @Module({
   imports: [
+    BaseAuthModule,
     BaseMemberModule,
     MembersModule,
     MessagesModule,
     SpacesModule,
     ReactionsModule,
-    BaseAuthModule,
+    ViewsModule,
   ],
   providers: [
     SocketServerRegistry,
@@ -29,6 +32,7 @@ import { MembersGateway } from './gateways/members-gateway/members.gateway';
     SpacesGateway,
     PresenceGateway,
     MembersGateway,
+    ViewsGateway,
   ],
   exports: [SocketEmitterService],
 })
