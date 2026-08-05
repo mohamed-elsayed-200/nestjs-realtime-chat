@@ -13,7 +13,6 @@ import { DeleteMessageDto } from './dto/delete-message.dto';
 import { TypingDto } from './dto/typing-dto';
 import { ForwardMessageDto } from './dto/forward-message.dto';
 import { PinMessageDto } from './dto/pin-message.dto';
-import { RoomNames } from '../../../../common/utils/room-names';
 import { ReactionMessageDto } from './dto/reaction-message.dto';
 import { ReactionsService } from '../../../../modules/users/platform/reactions/reactions.service';
 import { MessagesService } from '../../../../modules/users/platform/messages/messages.service';
@@ -38,7 +37,12 @@ export class MessagesGateway {
         authUser,
       });
 
-      client.to(`space:${dto.space}`).emit(SocketEvents.MESSAGE_NEW, message);
+      this.socketEmitter.emitToSpace(
+        message.space?.toString(),
+        SocketEvents.MESSAGE_NEW,
+        message,
+        client?.id,
+      );
 
       return { success: true, message };
     } catch (err: any) {
@@ -66,6 +70,7 @@ export class MessagesGateway {
         message.space?.toString(),
         SocketEvents.MESSAGE_EDITED,
         message,
+        client?.id,
       );
       return { success: true, message };
     } catch (err: any) {
@@ -82,6 +87,7 @@ export class MessagesGateway {
     @ConnectedSocket() client: Socket,
     @MessageBody() dto: DeleteMessageDto,
   ) {
+    const userId = client.data.userId;
     const authUser = client.data.user;
     try {
       const result = await this.messagesService.delete({
@@ -97,9 +103,10 @@ export class MessagesGateway {
             messageIds: dto.messages,
             spaceId: dto.space,
           },
+          client?.id,
         );
       } else {
-        client.emit(SocketEvents.MESSAGE_DELETED, {
+        this.socketEmitter.emitToUser(userId, SocketEvents.MESSAGE_DELETED, {
           messageIds: dto.messages,
           spaceId: dto.space,
         });
@@ -131,6 +138,7 @@ export class MessagesGateway {
         dto.space,
         SocketEvents.MESSAGE_REACTED,
         result,
+        client?.id,
       );
 
       return { success: true };
@@ -160,6 +168,7 @@ export class MessagesGateway {
           dto.targetSpace,
           SocketEvents.MESSAGE_NEW,
           msg,
+          client?.id,
         );
       }
 
@@ -190,15 +199,14 @@ export class MessagesGateway {
         authUser,
       });
 
-      client
-        .to(RoomNames.space(dto.space))
-        .emit(SocketEvents.MESSAGE_NEW, result.systemMessage);
+      this.socketEmitter.emitToSpace(
+        result?.pinnedObj?.spaceId,
+        SocketEvents.MESSAGE_PINNED,
+        result?.pinnedObj,
+        client?.id,
+      );
 
-      client
-        .to(RoomNames.space(dto.space))
-        .emit(SocketEvents.MESSAGE_PINNED, result.pinnedObj);
-
-      return { success: true };
+      return { success: true, systemMessage: result?.systemMessage };
     } catch (err: any) {
       client.emit('error', {
         event: SocketEvents.MESSAGE_PIN,
@@ -211,14 +219,18 @@ export class MessagesGateway {
   @SubscribeMessage(SocketEvents.MESSAGE_TYPING)
   onTyping(@ConnectedSocket() client: Socket, @MessageBody() dto: TypingDto) {
     const user = client.data.user;
-
-    client.to(RoomNames.space(dto.spaceId)).emit(SocketEvents.MESSAGE_TYPING, {
-      isTyping: dto.isTyping,
-      spaceId: dto.spaceId,
-      userId: dto?.userId,
-      name: user?.name || user?.username || 'user',
-      avatar: user?.avatar,
-      profileColor: user?.profileColor,
-    });
+    this.socketEmitter.emitToSpace(
+      dto.spaceId,
+      SocketEvents.MESSAGE_TYPING,
+      {
+        isTyping: dto.isTyping,
+        spaceId: dto.spaceId,
+        userId: dto?.userId,
+        name: user?.name || user?.username || 'user',
+        avatar: user?.avatar,
+        profileColor: user?.profileColor,
+      },
+      client?.id,
+    );
   }
 }

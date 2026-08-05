@@ -385,7 +385,7 @@ export class MessagesService {
 
     return {
       ...message.toObject(),
-      id: message?._id,
+      id: message?._id?.toString(),
       _id: undefined,
       replyTo: message?.replyTo?._id
         ? {
@@ -868,7 +868,7 @@ export class MessagesService {
         everybody: true,
         messages: messageIdsArray,
         isPinned: dto?.isPinned,
-        space: dto.space,
+        spaceId: spaceObjectId?.toString(),
       },
       systemMessage: {
         ...lastMessage.toObject(),
