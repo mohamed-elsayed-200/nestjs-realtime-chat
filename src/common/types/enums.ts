@@ -188,6 +188,10 @@ export enum SocketEvents {
   // User
   USER_LOGOUT = 'user:logout',
 
+  // Views
+  VIEW_MESSAGE = 'view:message',
+  VIEWED_MESSAGE = 'viewed:message',
+
   // Messages
   MESSAGE_SEND = 'message:send',
   MESSAGE_SENT = 'message:sent',

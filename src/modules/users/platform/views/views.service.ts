@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { Types } from 'mongoose';
 import { ViewTargetType } from '../../../../common/types/enums';
 import { MessagesRepository } from '../../../../common/modules/platform/messages/messages.repository';
@@ -49,9 +49,15 @@ export class ViewsService {
     });
   }
 
-  public async viewMessage({ dto }) {
-    const userObjectId = new Types.ObjectId(dto?.user);
-    const messageObjectId = new Types.ObjectId(dto?.message);
+  public async viewMessage({ message, authUser }) {
+    const userObjectId = new Types.ObjectId(authUser?._id);
+    const messageObjectId = new Types.ObjectId(message);
+
+    const findMessage = await this.messagesRepository.findOne({
+      query: { _id: messageObjectId },
+    });
+
+    if (!findMessage) throw new NotFoundException('messages.notFoundOne');
 
     const isViewed = await this.viewsRepository.findOne({
       query: {
@@ -61,7 +67,8 @@ export class ViewsService {
       },
     });
 
-    if (isViewed) return { view: isViewed };
+    if (isViewed)
+      return { ...findMessage, id: findMessage._id, _id: undefined };
 
     const newView = await this.viewsRepository.createOne({
       dto: {
@@ -77,6 +84,12 @@ export class ViewsService {
       dto: { $inc: { viewCount: 1 } },
     });
 
-    return { message: updated };
+    if (!updated) throw new NotFoundException('messages.notFoundOne');
+
+    return {
+      ...updated.toObject(),
+      id: updated._id.toString(),
+      _id: undefined,
+    };
   }
 }
