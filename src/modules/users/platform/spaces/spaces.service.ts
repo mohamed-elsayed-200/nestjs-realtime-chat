@@ -154,6 +154,7 @@ export class SpacesService {
         membersCount: findSpace?.membersCount,
         channelsCount: findSpace?.channelsCount,
         groupsCount: findSpace?.groupsCount,
+        parentSpace: findSpace?.parentSpace,
         settings: findSpace?.settings,
         bio: findSpace?.bio || otherParty?.bio,
         createdBy: findSpace?.createdBy,
