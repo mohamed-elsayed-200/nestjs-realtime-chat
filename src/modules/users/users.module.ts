@@ -10,6 +10,7 @@ import { PeoplesModule } from './platform/peoples/peoples.module';
 import { FoldersModule } from './platform/folders/folders.module';
 import { JoinRequestsModule } from './platform/join-requests/join-requests.module';
 import { CommentsModule } from './platform/comments/comments.module';
+import { ViewsModule } from './platform/views/views.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { CommentsModule } from './platform/comments/comments.module';
     FoldersModule,
     JoinRequestsModule,
     CommentsModule,
+    ViewsModule,
   ],
 })
 export class UsersModule {}

@@ -65,6 +65,9 @@ export class Message {
   // File fields
   @Prop()
   duration?: number;
+
+  @Prop({ type: Number })
+  viewCount: number;
 }
 
 export const MessageSchema = SchemaFactory.createForClass(Message);

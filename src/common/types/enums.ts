@@ -241,3 +241,10 @@ export enum SocketEvents {
   PRESENCE_USER_OFFLINE = 'presence:user:offline',
   PRESENCE_ONLINE_SESSIONS = 'presence:online:sessions',
 }
+
+export enum ViewTargetType {
+  MESSAGE = 'Message',
+  POST = 'Post',
+  STORY = 'Story',
+  COMMENT = 'Comment',
+}
