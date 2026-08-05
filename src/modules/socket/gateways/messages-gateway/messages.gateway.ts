@@ -201,6 +201,13 @@ export class MessagesGateway {
 
       this.socketEmitter.emitToSpace(
         result?.pinnedObj?.spaceId,
+        SocketEvents.MESSAGE_NEW,
+        result?.systemMessage,
+        client?.id,
+      );
+
+      this.socketEmitter.emitToSpace(
+        result?.pinnedObj?.spaceId,
         SocketEvents.MESSAGE_PINNED,
         result?.pinnedObj,
         client?.id,
