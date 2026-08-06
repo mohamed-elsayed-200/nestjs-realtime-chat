@@ -16,6 +16,7 @@ import {
   SpaceTypes,
 } from '../../../../common/types/enums';
 import { MessagesRepository } from '../../../../common/modules/platform/messages/messages.repository';
+import { text } from 'stream/consumers';
 
 @Injectable()
 export class MessagesService {
@@ -374,22 +375,62 @@ export class MessagesService {
     });
 
     const isPrivate = space.type === SpaceTypes.PRIVATE;
+    let parentSpace: { id: string; name: string };
     if (isPrivate) {
       await this.membersRepository.updateMany({
         query: { space: spaceObjectId },
         dto: { lastMessage: messageObjectId },
       });
     } else {
-      await this.spacesRepository.updateOne({
+      const updatedSpace = await this.spacesRepository.updateOne({
         query: { _id: spaceObjectId },
         dto: { lastMessage: messageObjectId },
       });
+      if (updatedSpace && updatedSpace?.parentSpace) {
+        const findParentSpace = await this.spacesRepository.findOne({
+          query: { _id: updatedSpace?.parentSpace },
+        });
+        if (!findParentSpace || findParentSpace?.type !== SpaceTypes.COMMUNITY)
+          return;
+
+        parentSpace = {
+          id: findParentSpace._id.toString(),
+          name: updatedSpace.name,
+        };
+        const msg: any = await this.messagesRepository.createOne({
+          dto: {
+            ...dto,
+            space: findParentSpace?._id,
+            text: `${updatedSpace?.name}: ${dto.text}`,
+            sender: senderObjectId,
+          },
+        });
+
+        if (!msg) throw new InternalServerErrorException('messages.notCreated');
+        const msgObjectId = new Types.ObjectId(msg._id.toString());
+
+        await this.spacesRepository.updateOne({
+          query: { _id: findParentSpace?._id, type: SpaceTypes.COMMUNITY },
+          dto: { lastMessage: msgObjectId },
+        });
+        await this.membersRepository.updateMany({
+          query: {
+            space: findParentSpace?._id,
+            user: { $ne: senderObjectId },
+          },
+          dto: {
+            isDeleted: false,
+            $inc: { unreadCount: 1 },
+          },
+        });
+      }
     }
 
     return {
       ...message.toObject(),
       id: message?._id?.toString(),
       _id: undefined,
+      parentSpace,
       replyTo: message?.replyTo?._id
         ? {
             ...message?.toObject()?.replyTo,
