@@ -66,8 +66,8 @@ export class Message {
   @Prop()
   duration?: number;
 
-  @Prop()
-  audioLevels?: number;
+  @Prop({ type: () => [Number], default: [] })
+  audioLevels?: number[];
 
   @Prop({ type: Number })
   viewCount: number;

@@ -77,7 +77,7 @@ export class SendMessageDto {
   @IsNumber()
   duration?: number;
 
-  @IsOptional()
-  @IsNumber()
-  audioLevels?: number;
+  @IsArray()
+  @IsNumber({}, { each: true })
+  audioLevels?: number[];
 }
