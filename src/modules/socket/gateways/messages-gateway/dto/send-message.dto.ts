@@ -75,6 +75,9 @@ export class SendMessageDto {
 
   @IsOptional()
   @IsNumber()
-  @Min(0)
   duration?: number;
+
+  @IsOptional()
+  @IsNumber()
+  audioLevels?: number;
 }
