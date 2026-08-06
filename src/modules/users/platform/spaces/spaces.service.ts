@@ -1547,6 +1547,8 @@ export class SpacesService {
     });
     if (!member) throw new NotFoundException('members.notFound');
 
+    if (member.isDeleted) throw new NotFoundException('members.notFound');
+
     if (member.role === SpaceMemberRole.OWNER)
       throw new BadRequestException('members.ownerCannotLeave');
 
@@ -1581,7 +1583,12 @@ export class SpacesService {
             query: { space: subSpace._id, user: userObjectId },
           });
 
-          if (!subMember || subMember.role === SpaceMemberRole.OWNER) return;
+          if (
+            !subMember ||
+            subMember.isDeleted ||
+            subMember.role === SpaceMemberRole.OWNER
+          )
+            return;
 
           await this.membersRepository.updateOne({
             query: { _id: subMember._id },
