@@ -244,6 +244,21 @@ export enum SocketEvents {
   PRESENCE_USER_ONLINE = 'presence:user:online',
   PRESENCE_USER_OFFLINE = 'presence:user:offline',
   PRESENCE_ONLINE_SESSIONS = 'presence:online:sessions',
+
+  // Space Calls
+  CALL_START = 'call:start',
+  CALL_JOIN = 'call:join',
+  CALL_LEAVE = 'call:leave',
+  CALL_END = 'call:end',
+  CALL_INCOMING = 'call:incoming',
+  CALL_USER_JOINED = 'call:user-joined',
+  CALL_USER_LEFT = 'call:user-left',
+  CALL_ENDED = 'call:ended',
+
+  // WebRTC Signaling
+  CALL_OFFER = 'call:offer',
+  CALL_ANSWER = 'call:answer',
+  CALL_ICE_CANDIDATE = 'call:ice-candidate',
 }
 
 export enum ViewTargetType {
