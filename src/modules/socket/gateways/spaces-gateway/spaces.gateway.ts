@@ -95,9 +95,15 @@ export class SpacesGateway {
       client.join(RoomNames.space(spaceId));
 
       this.socketEmitter.emitToSpace(
-        spaceId,
+        updatedSpace?.id,
         SocketEvents.SPACE_JOINED,
-        spaceId,
+        {
+          spaceId: updatedSpace?.id,
+          parentSpaceId: updatedSpace?.parentSpace,
+          membersCount: updatedSpace?.membersCount,
+          channelsCount: updatedSpace?.channelsCount,
+          groupsCount: updatedSpace?.groupsCount,
+        },
         client?.id,
       );
 
@@ -128,9 +134,15 @@ export class SpacesGateway {
       client.leave(RoomNames.space(spaceId));
 
       this.socketEmitter.emitToSpace(
-        spaceId,
+        updatedSpace?.id,
         SocketEvents.SPACE_LEFT,
-        spaceId,
+        {
+          spaceId: updatedSpace?.id,
+          parentSpaceId: updatedSpace?.parentSpace,
+          membersCount: updatedSpace?.membersCount,
+          channelsCount: updatedSpace?.channelsCount,
+          groupsCount: updatedSpace?.groupsCount,
+        },
         client?.id,
       );
 

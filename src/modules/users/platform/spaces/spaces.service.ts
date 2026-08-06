@@ -1537,10 +1537,10 @@ export class SpacesService {
     const spaceObjectId = new Types.ObjectId(spaceId);
     const userObjectId = new Types.ObjectId(authUser._id);
 
-    const space = await this.spacesRepository.findOne({
+    const findSpace = await this.spacesRepository.findOne({
       query: { _id: spaceObjectId },
     });
-    if (!space) throw new NotFoundException('spaces.notFound');
+    if (!findSpace) throw new NotFoundException('spaces.notFound');
 
     const member = await this.membersRepository.findOne({
       query: { space: spaceObjectId, user: userObjectId },
@@ -1567,12 +1567,12 @@ export class SpacesService {
       },
     });
 
-    await this.spacesRepository.updateOne({
+    const updatedSpace = await this.spacesRepository.updateOne({
       query: { _id: spaceObjectId },
       dto: { $inc: { membersCount: -1 } },
     });
 
-    if (space.type === SpaceTypes.COMMUNITY) {
+    if (findSpace.type === SpaceTypes.COMMUNITY) {
       const subSpaces = await this.spacesRepository.findLean({
         query: { parentSpace: spaceObjectId },
       });
@@ -1613,7 +1613,29 @@ export class SpacesService {
       );
     }
 
-    return space?._id?.toString();
+    return {
+      ...updatedSpace.toObject(),
+      role: member?.role,
+      unreadCount: member?.unreadCount,
+      isPined: member?.isPined,
+      isMuted: member?.isMuted,
+      isArchived: member?.isArchived,
+      permissions: member?.permissions,
+      id: updatedSpace?._id?.toString(),
+      _id: undefined,
+      lastMessage: {
+        ...findSpace?.lastMessage,
+        id: findSpace?.lastMessage?._id?.toString(),
+        _id: undefined,
+        sender: {
+          name: authUser?.name,
+          id: authUser?._id,
+          username: authUser?.username,
+          avatar: authUser?.avatar,
+          profileColor: authUser?.profileColor,
+        },
+      },
+    };
   }
 
   public async deleteSpace({ spaceId, dto, authUser }) {
