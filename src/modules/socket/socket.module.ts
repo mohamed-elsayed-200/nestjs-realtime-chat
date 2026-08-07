@@ -15,7 +15,6 @@ import { ViewsGateway } from './gateways/views-gateway/views.gateway';
 import { ViewsModule } from '../users/platform/views/views.module';
 import { CallsGateway } from './gateways/calls-gateway/calls.gateway';
 
-@Global()
 @Module({
   imports: [
     BaseAuthModule,
