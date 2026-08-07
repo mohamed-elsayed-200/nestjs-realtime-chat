@@ -91,7 +91,11 @@ export class MembersRepository {
     });
 
     await this.messagesModel.updateMany(
-      { space: new Types.ObjectId(spaceId), status: MessageStatus.SENT },
+      {
+        space: new Types.ObjectId(spaceId),
+        sender: { $ne: userId },
+        status: MessageStatus.SENT,
+      },
       { status: MessageStatus.SEEN },
     );
   }
