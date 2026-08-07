@@ -246,7 +246,7 @@ export enum SocketEvents {
   PRESENCE_USER_OFFLINE = 'presence:user:offline',
   PRESENCE_ONLINE_SESSIONS = 'presence:online:sessions',
 
-  // Space Calls
+  // Calls
   CALL_START = 'call:start',
   CALL_RINGING = 'call:ringing',
   CALL_ACCEPT = 'call:accept',

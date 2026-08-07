@@ -13,7 +13,6 @@ import { ReactionsModule } from '../users/platform/reactions/reactions.module';
 import { MembersGateway } from './gateways/members-gateway/members.gateway';
 import { ViewsGateway } from './gateways/views-gateway/views.gateway';
 import { ViewsModule } from '../users/platform/views/views.module';
-import { CallsGateway } from './gateways/calls-gateway/calls.gateway';
 import { CallsModule } from '../users/platform/calls/calls.module';
 
 @Module({
@@ -21,11 +20,11 @@ import { CallsModule } from '../users/platform/calls/calls.module';
     BaseAuthModule,
     BaseMemberModule,
     MembersModule,
+    CallsModule,
     MessagesModule,
     SpacesModule,
     ReactionsModule,
     ViewsModule,
-    CallsModule,
   ],
   providers: [
     SocketServerRegistry,
@@ -35,7 +34,6 @@ import { CallsModule } from '../users/platform/calls/calls.module';
     PresenceGateway,
     MembersGateway,
     ViewsGateway,
-    CallsGateway,
   ],
   exports: [SocketEmitterService],
 })

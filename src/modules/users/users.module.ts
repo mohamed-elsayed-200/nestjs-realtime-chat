@@ -11,6 +11,7 @@ import { FoldersModule } from './platform/folders/folders.module';
 import { JoinRequestsModule } from './platform/join-requests/join-requests.module';
 import { CommentsModule } from './platform/comments/comments.module';
 import { ViewsModule } from './platform/views/views.module';
+import { CallsModule } from './platform/calls/calls.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { ViewsModule } from './platform/views/views.module';
     JoinRequestsModule,
     CommentsModule,
     ViewsModule,
+    CallsModule,
   ],
 })
 export class UsersModule {}
