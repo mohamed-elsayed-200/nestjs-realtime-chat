@@ -1,3 +1,4 @@
+import { CallsService } from './../../../users/platform/calls/calls.service';
 import {
   WebSocketGateway,
   SubscribeMessage,
@@ -6,252 +7,203 @@ import {
 } from '@nestjs/websockets';
 import { Socket } from 'socket.io';
 import { SocketEmitterService } from '../../services/socket-emitter.service';
-import { SocketEvents } from '../../../../common/types/enums';
+import { CallScope, SocketEvents } from '../../../../common/types/enums';
 import { RoomNames } from '../../../../common/utils/room-names';
-
-interface CallParticipant {
-  userId: string;
-  socketId: string;
-  joinedAt: Date;
-}
-
-interface ActiveCall {
-  callId: string;
-  spaceId: string;
-  startedBy: string;
-  status: 'ongoing' | 'ended';
-  participants: Map<string, CallParticipant>;
-  startedAt: Date;
-}
+import { StartCallDto } from './dto/start-call.dto';
+import { AcceptCallDto } from './dto/accept-call.dto';
+import { RejectCallDto } from './dto/reject-call.dto';
+import { JoinCallDto } from './dto/join-call.dto';
+import { LeaveCallDto } from './dto/leave-call.dto';
+import { EndCallDto } from './dto/end-call.dto';
 
 @WebSocketGateway({ cors: true })
 export class CallsGateway {
-  private activeCalls = new Map<string, ActiveCall>();
-  private spaceCallMap = new Map<string, string>();
-
-  constructor(private readonly socketEmitter: SocketEmitterService) {}
+  constructor(
+    private readonly socketEmitter: SocketEmitterService,
+    private readonly callsService: CallsService,
+  ) {}
 
   @SubscribeMessage(SocketEvents.CALL_START)
   async onCallStart(
     @ConnectedSocket() client: Socket,
-    @MessageBody() dto: { spaceId: string; callId: string },
+    @MessageBody() dto: StartCallDto,
   ) {
-    const authUser = client.data.user;
-    const { spaceId, callId } = dto;
+    const authUser = client.data.user as string;
+    try {
+      const call = await this.callsService.startCall({ dto, authUser });
 
-    if (this.spaceCallMap.has(spaceId)) {
-      return {
-        success: false,
-        error: 'There is already an active call in this space',
-      };
+      client.join(RoomNames.call(call._id.toString()));
+
+      if (call.scope === CallScope.PRIVATE) {
+        this.socketEmitter.emitToUser(
+          call.receiver?.toString(),
+          SocketEvents.CALL_RINGING,
+          call,
+        );
+      } else {
+        this.socketEmitter.emitToSpace(
+          call.space?.toString(),
+          SocketEvents.CALL_RINGING,
+          call,
+          client.id,
+        );
+      }
+
+      return { success: true, call };
+    } catch (err: any) {
+      client.emit('error', {
+        event: SocketEvents.CALL_START,
+        message: err?.message ?? 'Failed to start call',
+      });
+      return { success: false, error: err?.message };
     }
+  }
 
-    const call: ActiveCall = {
-      callId,
-      spaceId,
-      startedBy: authUser._id.toString(),
-      status: 'ongoing',
-      participants: new Map([
-        [
-          authUser._id.toString(),
-          {
-            userId: authUser._id.toString(),
-            socketId: client.id,
-            joinedAt: new Date(),
-          },
-        ],
-      ]),
-      startedAt: new Date(),
-    };
+  @SubscribeMessage(SocketEvents.CALL_ACCEPT)
+  async onCallAccept(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() dto: AcceptCallDto,
+  ) {
+    const authUser = client.data.user as string;
+    try {
+      const call = await this.callsService.acceptCall({ dto, authUser });
 
-    this.activeCalls.set(callId, call);
-    this.spaceCallMap.set(spaceId, callId);
+      client.join(RoomNames.call(dto.callId));
 
-    this.socketEmitter.emitToSpace(
-      spaceId,
-      SocketEvents.CALL_INCOMING,
-      {
-        callId,
-        spaceId,
-        startedBy: authUser._id.toString(),
-        startedByName: authUser.name,
-        startedByAvatar: authUser.avatar,
-      },
-      client.id,
-    );
+      this.socketEmitter.emitToSpace(
+        call.space?.toString(),
+        SocketEvents.CALL_ACCEPTED,
+        call,
+      );
 
-    return { success: true, callId };
+      return { success: true, call };
+    } catch (err: any) {
+      client.emit('error', {
+        event: SocketEvents.CALL_ACCEPT,
+        message: err?.message ?? 'Failed to accept call',
+      });
+      return { success: false, error: err?.message };
+    }
+  }
+
+  @SubscribeMessage(SocketEvents.CALL_REJECT)
+  async onCallReject(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() dto: RejectCallDto,
+  ) {
+    const authUser = client.data.user as string;
+    try {
+      const call = await this.callsService.rejectCall({ dto, authUser });
+
+      this.socketEmitter.emitToSpace(
+        call.space?.toString(),
+        SocketEvents.CALL_REJECTED,
+        call,
+      );
+
+      return { success: true, call };
+    } catch (err: any) {
+      client.emit('error', {
+        event: SocketEvents.CALL_REJECT,
+        message: err?.message ?? 'Failed to reject call',
+      });
+      return { success: false, error: err?.message };
+    }
   }
 
   @SubscribeMessage(SocketEvents.CALL_JOIN)
   async onCallJoin(
     @ConnectedSocket() client: Socket,
-    @MessageBody() dto: { callId: string },
+    @MessageBody() dto: JoinCallDto,
   ) {
-    const authUser = client.data.user;
-    const call = this.activeCalls.get(dto.callId);
+    const authUser = client.data.user as string;
+    try {
+      const { call, participant } = await this.callsService.joinCall({
+        dto,
+        authUser,
+      });
 
-    if (!call) return { success: false, error: 'Call not found' };
-    if (call.status === 'ended')
-      return { success: false, error: 'Call has ended' };
+      client.join(RoomNames.call(dto.callId));
 
-    if (call.participants.has(authUser._id.toString())) {
-      return { success: true };
+      this.socketEmitter.emitToSpace(
+        call.space?.toString(),
+        SocketEvents.CALL_JOINED,
+        { call, participant },
+        client.id,
+      );
+
+      return { success: true, call, participant };
+    } catch (err: any) {
+      client.emit('error', {
+        event: SocketEvents.CALL_JOIN,
+        message: err?.message ?? 'Failed to join call',
+      });
+      return { success: false, error: err?.message };
     }
-
-    call.participants.set(authUser._id.toString(), {
-      userId: authUser._id.toString(),
-      socketId: client.id,
-      joinedAt: new Date(),
-    });
-
-    this.socketEmitter.emitToSpace(
-      call.spaceId,
-      SocketEvents.CALL_USER_JOINED,
-      {
-        callId: dto.callId,
-        userId: authUser._id.toString(),
-        userName: authUser.name,
-        userAvatar: authUser.avatar,
-      },
-      client.id,
-    );
-
-    return { success: true };
   }
 
   @SubscribeMessage(SocketEvents.CALL_LEAVE)
   async onCallLeave(
     @ConnectedSocket() client: Socket,
-    @MessageBody() dto: { callId: string },
+    @MessageBody() dto: LeaveCallDto,
   ) {
-    const authUser = client.data.user;
-    const call = this.activeCalls.get(dto.callId);
+    const authUser = client.data.user as string;
+    try {
+      const result = await this.callsService.leaveCall({ dto, authUser });
 
-    if (!call) return { success: false, error: 'Call not found' };
+      const room = RoomNames.call(dto.callId);
 
-    call.participants.delete(authUser._id.toString());
+      const event =
+        result?.status === 'completed'
+          ? SocketEvents.CALL_ENDED
+          : SocketEvents.CALL_LEFT;
 
-    if (call.participants.size === 0) {
-      call.status = 'ended';
-      this.spaceCallMap.delete(call.spaceId);
+      this.socketEmitter.emitToSpace(
+        result?.space?.toString(),
+        event,
+        result,
+        client.id,
+      );
 
-      this.socketEmitter.emitToSpace(call.spaceId, SocketEvents.CALL_ENDED, {
-        callId: dto.callId,
-        reason: 'ended',
+      client.leave(room);
+
+      return { success: true, call: result };
+    } catch (err: any) {
+      client.emit('error', {
+        event: SocketEvents.CALL_LEAVE,
+        message: err?.message ?? 'Failed to leave call',
       });
-
-      this.activeCalls.delete(dto.callId);
-      return { success: true, ended: true };
+      return { success: false, error: err?.message };
     }
-
-    this.socketEmitter.emitToSpace(
-      call.spaceId,
-      SocketEvents.CALL_USER_LEFT,
-      {
-        callId: dto.callId,
-        userId: authUser._id.toString(),
-      },
-      client.id,
-    );
-
-    return { success: true };
   }
 
   @SubscribeMessage(SocketEvents.CALL_END)
   async onCallEnd(
     @ConnectedSocket() client: Socket,
-    @MessageBody() dto: { callId: string },
+    @MessageBody() dto: EndCallDto,
   ) {
-    const call = this.activeCalls.get(dto.callId);
-    if (!call) return { success: false, error: 'Call not found' };
+    const authUser = client.data.user as string;
+    try {
+      const call = await this.callsService.endCall({ dto, authUser });
 
-    call.status = 'ended';
-    this.spaceCallMap.delete(call.spaceId);
+      const room = RoomNames.call(dto.callId);
 
-    this.socketEmitter.emitToSpace(
-      call.spaceId,
-      SocketEvents.CALL_ENDED,
-      { callId: dto.callId, reason: 'ended' },
-      client.id,
-    );
+      this.socketEmitter.emitToSpace(
+        call.space?.toString(),
+        SocketEvents.CALL_ENDED,
+        call,
+      );
 
-    this.activeCalls.delete(dto.callId);
-    return { success: true };
-  }
+      const sockets = await client.nsp.in(room).fetchSockets();
+      sockets.forEach((s) => s.leave(room));
 
-  @SubscribeMessage(SocketEvents.CALL_OFFER)
-  async onOffer(
-    @ConnectedSocket() client: Socket,
-    @MessageBody()
-    dto: {
-      callId: string;
-      offer: RTCSessionDescriptionInit;
-      targetUserId: string;
-    },
-  ) {
-    const call = this.activeCalls.get(dto.callId);
-    if (!call) return { success: false };
-
-    const target = call.participants.get(dto.targetUserId);
-    if (target) {
-      client.to(target.socketId).emit(SocketEvents.CALL_OFFER, {
-        callId: dto.callId,
-        offer: dto.offer,
-        from: client.data.user._id.toString(),
+      return { success: true, call };
+    } catch (err: any) {
+      client.emit('error', {
+        event: SocketEvents.CALL_END,
+        message: err?.message ?? 'Failed to end call',
       });
+      return { success: false, error: err?.message };
     }
-
-    return { success: true };
-  }
-
-  @SubscribeMessage(SocketEvents.CALL_ANSWER)
-  async onAnswer(
-    @ConnectedSocket() client: Socket,
-    @MessageBody()
-    dto: {
-      callId: string;
-      answer: RTCSessionDescriptionInit;
-      targetUserId: string;
-    },
-  ) {
-    const call = this.activeCalls.get(dto.callId);
-    if (!call) return { success: false };
-
-    const target = call.participants.get(dto.targetUserId);
-    if (target) {
-      client.to(target.socketId).emit(SocketEvents.CALL_ANSWER, {
-        callId: dto.callId,
-        answer: dto.answer,
-        from: client.data.user._id.toString(),
-      });
-    }
-
-    return { success: true };
-  }
-
-  @SubscribeMessage(SocketEvents.CALL_ICE_CANDIDATE)
-  async onIceCandidate(
-    @ConnectedSocket() client: Socket,
-    @MessageBody()
-    dto: {
-      callId: string;
-      candidate: RTCIceCandidateInit;
-      targetUserId: string;
-    },
-  ) {
-    const call = this.activeCalls.get(dto.callId);
-    if (!call) return { success: false };
-
-    const target = call.participants.get(dto.targetUserId);
-    if (target) {
-      client.to(target.socketId).emit(SocketEvents.CALL_ICE_CANDIDATE, {
-        callId: dto.callId,
-        candidate: dto.candidate,
-        from: client.data.user._id.toString(),
-      });
-    }
-
-    return { success: true };
   }
 }

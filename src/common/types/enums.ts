@@ -125,6 +125,7 @@ export enum MessageType {
   LOTTIE = 'lottie',
   SYSTEM = 'system',
   LINK = 'link',
+  CALL = 'call',
 }
 export enum MessageStatus {
   SENDING = 'sending',
@@ -247,18 +248,17 @@ export enum SocketEvents {
 
   // Space Calls
   CALL_START = 'call:start',
+  CALL_RINGING = 'call:ringing',
+  CALL_ACCEPT = 'call:accept',
+  CALL_ACCEPTED = 'call:accepted',
+  CALL_REJECT = 'call:reject',
+  CALL_REJECTED = 'call:rejected',
   CALL_JOIN = 'call:join',
+  CALL_JOINED = 'call:joined',
   CALL_LEAVE = 'call:leave',
+  CALL_LEFT = 'call:left',
   CALL_END = 'call:end',
-  CALL_INCOMING = 'call:incoming',
-  CALL_USER_JOINED = 'call:user-joined',
-  CALL_USER_LEFT = 'call:user-left',
   CALL_ENDED = 'call:ended',
-
-  // WebRTC Signaling
-  CALL_OFFER = 'call:offer',
-  CALL_ANSWER = 'call:answer',
-  CALL_ICE_CANDIDATE = 'call:ice-candidate',
 }
 
 export enum ViewTargetType {
@@ -266,4 +266,48 @@ export enum ViewTargetType {
   POST = 'Post',
   STORY = 'Story',
   COMMENT = 'Comment',
+}
+
+export enum CallStatus {
+  INITIATED = 'initiated',
+  RINGING = 'ringing',
+  IN_PROGRESS = 'in-progress',
+  COMPLETED = 'completed',
+  MISSED = 'missed',
+  REJECTED = 'rejected',
+  FAILED = 'failed',
+}
+
+export enum CallType {
+  AUDIO = 'audio',
+  VIDEO = 'video',
+}
+
+export enum CallScope {
+  PRIVATE = 'private',
+  CHANNEL = 'channel',
+  GROUP = 'group',
+  COMMUNITY = 'community',
+}
+
+export enum ParticipantStatus {
+  INVITED = 'invited',
+  CONNECTED = 'connected',
+  DISCONNECTED = 'disconnected',
+  REJECTED = 'rejected',
+  LEFT = 'left',
+  MUTED = 'muted',
+  WAITING = 'waiting',
+  RAISED_HAND = 'raised_hand',
+  SPEAKING = 'speaking',
+  PRESENTER = 'presenter',
+}
+
+export enum CallParticipantRole {
+  HOST = 'host',
+  CO_HOST = 'co_host',
+  SPEAKER = 'speaker',
+  PRESENTER = 'presenter',
+  LISTENER = 'listener',
+  RAISED_HAND = 'raised_hand',
 }
