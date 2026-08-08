@@ -266,7 +266,7 @@ export class CallsGateway {
       const sockets = await client.nsp.in(room).fetchSockets();
       sockets.forEach((s) => s.leave(room));
 
-      return { success: true, call };
+      return { success: true, result: { call, systemMessage } };
     } catch (err: any) {
       client.emit('error', {
         event: SocketEvents.CALL_END,

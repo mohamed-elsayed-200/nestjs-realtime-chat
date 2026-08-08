@@ -245,7 +245,7 @@ export class CallsService {
         dto: {
           space: call?.space?._id,
           sender: authUserObjectId,
-          messageType: MessageType.CALL_ENDED,
+          messageType: MessageType.CALL_REJECTED,
           status: MessageStatus.SENT,
           duration: call?.duration,
           content: text,
