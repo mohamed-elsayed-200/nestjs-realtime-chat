@@ -7,7 +7,7 @@ import {
 } from '@nestjs/websockets';
 import { Socket } from 'socket.io';
 import { SocketEmitterService } from '../../services/socket-emitter.service';
-import { CallScope, SocketEvents } from '../../../../common/types/enums';
+import { SocketEvents } from '../../../../common/types/enums';
 import { RoomNames } from '../../../../common/utils/room-names';
 import { StartCallDto } from './dto/start-call.dto';
 import { AcceptCallDto } from './dto/accept-call.dto';
