@@ -9,11 +9,15 @@ import {
   CallScope,
   CallStatus,
   CallType,
+  MessageStatus,
+  MessageType,
   ParticipantStatus,
 } from '../../../../common/types/enums';
 import { CallsRepository } from '../../../../common/modules/platform/calls/calls.repository';
 import { ParticipantsRepository } from '../../../../common/modules/platform/calls/participants.repository';
 import { Types } from 'mongoose';
+import { MessagesRepository } from '../../../../common/modules/platform/messages/messages.repository';
+import { SpacesRepository } from '../../../../common/modules/platform/spaces/spaces.repository';
 
 function toPersonInfo(user: any) {
   if (!user) return undefined;
@@ -70,6 +74,8 @@ export class CallsService {
   constructor(
     private readonly callsRepository: CallsRepository,
     private readonly participantsRepository: ParticipantsRepository,
+    private readonly messagesRepository: MessagesRepository,
+    private readonly spacesRepository: SpacesRepository,
   ) {}
 
   public async startCall({ dto, authUser }) {
@@ -227,7 +233,34 @@ export class CallsService {
           endedBy: authUserObjectId,
         },
       });
-      return toCallResponse(updatedCall);
+
+      const systemMessage = await this.messagesRepository.createOne({
+        dto: {
+          space: call.space,
+          sender: authUserObjectId,
+          messageType: MessageType.CALL_ENDED,
+          status: MessageStatus.SENT,
+          duration: call.duration,
+          content: `Call ended`,
+          text: `Call ended`,
+        },
+      });
+
+      await this.spacesRepository.updateOne({
+        query: { _id: call.space },
+        dto: {
+          lastMessage: systemMessage?._id,
+        },
+      });
+
+      return {
+        call: toCallResponse(updatedCall),
+        systemMessage: {
+          ...systemMessage.toObject(),
+          id: systemMessage._id.toString(),
+          _id: undefined,
+        },
+      };
     }
 
     return toCallResponse(call);
@@ -296,15 +329,16 @@ export class CallsService {
   }
 
   public async leaveCall({ dto, authUser }) {
-    const { callId } = dto;
+    const callObjectId = new Types.ObjectId(dto.callId);
+    const authUserObjectId = new Types.ObjectId(authUser._id);
 
     const call = await this.callsRepository.findOne({
-      query: { _id: callId },
+      query: { _id: callObjectId },
     });
     if (!call) throw new NotFoundException('Call not found');
 
     const participant = await this.participantsRepository.findOne({
-      query: { call: callId, user: authUser._id },
+      query: { call: callObjectId, user: authUserObjectId },
     });
     if (!participant) {
       throw new NotFoundException('You are not part of this call');
@@ -320,17 +354,17 @@ export class CallsService {
 
     const remaining = await this.participantsRepository.findOne({
       query: {
-        call: callId,
+        call: callObjectId,
         status: ParticipantStatus.CONNECTED,
       },
     });
 
     if (!remaining) {
-      return this.endCall({ dto: { callId }, authUser });
+      return this.endCall({ dto: { callObjectId }, authUser });
     }
 
     const updatedCall = await this.callsRepository.updateOne({
-      query: { _id: callId },
+      query: { _id: callObjectId },
       dto: { $inc: { participantsCount: -1 } },
     });
 
@@ -338,10 +372,11 @@ export class CallsService {
   }
 
   public async endCall({ dto, authUser }) {
-    const { callId } = dto;
+    const callObjectId = new Types.ObjectId(dto.callId);
+    const authUserObjectId = new Types.ObjectId(authUser._id);
 
     const call = await this.callsRepository.findOne({
-      query: { _id: callId },
+      query: { _id: callObjectId },
     });
     if (!call) throw new NotFoundException('Call not found');
 
@@ -357,18 +392,18 @@ export class CallsService {
     );
 
     const updatedCall = await this.callsRepository.updateOne({
-      query: { _id: callId },
+      query: { _id: callObjectId },
       dto: {
         status: CallStatus.COMPLETED,
         endedAt,
-        endedBy: authUser._id,
+        endedBy: authUserObjectId,
         duration,
       },
     });
 
     await this.participantsRepository.updateOne({
       query: {
-        call: callId,
+        call: callObjectId,
         status: ParticipantStatus.CONNECTED,
       },
       dto: {
@@ -377,6 +412,32 @@ export class CallsService {
       },
     });
 
-    return toCallResponse(updatedCall);
+    const systemMessage = await this.messagesRepository.createOne({
+      dto: {
+        space: call.space,
+        sender: authUserObjectId,
+        messageType: MessageType.CALL_ENDED,
+        status: MessageStatus.SENT,
+        duration: call.duration,
+        content: `Call ended`,
+        text: `Call ended`,
+      },
+    });
+
+    await this.spacesRepository.updateOne({
+      query: { _id: call.space },
+      dto: {
+        lastMessage: systemMessage?._id,
+      },
+    });
+
+    return {
+      call: toCallResponse(updatedCall),
+      systemMessage: {
+        ...systemMessage.toObject(),
+        id: systemMessage._id.toString(),
+        _id: undefined,
+      },
+    };
   }
 }

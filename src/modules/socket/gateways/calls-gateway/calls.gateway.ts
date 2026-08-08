@@ -83,7 +83,10 @@ export class CallsGateway {
   ) {
     const authUser = client.data.user as string;
     try {
-      const call = await this.callsService.rejectCall({ dto, authUser });
+      const { call, systemMessage } = await this.callsService.rejectCall({
+        dto,
+        authUser,
+      });
 
       this.socketEmitter.emitToSpace(
         call.space?.toString(),
@@ -91,6 +94,14 @@ export class CallsGateway {
         call,
         client.id,
       );
+
+      if (systemMessage) {
+        this.socketEmitter.emitToSpace(
+          call.space?.toString(),
+          SocketEvents.MESSAGE_NEW,
+          systemMessage,
+        );
+      }
 
       return { success: true, call };
     } catch (err: any) {
@@ -175,7 +186,10 @@ export class CallsGateway {
   ) {
     const authUser = client.data.user as string;
     try {
-      const call = await this.callsService.endCall({ dto, authUser });
+      const { call, systemMessage } = await this.callsService.endCall({
+        dto,
+        authUser,
+      });
 
       const room = RoomNames.call(dto.callId);
 
@@ -183,7 +197,16 @@ export class CallsGateway {
         call.space?.toString(),
         SocketEvents.CALL_ENDED,
         call,
+        client.id,
       );
+
+      if (systemMessage) {
+        this.socketEmitter.emitToSpace(
+          call.space?.toString(),
+          SocketEvents.MESSAGE_NEW,
+          systemMessage,
+        );
+      }
 
       const sockets = await client.nsp.in(room).fetchSockets();
       sockets.forEach((s) => s.leave(room));

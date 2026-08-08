@@ -125,7 +125,10 @@ export enum MessageType {
   LOTTIE = 'lottie',
   SYSTEM = 'system',
   LINK = 'link',
-  CALL = 'call',
+  CALL_ENDED = 'call-ended',
+  CALL_MISSED = 'call-missed',
+  CALL_DECLINED = 'call-declined',
+  CALL_FAILED = 'call-failed',
 }
 export enum MessageStatus {
   SENDING = 'sending',
