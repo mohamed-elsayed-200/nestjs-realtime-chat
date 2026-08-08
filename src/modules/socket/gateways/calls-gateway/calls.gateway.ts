@@ -100,6 +100,7 @@ export class CallsGateway {
           call.space?.toString(),
           SocketEvents.MESSAGE_NEW,
           systemMessage,
+          client?.id,
         );
       }
 
@@ -185,7 +186,6 @@ export class CallsGateway {
     @MessageBody() dto: EndCallDto,
   ) {
     const authUser = client.data.user;
-    console.log('A');
     try {
       const { call, systemMessage } = await this.callsService.endCall({
         dto,
@@ -206,6 +206,7 @@ export class CallsGateway {
           call.space?.toString(),
           SocketEvents.MESSAGE_NEW,
           systemMessage,
+          client?.id,
         );
       }
 

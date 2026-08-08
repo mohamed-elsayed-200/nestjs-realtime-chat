@@ -126,9 +126,9 @@ export enum MessageType {
   SYSTEM = 'system',
   LINK = 'link',
   CALL_ENDED = 'call-ended',
+  CALL_REJECTED = 'call-rejected',
+  CALL_CANCELED = 'call-canceled',
   CALL_MISSED = 'call-missed',
-  CALL_DECLINED = 'call-declined',
-  CALL_FAILED = 'call-failed',
 }
 export enum MessageStatus {
   SENDING = 'sending',

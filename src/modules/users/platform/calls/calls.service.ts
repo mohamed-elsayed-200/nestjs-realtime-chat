@@ -18,6 +18,7 @@ import { ParticipantsRepository } from '../../../../common/modules/platform/call
 import { Types } from 'mongoose';
 import { MessagesRepository } from '../../../../common/modules/platform/messages/messages.repository';
 import { SpacesRepository } from '../../../../common/modules/platform/spaces/spaces.repository';
+import { buildCallSystemMessageText } from '../../../../common/utils/call-message-text';
 
 function toPersonInfo(user: any) {
   if (!user) return undefined;
@@ -46,13 +47,13 @@ function toCallResponse(call: any) {
 
   return {
     ...call,
-    id: call._id?.toString() ?? call.id,
-    caller: call.caller?._id?.toString() ?? call.caller?.toString(),
-    receiver: call.receiver?._id?.toString() ?? call.receiver?.toString(),
-    space: call.space?._id?.toString() ?? call.space?.toString(),
-    callerUser: toPersonInfo(call.caller),
-    receiverUser: toPersonInfo(call.receiver),
-    spaceInfo: toSpaceInfo(call.space),
+    id: call?._id?.toString() ?? call?.id,
+    caller: call?.caller?._id?.toString() ?? call?.caller?.toString(),
+    receiver: call?.receiver?._id?.toString() ?? call?.receiver?.toString(),
+    space: call?.space?._id?.toString() ?? call?.space?.toString(),
+    callerUser: toPersonInfo(call?.caller),
+    receiverUser: toPersonInfo(call?.receiver),
+    spaceInfo: toSpaceInfo(call?.space),
   };
 }
 
@@ -122,7 +123,7 @@ export class CallsService {
       dto: {
         user: authUser._id,
         member: authUser.memberId ?? authUser._id,
-        call: call._id,
+        call: call?._id,
         space,
         status: ParticipantStatus.CONNECTED,
         callRole: CallParticipantRole.HOST,
@@ -135,7 +136,7 @@ export class CallsService {
         dto: {
           user: receiver,
           member: dto.receiverMemberId ?? receiver,
-          call: call._id,
+          call: call?._id,
           space,
           status: ParticipantStatus.INVITED,
           callRole: CallParticipantRole.LISTENER,
@@ -149,7 +150,7 @@ export class CallsService {
             dto: {
               user: id,
               member: id,
-              call: call._id,
+              call: call?._id,
               space,
               status: ParticipantStatus.INVITED,
               callRole: CallParticipantRole.LISTENER,
@@ -172,7 +173,7 @@ export class CallsService {
     });
     if (!call) throw new NotFoundException('Call not found');
 
-    if (![CallStatus.INITIATED, CallStatus.RINGING].includes(call.status)) {
+    if (![CallStatus.INITIATED, CallStatus.RINGING].includes(call?.status)) {
       throw new BadRequestException('Call can no longer be accepted');
     }
 
@@ -195,7 +196,7 @@ export class CallsService {
       query: { _id: callObjectId },
       dto: {
         status: CallStatus.IN_PROGRESS,
-        startedAt: call.startedAt ?? new Date(),
+        startedAt: call?.startedAt ?? new Date(),
         $inc: { participantsCount: 1, maxConcurrentParticipants: 1 },
       },
     });
@@ -224,7 +225,7 @@ export class CallsService {
       dto: { status: ParticipantStatus.REJECTED },
     });
 
-    if (call.scope === CallScope.PRIVATE) {
+    if (call?.scope === CallScope.PRIVATE) {
       const updatedCall = await this.callsRepository.updateOne({
         query: { _id: callObjectId },
         dto: {
@@ -234,20 +235,26 @@ export class CallsService {
         },
       });
 
+      const text = buildCallSystemMessageText({
+        type: updatedCall.type,
+        scope: updatedCall.scope,
+        status: CallStatus.REJECTED,
+      });
+
       const systemMessage = await this.messagesRepository.createOne({
         dto: {
-          space: call.space?._id,
+          space: call?.space?._id,
           sender: authUserObjectId,
           messageType: MessageType.CALL_ENDED,
           status: MessageStatus.SENT,
-          duration: call.duration,
-          content: `Call ended`,
-          text: `Call ended`,
+          duration: call?.duration,
+          content: text,
+          text,
         },
       });
 
       await this.spacesRepository.updateOne({
-        query: { _id: call.space?._id },
+        query: { _id: call?.space?._id },
         dto: {
           lastMessage: systemMessage?._id,
         },
@@ -275,13 +282,13 @@ export class CallsService {
     });
     if (!call) throw new NotFoundException('Call not found');
 
-    if ([CallStatus.COMPLETED, CallStatus.FAILED].includes(call.status)) {
+    if ([CallStatus.COMPLETED, CallStatus.FAILED].includes(call?.status)) {
       throw new BadRequestException('Call has already ended');
     }
 
     if (
-      call.maxParticipants &&
-      call.participantsCount >= call.maxParticipants
+      call?.maxParticipants &&
+      call?.participantsCount >= call?.maxParticipants
     ) {
       throw new BadRequestException('Call has reached max participants');
     }
@@ -305,7 +312,7 @@ export class CallsService {
           user: authUserObjectId,
           // member: authUser.memberId ?? authUserObjectId,
           call: callObjectId,
-          space: call.space,
+          space: call?.space,
           status: ParticipantStatus.CONNECTED,
           callRole: CallParticipantRole.LISTENER,
           joinedAt: new Date(),
@@ -317,7 +324,7 @@ export class CallsService {
       query: { _id: callObjectId },
       dto: {
         status: CallStatus.IN_PROGRESS,
-        startedAt: call.startedAt ?? new Date(),
+        startedAt: call?.startedAt ?? new Date(),
         $inc: { participantsCount: 1, maxConcurrentParticipants: 1 },
       },
     });
@@ -380,21 +387,32 @@ export class CallsService {
     });
     if (!call) throw new NotFoundException('Call not found');
 
-    if ([CallStatus.COMPLETED, CallStatus.FAILED].includes(call.status)) {
+    if (
+      [CallStatus.COMPLETED, CallStatus.FAILED, CallStatus.MISSED].includes(
+        call?.status,
+      )
+    ) {
       return toCallResponse(call);
     }
 
     const endedAt = new Date();
-    const startedAt = call.startedAt ? new Date(call.startedAt) : endedAt;
-    const duration = Math.max(
-      0,
-      Math.floor((endedAt.getTime() - startedAt.getTime()) / 1000),
-    );
+    const wasStarted = !!call?.startedAt;
+    const startedAt = wasStarted ? new Date(call.startedAt) : endedAt;
+    const duration = wasStarted
+      ? Math.max(
+          0,
+          Math.floor((endedAt.getTime() - startedAt.getTime()) / 1000),
+        )
+      : 0;
+
+    const isPrivate = call?.scope === CallScope.PRIVATE;
+    const finalStatus =
+      isPrivate && !wasStarted ? CallStatus.MISSED : CallStatus.COMPLETED;
 
     const updatedCall = await this.callsRepository.updateOne({
       query: { _id: callObjectId },
       dto: {
-        status: CallStatus.COMPLETED,
+        status: finalStatus,
         endedAt,
         endedBy: authUserObjectId,
         duration,
@@ -404,7 +422,9 @@ export class CallsService {
     await this.participantsRepository.updateOne({
       query: {
         call: callObjectId,
-        status: ParticipantStatus.CONNECTED,
+        status: {
+          $in: [ParticipantStatus.INVITED, ParticipantStatus.CONNECTED],
+        },
       },
       dto: {
         status: ParticipantStatus.LEFT,
@@ -412,20 +432,30 @@ export class CallsService {
       },
     });
 
+    const text = buildCallSystemMessageText({
+      type: call?.type,
+      scope: call?.scope,
+      status: finalStatus,
+      duration,
+    });
+
     const systemMessage = await this.messagesRepository.createOne({
       dto: {
-        space: call.space?._id,
+        space: call?.space?._id,
         sender: authUserObjectId,
-        messageType: MessageType.CALL_ENDED,
+        messageType:
+          finalStatus === CallStatus.MISSED
+            ? MessageType.CALL_MISSED
+            : MessageType.CALL_ENDED,
         status: MessageStatus.SENT,
-        duration: call.duration,
-        content: `Call ended`,
-        text: `Call ended`,
+        duration,
+        content: text,
+        text,
       },
     });
 
     await this.spacesRepository.updateOne({
-      query: { _id: call.space?._id },
+      query: { _id: call?.space?._id },
       dto: {
         lastMessage: systemMessage?._id,
       },
