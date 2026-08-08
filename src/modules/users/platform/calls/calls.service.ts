@@ -13,6 +13,7 @@ import {
 } from '../../../../common/types/enums';
 import { CallsRepository } from '../../../../common/modules/platform/calls/calls.repository';
 import { ParticipantsRepository } from '../../../../common/modules/platform/calls/participants.repository';
+import { Types } from 'mongoose';
 
 function toPersonInfo(user: any) {
   if (!user) return undefined;
@@ -196,16 +197,17 @@ export class CallsService {
   }
 
   public async rejectCall({ dto, authUser }) {
-    const { callId } = dto;
-
+    const callObjectId = new Types.ObjectId(dto.callId);
+    const authUserObjectId = new Types.ObjectId(authUser._id);
     const call = await this.callsRepository.findOne({
-      query: { _id: callId },
+      query: { _id: callObjectId },
     });
     if (!call) throw new NotFoundException('Call not found');
 
     const participant = await this.participantsRepository.findOne({
-      query: { call: callId, user: authUser._id },
+      query: { call: callObjectId, user: authUserObjectId },
     });
+
     if (!participant) {
       throw new ForbiddenException('You are not invited to this call');
     }
@@ -217,11 +219,11 @@ export class CallsService {
 
     if (call.scope === CallScope.PRIVATE) {
       const updatedCall = await this.callsRepository.updateOne({
-        query: { _id: callId },
+        query: { _id: callObjectId },
         dto: {
           status: CallStatus.REJECTED,
           endedAt: new Date(),
-          endedBy: authUser._id,
+          endedBy: authUserObjectId,
         },
       });
       return toCallResponse(updatedCall);
