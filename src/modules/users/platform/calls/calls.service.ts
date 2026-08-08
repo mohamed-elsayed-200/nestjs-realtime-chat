@@ -19,6 +19,7 @@ import { Types } from 'mongoose';
 import { MessagesRepository } from '../../../../common/modules/platform/messages/messages.repository';
 import { SpacesRepository } from '../../../../common/modules/platform/spaces/spaces.repository';
 import { buildCallSystemMessageText } from '../../../../common/utils/call-message-text';
+import { MembersRepository } from '../../../../common/modules/platform/members/members.repository';
 
 function toPersonInfo(user: any) {
   if (!user) return undefined;
@@ -77,6 +78,7 @@ export class CallsService {
     private readonly participantsRepository: ParticipantsRepository,
     private readonly messagesRepository: MessagesRepository,
     private readonly spacesRepository: SpacesRepository,
+    private readonly membersRepository: MembersRepository,
   ) {}
 
   public async startCall({ dto, authUser }) {
@@ -253,11 +255,9 @@ export class CallsService {
         },
       });
 
-      await this.spacesRepository.updateOne({
-        query: { _id: call?.space?._id },
-        dto: {
-          lastMessage: systemMessage?._id,
-        },
+      await this.membersRepository.updateMany({
+        query: { space: call?.space?._id },
+        dto: { lastMessage: systemMessage?._id },
       });
 
       return {
@@ -460,6 +460,18 @@ export class CallsService {
         lastMessage: systemMessage?._id,
       },
     });
+
+    if (isPrivate) {
+      await this.membersRepository.updateMany({
+        query: { space: call?.space?._id },
+        dto: { lastMessage: systemMessage?._id },
+      });
+    } else {
+      await this.spacesRepository.updateOne({
+        query: { _id: call?.space?._id },
+        dto: { lastMessage: systemMessage?._id },
+      });
+    }
 
     return {
       call: toCallResponse(updatedCall),

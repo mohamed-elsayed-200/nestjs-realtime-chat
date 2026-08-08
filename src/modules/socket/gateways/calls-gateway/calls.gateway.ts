@@ -157,7 +157,7 @@ export class CallsGateway {
         );
       }
 
-      return { success: true, call };
+      return { success: true, result: { call, systemMessage } };
     } catch (err: any) {
       client.emit('error', {
         event: SocketEvents.CALL_REJECT,

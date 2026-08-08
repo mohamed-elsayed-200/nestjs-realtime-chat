@@ -5,6 +5,7 @@ import { CallsController } from './calls.controller';
 import { CallsService } from './calls.service';
 import { BaseMessageModule } from '../../../../common/modules/platform/messages/messages.module';
 import { BaseSpaceModule } from '../../../../common/modules/platform/spaces/spaces.module';
+import { BaseMemberModule } from '../../../../common/modules/platform/members/members.module';
 
 @Module({
   imports: [
@@ -12,6 +13,7 @@ import { BaseSpaceModule } from '../../../../common/modules/platform/spaces/spac
     BaseMessageModule,
     BaseSpaceModule,
     BaseCallsModule,
+    BaseMemberModule,
   ],
   controllers: [CallsController],
   providers: [CallsService],
