@@ -261,6 +261,7 @@ export enum SocketEvents {
   CALL_LEFT = 'call:left',
   CALL_END = 'call:end',
   CALL_ENDED = 'call:ended',
+  CALL_SYNC = 'call:sync',
 
   // Webrtc
   WEBRTC_OFFER = 'webrtc:offer',

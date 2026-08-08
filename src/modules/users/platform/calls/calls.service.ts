@@ -81,6 +81,39 @@ export class CallsService {
     private readonly membersRepository: MembersRepository,
   ) {}
 
+  public async getActiveCallForUser({ authUser }) {
+    const call = await this.callsRepository.findOne({
+      query: {
+        $or: [{ caller: authUser._id }, { receiver: authUser._id }],
+        status: {
+          $in: [
+            CallStatus.INITIATED,
+            CallStatus.RINGING,
+            CallStatus.IN_PROGRESS,
+          ],
+        },
+      },
+    });
+
+    if (!call) return { call: null };
+
+    const participants = await this.participantsRepository.findMany({
+      query: { call: call._id },
+    });
+
+    const myParticipant = participants.find(
+      (p) => p.user?.toString() === authUser._id.toString(),
+    );
+
+    return {
+      call: toCallResponse(call),
+      participant: myParticipant
+        ? toParticipantResponse(myParticipant)
+        : undefined,
+      participants: participants.map(toParticipantResponse),
+    };
+  }
+
   public async startCall({ dto, authUser }) {
     const {
       receiver,
