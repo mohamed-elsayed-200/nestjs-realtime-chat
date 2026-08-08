@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -70,6 +71,11 @@ function toParticipantResponse(participant: any) {
     userInfo: toPersonInfo(participant.user),
   };
 }
+const BUSY_CALL_STATUSES = [
+  CallStatus.INITIATED,
+  CallStatus.RINGING,
+  CallStatus.IN_PROGRESS,
+];
 
 @Injectable()
 export class CallsService {
@@ -134,6 +140,28 @@ export class CallsService {
 
     const isPrivate = scope === CallScope.PRIVATE;
 
+    const callerBusyCall = await this.callsRepository.findOne({
+      query: {
+        $or: [{ caller: authUser._id }, { receiver: authUser._id }],
+        status: { $in: BUSY_CALL_STATUSES },
+      },
+    });
+    if (callerBusyCall) {
+      throw new ConflictException('You are already in another call');
+    }
+
+    if (isPrivate) {
+      const receiverBusyCall = await this.callsRepository.findOne({
+        query: {
+          $or: [{ caller: receiver }, { receiver }],
+          status: { $in: BUSY_CALL_STATUSES },
+        },
+      });
+      if (receiverBusyCall) {
+        throw new ConflictException('User is currently on another call');
+      }
+    }
+
     const call = await this.callsRepository.createOne({
       dto: {
         caller: authUser._id,
@@ -179,8 +207,23 @@ export class CallsService {
         },
       });
     } else if (participantIds.length) {
+      const busyIds: string[] = [];
+      for (const id of participantIds) {
+        const busy = await this.callsRepository.findOne({
+          query: {
+            $or: [{ caller: id }, { receiver: id }],
+            status: { $in: BUSY_CALL_STATUSES },
+          },
+        });
+        if (busy) busyIds.push(id);
+      }
+
+      const availableIds = participantIds.filter(
+        (id: string) => !busyIds.includes(id),
+      );
+
       await Promise.all(
-        participantIds.map((id: string) =>
+        availableIds.map((id: string) =>
           this.participantsRepository.createOne({
             dto: {
               user: id,

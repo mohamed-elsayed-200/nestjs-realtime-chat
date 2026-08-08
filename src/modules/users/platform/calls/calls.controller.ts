@@ -20,6 +20,11 @@ export class CallsController {
   @ResponseMeta({ message: 'calls.foundAll' })
   public async getAll(@Query() query: QueryDto, @GetUser() authUser: any) {}
 
+  @Get('/active')
+  public getActiveCall(@GetUser() authUser: any) {
+    return this.callsService.getActiveCallForUser({ authUser });
+  }
+
   @Get('/:callId')
   @ResponseMeta({ message: 'calls.foundOne' })
   public async getOne(

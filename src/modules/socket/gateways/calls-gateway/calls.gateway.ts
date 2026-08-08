@@ -26,22 +26,6 @@ export class CallsGateway {
     private readonly callsService: CallsService,
   ) {}
 
-  @SubscribeMessage(SocketEvents.CALL_SYNC)
-  async onCallSync(@ConnectedSocket() client: Socket) {
-    const authUser = client.data.user;
-    try {
-      const result = await this.callsService.getActiveCallForUser({ authUser });
-
-      if (result.call?.id) {
-        client.join(RoomNames.call(result.call.id));
-      }
-
-      return { success: true, ...result };
-    } catch (err: any) {
-      return { success: false, error: err?.message };
-    }
-  }
-
   @SubscribeMessage(SocketEvents.WEBRTC_OFFER)
   async onWebrtcOffer(
     @ConnectedSocket() client: Socket,
