@@ -15,6 +15,9 @@ import { RejectCallDto } from './dto/reject-call.dto';
 import { JoinCallDto } from './dto/join-call.dto';
 import { LeaveCallDto } from './dto/leave-call.dto';
 import { EndCallDto } from './dto/end-call.dto';
+import { WebrtcOfferDto } from './dto/webrtc-offer.dto';
+import { WebrtcAnswerDto } from './dto/webrtc-answer.dto';
+import { WebrtcIceCandidateDto } from './dto/webrtcIce-candidate.dto';
 
 @WebSocketGateway({ cors: true })
 export class CallsGateway {
@@ -22,6 +25,56 @@ export class CallsGateway {
     private readonly socketEmitter: SocketEmitterService,
     private readonly callsService: CallsService,
   ) {}
+
+  @SubscribeMessage(SocketEvents.WEBRTC_OFFER)
+  async onWebrtcOffer(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload: WebrtcOfferDto,
+  ) {
+    const authUser = client.data.user;
+
+    this.socketEmitter.emitToUser(payload.toUserId, SocketEvents.WEBRTC_OFFER, {
+      callId: payload.callId,
+      fromUserId: authUser._id,
+      sdp: payload.sdp,
+    });
+  }
+
+  @SubscribeMessage(SocketEvents.WEBRTC_ANSWER)
+  async onWebrtcAnswer(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload: WebrtcAnswerDto,
+  ) {
+    const authUser = client.data.user;
+
+    this.socketEmitter.emitToUser(
+      payload.toUserId,
+      SocketEvents.WEBRTC_ANSWER,
+      {
+        callId: payload.callId,
+        fromUserId: authUser._id,
+        sdp: payload.sdp,
+      },
+    );
+  }
+
+  @SubscribeMessage(SocketEvents.WEBRTC_ICE_CANDIDATE)
+  async onWebrtcIceCandidate(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload: WebrtcIceCandidateDto,
+  ) {
+    const authUser = client.data.user;
+
+    this.socketEmitter.emitToUser(
+      payload.toUserId,
+      SocketEvents.WEBRTC_ICE_CANDIDATE,
+      {
+        callId: payload.callId,
+        fromUserId: authUser._id,
+        candidate: payload.candidate,
+      },
+    );
+  }
 
   @SubscribeMessage(SocketEvents.CALL_START)
   async onCallStart(

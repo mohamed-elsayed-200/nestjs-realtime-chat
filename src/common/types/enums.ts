@@ -127,7 +127,6 @@ export enum MessageType {
   LINK = 'link',
   CALL_ENDED = 'call-ended',
   CALL_REJECTED = 'call-rejected',
-  CALL_CANCELED = 'call-canceled',
   CALL_MISSED = 'call-missed',
 }
 export enum MessageStatus {
@@ -262,6 +261,11 @@ export enum SocketEvents {
   CALL_LEFT = 'call:left',
   CALL_END = 'call:end',
   CALL_ENDED = 'call:ended',
+
+  // Webrtc
+  WEBRTC_OFFER = 'webrtc:offer',
+  WEBRTC_ANSWER = 'webrtc:answer',
+  WEBRTC_ICE_CANDIDATE = 'webrtc:ice-candidate',
 }
 
 export enum ViewTargetType {
