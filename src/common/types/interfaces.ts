@@ -18,6 +18,11 @@ export interface CreateOneProps {
   dto: any;
   populate?: any[];
 }
+export interface UpdateOneProps {
+  query: any;
+  dto: any;
+  populate?: any[];
+}
 export interface DeleteOneProps {
   query: any;
   populate?: any[];

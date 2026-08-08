@@ -14,6 +14,56 @@ import {
 import { CallsRepository } from '../../../../common/modules/platform/calls/calls.repository';
 import { ParticipantsRepository } from '../../../../common/modules/platform/calls/participants.repository';
 
+function toPersonInfo(user: any) {
+  if (!user) return undefined;
+  return {
+    id: user._id?.toString() ?? user.id,
+    name: user.name,
+    avatar: user.avatar,
+    profileColor: user.profileColor,
+    bio: user.bio,
+  };
+}
+
+function toSpaceInfo(space: any) {
+  if (!space) return undefined;
+  return {
+    id: space._id?.toString() ?? space.id,
+    name: space.name,
+    avatar: space.avatar,
+    profileColor: space.profileColor,
+    type: space.type,
+  };
+}
+
+function toCallResponse(call: any) {
+  if (!call) return call;
+
+  return {
+    ...call,
+    id: call._id?.toString() ?? call.id,
+    caller: call.caller?._id?.toString() ?? call.caller?.toString(),
+    receiver: call.receiver?._id?.toString() ?? call.receiver?.toString(),
+    space: call.space?._id?.toString() ?? call.space?.toString(),
+    callerUser: toPersonInfo(call.caller),
+    receiverUser: toPersonInfo(call.receiver),
+    spaceInfo: toSpaceInfo(call.space),
+  };
+}
+
+function toParticipantResponse(participant: any) {
+  if (!participant) return participant;
+
+  return {
+    ...participant,
+    id: participant._id?.toString() ?? participant.id,
+    user: participant.user?._id?.toString() ?? participant.user?.toString(),
+    call: participant.call?.toString(),
+    space: participant.space?.toString(),
+    userInfo: toPersonInfo(participant.user),
+  };
+}
+
 @Injectable()
 export class CallsService {
   constructor(
@@ -30,7 +80,7 @@ export class CallsService {
       isConference = false,
       maxParticipants = 2,
       isBroadcast = false,
-      participantIds = [], // for group/channel/community calls
+      participantIds = [],
       metadata,
       tags,
     } = dto;
@@ -61,7 +111,6 @@ export class CallsService {
       },
     });
 
-    // Caller is auto-connected as host
     await this.participantsRepository.createOne({
       dto: {
         user: authUser._id,
@@ -104,7 +153,7 @@ export class CallsService {
       );
     }
 
-    return call;
+    return toCallResponse(call);
   }
 
   public async acceptCall({ dto, authUser }) {
@@ -143,7 +192,7 @@ export class CallsService {
       },
     });
 
-    return updatedCall;
+    return toCallResponse(updatedCall);
   }
 
   public async rejectCall({ dto, authUser }) {
@@ -163,14 +212,11 @@ export class CallsService {
 
     await this.participantsRepository.updateOne({
       query: { _id: participant._id },
-      dto: {
-        status: ParticipantStatus.REJECTED,
-      },
+      dto: { status: ParticipantStatus.REJECTED },
     });
 
-    // For a private call, a single rejection ends the call
     if (call.scope === CallScope.PRIVATE) {
-      return this.callsRepository.updateOne({
+      const updatedCall = await this.callsRepository.updateOne({
         query: { _id: callId },
         dto: {
           status: CallStatus.REJECTED,
@@ -178,9 +224,10 @@ export class CallsService {
           endedBy: authUser._id,
         },
       });
+      return toCallResponse(updatedCall);
     }
 
-    return call;
+    return toCallResponse(call);
   }
 
   public async joinCall({ dto, authUser }) {
@@ -207,7 +254,7 @@ export class CallsService {
     });
 
     if (participant) {
-      await this.participantsRepository.updateOne({
+      participant = await this.participantsRepository.updateOne({
         query: { _id: participant._id },
         dto: {
           status: ParticipantStatus.CONNECTED,
@@ -238,7 +285,10 @@ export class CallsService {
       },
     });
 
-    return { call: updatedCall, participant };
+    return {
+      call: toCallResponse(updatedCall),
+      participant: toParticipantResponse(participant),
+    };
   }
 
   public async leaveCall({ dto, authUser }) {
@@ -275,10 +325,12 @@ export class CallsService {
       return this.endCall({ dto: { callId }, authUser });
     }
 
-    return this.callsRepository.updateOne({
+    const updatedCall = await this.callsRepository.updateOne({
       query: { _id: callId },
       dto: { $inc: { participantsCount: -1 } },
     });
+
+    return toCallResponse(updatedCall);
   }
 
   public async endCall({ dto, authUser }) {
@@ -290,7 +342,7 @@ export class CallsService {
     if (!call) throw new NotFoundException('Call not found');
 
     if ([CallStatus.COMPLETED, CallStatus.FAILED].includes(call.status)) {
-      return call;
+      return toCallResponse(call);
     }
 
     const endedAt = new Date();
@@ -310,7 +362,6 @@ export class CallsService {
       },
     });
 
-    // Mark any still-connected participants as LEFT
     await this.participantsRepository.updateOne({
       query: {
         call: callId,
@@ -322,6 +373,6 @@ export class CallsService {
       },
     });
 
-    return updatedCall;
+    return toCallResponse(updatedCall);
   }
 }

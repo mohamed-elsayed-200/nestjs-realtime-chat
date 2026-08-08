@@ -27,7 +27,7 @@ export class Participant {
 
   @Prop({
     type: String,
-    enum: ['host', 'co-host', 'participant', 'viewer'],
+    enum: ['host', 'co-host', 'participant', 'viewer', 'listener'],
     default: 'participant',
   })
   callRole: string;
@@ -115,3 +115,5 @@ ParticipantSchema.index({ joinedAt: -1 });
 ParticipantSchema.index({ 'deviceInfo.ip': 1 });
 ParticipantSchema.index({ call: 1, callRole: 1, status: 1 });
 ParticipantSchema.index({ space: 1, call: 1, status: 1 });
+ParticipantSchema.set('toObject', { virtuals: true });
+ParticipantSchema.set('toJSON', { virtuals: true });

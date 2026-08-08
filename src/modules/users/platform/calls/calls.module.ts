@@ -8,5 +8,6 @@ import { CallsService } from './calls.service';
   imports: [BaseAuthModule, BaseCallsModule],
   controllers: [CallsController],
   providers: [CallsService],
+  exports: [CallsService],
 })
 export class CallsModule {}

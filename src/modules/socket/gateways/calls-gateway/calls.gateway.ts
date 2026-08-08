@@ -28,29 +28,20 @@ export class CallsGateway {
     @ConnectedSocket() client: Socket,
     @MessageBody() dto: StartCallDto,
   ) {
-    const authUser = client.data.user as string;
+    const authUser = client.data.user;
     try {
       const call = await this.callsService.startCall({ dto, authUser });
-
-      client.join(RoomNames.call(call._id.toString()));
-
-      if (call.scope === CallScope.PRIVATE) {
-        this.socketEmitter.emitToUser(
-          call.receiver?.toString(),
-          SocketEvents.CALL_RINGING,
-          call,
-        );
-      } else {
-        this.socketEmitter.emitToSpace(
-          call.space?.toString(),
-          SocketEvents.CALL_RINGING,
-          call,
-          client.id,
-        );
-      }
+      this.socketEmitter.emitToSpace(
+        call.space?.toString(),
+        SocketEvents.CALL_RINGING,
+        call,
+        client.id,
+      );
 
       return { success: true, call };
     } catch (err: any) {
+      console.log('error', err);
+
       client.emit('error', {
         event: SocketEvents.CALL_START,
         message: err?.message ?? 'Failed to start call',
@@ -68,12 +59,11 @@ export class CallsGateway {
     try {
       const call = await this.callsService.acceptCall({ dto, authUser });
 
-      client.join(RoomNames.call(dto.callId));
-
       this.socketEmitter.emitToSpace(
         call.space?.toString(),
         SocketEvents.CALL_ACCEPTED,
         call,
+        client.id,
       );
 
       return { success: true, call };
@@ -99,6 +89,7 @@ export class CallsGateway {
         call.space?.toString(),
         SocketEvents.CALL_REJECTED,
         call,
+        client.id,
       );
 
       return { success: true, call };

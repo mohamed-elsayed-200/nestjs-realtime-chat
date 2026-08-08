@@ -97,3 +97,5 @@ CallSchema.index({ scope: 1, status: 1 });
 CallSchema.index({ createdBy: 1, createdAt: -1 });
 CallSchema.index({ scheduledAt: 1, status: 1 });
 CallSchema.index({ 'metadata.priority': 1 });
+CallSchema.set('toObject', { virtuals: true });
+CallSchema.set('toJSON', { virtuals: true });

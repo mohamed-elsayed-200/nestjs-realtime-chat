@@ -122,7 +122,7 @@ export class SpacesService {
             adminTagColor: member?.adminTagColor,
             received: isPrivate
               ? {
-                  _id: otherParty?._id,
+                  id: otherParty?._id,
                   name: otherParty?.name,
                   username: otherParty?.username,
                   avatar: otherParty?.avatar,
@@ -146,7 +146,7 @@ export class SpacesService {
         : {};
 
       const response = {
-        _id: findSpace?._id,
+        id: findSpace?._id,
         type: findSpace?.type,
         status: findSpace?.status,
         createdAt: findSpace?.createdAt,
@@ -192,7 +192,7 @@ export class SpacesService {
       });
 
       const response = {
-        _id: user?._id,
+        id: user?._id,
         unreadCount: 0,
         isPined: false,
         isMuted: false,
@@ -205,7 +205,7 @@ export class SpacesService {
         profileColor: findContact?.profileColor || user?.profileColor,
         isContact: findContact?._id ? true : false,
         received: {
-          _id: user?._id,
+          id: user?._id,
           name: findContact?.name || user?.name,
           avatar: findContact?.avatar || user?.avatar,
           profileColor: findContact?.profileColor || user?.profileColor,
