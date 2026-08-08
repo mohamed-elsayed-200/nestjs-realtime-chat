@@ -158,10 +158,11 @@ export class CallsService {
   }
 
   public async acceptCall({ dto, authUser }) {
-    const { callId } = dto;
+    const callObjectId = new Types.ObjectId(dto.callId);
+    const authUserObjectId = new Types.ObjectId(authUser._id);
 
     const call = await this.callsRepository.findOne({
-      query: { _id: callId },
+      query: { _id: callObjectId },
     });
     if (!call) throw new NotFoundException('Call not found');
 
@@ -170,7 +171,7 @@ export class CallsService {
     }
 
     const participant = await this.participantsRepository.findOne({
-      query: { call: callId, user: authUser._id },
+      query: { call: callObjectId, user: authUserObjectId },
     });
     if (!participant) {
       throw new ForbiddenException('You are not invited to this call');
@@ -185,7 +186,7 @@ export class CallsService {
     });
 
     const updatedCall = await this.callsRepository.updateOne({
-      query: { _id: callId },
+      query: { _id: callObjectId },
       dto: {
         status: CallStatus.IN_PROGRESS,
         startedAt: call.startedAt ?? new Date(),
@@ -233,10 +234,11 @@ export class CallsService {
   }
 
   public async joinCall({ dto, authUser }) {
-    const { callId } = dto;
+    const callObjectId = new Types.ObjectId(dto.callId);
+    const authUserObjectId = new Types.ObjectId(authUser._id);
 
     const call = await this.callsRepository.findOne({
-      query: { _id: callId },
+      query: { _id: callObjectId },
     });
     if (!call) throw new NotFoundException('Call not found');
 
@@ -252,7 +254,7 @@ export class CallsService {
     }
 
     let participant = await this.participantsRepository.findOne({
-      query: { call: callId, user: authUser._id },
+      query: { call: callObjectId, user: authUserObjectId },
     });
 
     if (participant) {
@@ -267,9 +269,9 @@ export class CallsService {
     } else {
       participant = await this.participantsRepository.createOne({
         dto: {
-          user: authUser._id,
-          member: authUser.memberId ?? authUser._id,
-          call: callId,
+          user: authUserObjectId,
+          // member: authUser.memberId ?? authUserObjectId,
+          call: callObjectId,
           space: call.space,
           status: ParticipantStatus.CONNECTED,
           callRole: CallParticipantRole.LISTENER,
@@ -279,7 +281,7 @@ export class CallsService {
     }
 
     const updatedCall = await this.callsRepository.updateOne({
-      query: { _id: callId },
+      query: { _id: callObjectId },
       dto: {
         status: CallStatus.IN_PROGRESS,
         startedAt: call.startedAt ?? new Date(),

@@ -55,7 +55,7 @@ export class CallsGateway {
     @ConnectedSocket() client: Socket,
     @MessageBody() dto: AcceptCallDto,
   ) {
-    const authUser = client.data.user as string;
+    const authUser = client.data.user;
     try {
       const call = await this.callsService.acceptCall({ dto, authUser });
 
