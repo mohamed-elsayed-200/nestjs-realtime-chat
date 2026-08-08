@@ -236,7 +236,7 @@ export class CallsService {
 
       const systemMessage = await this.messagesRepository.createOne({
         dto: {
-          space: call.space,
+          space: call.space?._id,
           sender: authUserObjectId,
           messageType: MessageType.CALL_ENDED,
           status: MessageStatus.SENT,
@@ -247,7 +247,7 @@ export class CallsService {
       });
 
       await this.spacesRepository.updateOne({
-        query: { _id: call.space },
+        query: { _id: call.space?._id },
         dto: {
           lastMessage: systemMessage?._id,
         },
@@ -414,7 +414,7 @@ export class CallsService {
 
     const systemMessage = await this.messagesRepository.createOne({
       dto: {
-        space: call.space,
+        space: call.space?._id,
         sender: authUserObjectId,
         messageType: MessageType.CALL_ENDED,
         status: MessageStatus.SENT,
@@ -425,7 +425,7 @@ export class CallsService {
     });
 
     await this.spacesRepository.updateOne({
-      query: { _id: call.space },
+      query: { _id: call.space?._id },
       dto: {
         lastMessage: systemMessage?._id,
       },

@@ -184,7 +184,8 @@ export class CallsGateway {
     @ConnectedSocket() client: Socket,
     @MessageBody() dto: EndCallDto,
   ) {
-    const authUser = client.data.user as string;
+    const authUser = client.data.user;
+    console.log('A');
     try {
       const { call, systemMessage } = await this.callsService.endCall({
         dto,
