@@ -262,11 +262,13 @@ export enum SocketEvents {
   CALL_END = 'call:end',
   CALL_ENDED = 'call:ended',
   CALL_SYNC = 'call:sync',
-
+  
   // Webrtc
   WEBRTC_OFFER = 'webrtc:offer',
   WEBRTC_ANSWER = 'webrtc:answer',
   WEBRTC_ICE_CANDIDATE = 'webrtc:ice-candidate',
+  SCREEN_SHARE_STARTED = 'call:screen-share-started',
+  SCREEN_SHARE_STOPPED = 'call:screen-share-stopped',
 }
 
 export enum ViewTargetType {

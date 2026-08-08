@@ -121,6 +121,7 @@ export class CallsService {
   }
 
   public async startCall({ dto, authUser }) {
+    const authUserObjectId = new Types.ObjectId(authUser._id);
     const {
       receiver,
       space,
@@ -142,7 +143,7 @@ export class CallsService {
 
     const callerBusyCall = await this.callsRepository.findOne({
       query: {
-        $or: [{ caller: authUser._id }, { receiver: authUser._id }],
+        $or: [{ caller: authUserObjectId }, { receiver: authUserObjectId }],
         status: { $in: BUSY_CALL_STATUSES },
       },
     });
@@ -164,10 +165,10 @@ export class CallsService {
 
     const call = await this.callsRepository.createOne({
       dto: {
-        caller: authUser._id,
+        caller: authUserObjectId,
         receiver: isPrivate ? receiver : undefined,
         space,
-        createdBy: authUser._id,
+        createdBy: authUserObjectId,
         scope,
         type,
         status: isPrivate ? CallStatus.RINGING : CallStatus.IN_PROGRESS,
@@ -181,11 +182,13 @@ export class CallsService {
         maxConcurrentParticipants: 1,
       },
     });
-
+    const findMember = await this.membersRepository.findOne({
+      query: { user: authUserObjectId },
+    });
     await this.participantsRepository.createOne({
       dto: {
-        user: authUser._id,
-        member: authUser.memberId ?? authUser._id,
+        user: authUserObjectId,
+        member: findMember._id,
         call: call?._id,
         space,
         status: ParticipantStatus.CONNECTED,
@@ -198,7 +201,7 @@ export class CallsService {
       await this.participantsRepository.createOne({
         dto: {
           user: receiver,
-          member: dto.receiverMemberId ?? receiver,
+          member: findMember._id,
           call: call?._id,
           space,
           status: ParticipantStatus.INVITED,
@@ -358,6 +361,12 @@ export class CallsService {
     });
     if (!call) throw new NotFoundException('Call not found');
 
+    if (call.scope === CallScope.PRIVATE) {
+      throw new BadRequestException(
+        'Use acceptCall for private calls, not joinCall',
+      );
+    }
+
     if ([CallStatus.COMPLETED, CallStatus.FAILED].includes(call?.status)) {
       throw new BadRequestException('Call has already ended');
     }
@@ -383,10 +392,13 @@ export class CallsService {
         },
       });
     } else {
+      const findMember = await this.membersRepository.findOne({
+        query: { user: authUserObjectId },
+      });
       participant = await this.participantsRepository.createOne({
         dto: {
           user: authUserObjectId,
-          // member: authUser.memberId ?? authUserObjectId,
+          member: findMember?._id,
           call: callObjectId,
           space: call?.space,
           status: ParticipantStatus.CONNECTED,
@@ -404,10 +416,13 @@ export class CallsService {
         $inc: { participantsCount: 1, maxConcurrentParticipants: 1 },
       },
     });
-
+    const allParticipants = await this.participantsRepository.findMany({
+      query: { call: updatedCall?._id },
+    });
     return {
       call: toCallResponse(updatedCall),
       participant: toParticipantResponse(participant),
+      allParticipants,
     };
   }
 
@@ -418,6 +433,7 @@ export class CallsService {
     const call = await this.callsRepository.findOne({
       query: { _id: callObjectId },
     });
+
     if (!call) throw new NotFoundException('Call not found');
 
     const participant = await this.participantsRepository.findOne({
@@ -443,7 +459,7 @@ export class CallsService {
     });
 
     if (!remaining) {
-      return this.endCall({ dto: { callObjectId }, authUser });
+      return this.endCall({ dto: { callId: callObjectId }, authUser });
     }
 
     const updatedCall = await this.callsRepository.updateOne({

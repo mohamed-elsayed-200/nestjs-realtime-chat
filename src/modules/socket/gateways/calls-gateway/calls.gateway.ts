@@ -76,6 +76,38 @@ export class CallsGateway {
     );
   }
 
+  @SubscribeMessage(SocketEvents.SCREEN_SHARE_STARTED)
+  async onScreenShareStarted(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload: { callId: string; toUserId: string },
+  ) {
+    const authUser = client.data.user;
+    this.socketEmitter.emitToUser(
+      payload.toUserId,
+      SocketEvents.SCREEN_SHARE_STARTED,
+      {
+        callId: payload.callId,
+        fromUserId: authUser._id,
+      },
+    );
+  }
+
+  @SubscribeMessage(SocketEvents.SCREEN_SHARE_STOPPED)
+  async onScreenShareStopped(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload: { callId: string; toUserId: string },
+  ) {
+    const authUser = client.data.user;
+    this.socketEmitter.emitToUser(
+      payload.toUserId,
+      SocketEvents.SCREEN_SHARE_STOPPED,
+      {
+        callId: payload.callId,
+        fromUserId: authUser._id,
+      },
+    );
+  }
+
   @SubscribeMessage(SocketEvents.CALL_START)
   async onCallStart(
     @ConnectedSocket() client: Socket,
@@ -172,20 +204,30 @@ export class CallsGateway {
     @ConnectedSocket() client: Socket,
     @MessageBody() dto: JoinCallDto,
   ) {
-    const authUser = client.data.user as string;
+    const authUser = client.data.user;
     try {
-      const { call, participant } = await this.callsService.joinCall({
-        dto,
-        authUser,
-      });
+      const { call, participant, allParticipants } =
+        await this.callsService.joinCall({ dto, authUser });
 
       client.join(RoomNames.call(dto.callId));
+
+      const notifyIds = new Set<string>();
+      allParticipants?.forEach((p: any) => {
+        const uid = p.user?.toString?.() ?? p.user;
+        if (uid) notifyIds.add(uid);
+      });
+
+      notifyIds.forEach((userId) => {
+        this.socketEmitter.emitToUser(userId, SocketEvents.CALL_JOINED, {
+          call,
+          participant,
+        });
+      });
 
       this.socketEmitter.emitToSpace(
         call.space?.toString(),
         SocketEvents.CALL_JOINED,
         { call, participant },
-        client.id,
       );
 
       return { success: true, call, participant };
