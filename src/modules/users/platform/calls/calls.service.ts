@@ -436,14 +436,32 @@ export class CallsService {
   }
 
   public async joinCall({ dto, authUser }) {
-    const callObjectId = new Types.ObjectId(dto.callId);
-    const authUserObjectId = new Types.ObjectId(authUser._id);
+    // Validate the DTO first
+    if (!dto?.callId) {
+      throw new BadRequestException('callId is required');
+    }
 
+    // Convert to ObjectId with proper error handling
+    let callObjectId: Types.ObjectId;
+    let authUserObjectId: Types.ObjectId;
+
+    try {
+      callObjectId = new Types.ObjectId(dto.callId);
+      authUserObjectId = new Types.ObjectId(authUser._id);
+    } catch (error) {
+      throw new BadRequestException('Invalid ID format');
+    }
+
+    // Find the call
     const call = await this.callsRepository.findOne({
       query: { _id: callObjectId },
     });
-    if (!call) throw new NotFoundException('Call not found');
 
+    if (!call) {
+      throw new NotFoundException('Call not found');
+    }
+
+    // Validate call status
     if (call.scope === CallScope.PRIVATE) {
       throw new BadRequestException(
         'Use acceptCall for private calls, not joinCall',
@@ -461,11 +479,16 @@ export class CallsService {
       throw new BadRequestException('Call has reached max participants');
     }
 
+    // Find or create participant
     let participant = await this.participantsRepository.findOne({
-      query: { call: callObjectId, user: authUserObjectId },
+      query: {
+        call: callObjectId,
+        user: authUserObjectId,
+      },
     });
 
     if (participant) {
+      // Update existing participant
       participant = await this.participantsRepository.updateOne({
         query: { _id: participant._id },
         dto: {
@@ -475,20 +498,25 @@ export class CallsService {
         },
       });
     } else {
+      // Check if user is a member of the space
       const findMember = await this.membersRepository.findOne({
-        query: { user: authUserObjectId, space: call.space },
+        query: {
+          user: authUserObjectId,
+          space: call?.space?._id,
+        },
       });
 
       if (!findMember) {
         throw new NotFoundException('You are not a member of this space');
       }
 
+      // Create new participant
       participant = await this.participantsRepository.createOne({
         dto: {
           user: authUserObjectId,
           member: findMember._id,
           call: callObjectId,
-          space: call?.space,
+          space: call?.space?._id,
           status: ParticipantStatus.CONNECTED,
           callRole: 'listener',
           joinedAt: new Date(),
@@ -496,17 +524,23 @@ export class CallsService {
       });
     }
 
+    // Update call
     const updatedCall = await this.callsRepository.updateOne({
       query: { _id: callObjectId },
       dto: {
         status: CallStatus.IN_PROGRESS,
         startedAt: call?.startedAt ?? new Date(),
-        $inc: { participantsCount: 1, maxConcurrentParticipants: 1 },
+        // Use $inc for atomic increment
+        $inc: {
+          participantsCount: 1,
+          maxConcurrentParticipants: 1,
+        },
       },
     });
 
+    // Get all participants
     const allParticipants = await this.participantsRepository.findMany({
-      query: { call: updatedCall?._id },
+      query: { call: callObjectId },
     });
 
     return {
