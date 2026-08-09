@@ -6,6 +6,7 @@ import { MessagesRepository } from '../../../../common/modules/platform/messages
 import { JoinRequestsRepository } from '../../../../common/modules/platform/join-requests/join-requests.repository';
 import { JoinRequestStatus } from './../../../../common/modules/platform/join-requests/join-request.schema';
 import { UsersRepository } from './../../../../common/modules/iam/users/users.repository';
+import { CallsRepository } from './../../../../common/modules/platform/calls/calls.repository';
 import {
   BadRequestException,
   Injectable,
@@ -15,6 +16,7 @@ import {
 import {
   ActivationStatus,
   adminPermissionList,
+  CallStatus,
   JoinApproval,
   memberPermissionList,
   MessageStatus,
@@ -33,6 +35,7 @@ export class SpacesService {
     private readonly messagesRepository: MessagesRepository,
     private readonly usersRepository: UsersRepository,
     private readonly joinRequestsRepository: JoinRequestsRepository,
+    private readonly callsRepository: CallsRepository,
   ) {}
 
   public async getOne({ spaceOrUserId, authUser }) {
@@ -74,6 +77,20 @@ export class SpacesService {
 
     if (findSpace) {
       const isPrivate = findSpace?.type === SpaceTypes.PRIVATE;
+
+      const activeCall = await this.callsRepository.findOne({
+        query: {
+          space: spaceId,
+          status: {
+            $in: [
+              CallStatus.INITIATED,
+              CallStatus.RINGING,
+              CallStatus.IN_PROGRESS,
+            ],
+          },
+        },
+      });
+
       const effectiveLastMessageId = isPrivate
         ? member?.lastMessage
         : findSpace?.lastMessage;
@@ -159,6 +176,9 @@ export class SpacesService {
         bio: findSpace?.bio || otherParty?.bio,
         createdBy: findSpace?.createdBy,
         wallpaper: findSpace?.wallpaper || member?.wallpaper,
+        isActiveCall: Boolean(activeCall),
+        activeCallType: activeCall?.type ?? null,
+        activeCallId: activeCall?._id?.toString() ?? null,
 
         name: isPrivate
           ? userContact?.name || otherParty?.name || null
@@ -204,6 +224,10 @@ export class SpacesService {
         avatar: findContact?.avatar || user?.avatar,
         profileColor: findContact?.profileColor || user?.profileColor,
         isContact: findContact?._id ? true : false,
+        isActiveCall: false,
+        activeCallType: null,
+        activeCallId: null,
+
         received: {
           id: user?._id,
           name: findContact?.name || user?.name,
@@ -216,40 +240,6 @@ export class SpacesService {
 
       return response;
     }
-  }
-
-  public async openLink({ dto, authUser }) {
-    const { linkText, linkType } = dto;
-    let query: any = {};
-
-    if (linkType === SpaceTypes.CHANNEL) {
-      query = { 'settings.channel.channelLink': linkText };
-    } else if (linkType === SpaceTypes.GROUP) {
-      query = { 'settings.group.groupLink': linkText };
-    } else if (linkType === SpaceTypes.COMMUNITY) {
-      query = { 'settings.community.communityLink': linkText };
-    } else {
-      throw new BadRequestException('spaces.invalidLinkType');
-    }
-
-    const findSpace = await this.spacesRepository.findOne({ query });
-    if (!findSpace)
-      return {
-        isDeleted: true,
-      };
-
-    const spaceId = new Types.ObjectId(findSpace?._id);
-    const userId = new Types.ObjectId(authUser?._id);
-
-    const findRequest = await this.joinRequestsRepository.findOne({
-      query: { space: spaceId, user: userId },
-    });
-    const getSpace = await this.getOne({ spaceOrUserId: spaceId, authUser });
-
-    return {
-      ...getSpace,
-      joinRequest: findRequest || undefined,
-    };
   }
 
   public async getAll({ query, authUser }) {
@@ -468,7 +458,37 @@ export class SpacesService {
               preserveNullAndEmptyArrays: true,
             },
           },
-
+          {
+            $lookup: {
+              from: 'calls',
+              let: { spaceId: '$space._id' },
+              pipeline: [
+                {
+                  $match: {
+                    $expr: { $eq: ['$space', '$$spaceId'] },
+                    status: {
+                      $in: ['initiated', 'ringing', 'in-progress'],
+                    },
+                  },
+                },
+                { $sort: { createdAt: -1 } },
+                { $limit: 1 },
+                {
+                  $project: {
+                    _id: 1,
+                    type: 1,
+                    status: 1,
+                  },
+                },
+              ],
+              as: 'activeCallData',
+            },
+          },
+          {
+            $addFields: {
+              activeCall: { $arrayElemAt: ['$activeCallData', 0] },
+            },
+          },
           {
             $project: {
               _id: '$space._id',
@@ -564,6 +584,10 @@ export class SpacesService {
                   else: null,
                 },
               },
+
+              isActiveCall: { $gt: [{ $size: '$activeCallData' }, 0] },
+              activeCallType: { $ifNull: ['$activeCall.type', null] },
+              activeCallId: { $ifNull: ['$activeCall._id', null] },
             },
           },
         ],
@@ -629,7 +653,31 @@ export class SpacesService {
               preserveNullAndEmptyArrays: true,
             },
           },
-
+          {
+            $lookup: {
+              from: 'calls',
+              let: { spaceId: '$_id' },
+              pipeline: [
+                {
+                  $match: {
+                    $expr: { $eq: ['$space', '$$spaceId'] },
+                    status: {
+                      $in: ['initiated', 'ringing', 'in-progress'],
+                    },
+                  },
+                },
+                { $sort: { createdAt: -1 } },
+                { $limit: 1 },
+                { $project: { _id: 1, type: 1, status: 1 } },
+              ],
+              as: 'activeCallData',
+            },
+          },
+          {
+            $addFields: {
+              activeCall: { $arrayElemAt: ['$activeCallData', 0] },
+            },
+          },
           {
             $project: {
               _id: 1,
@@ -680,6 +728,10 @@ export class SpacesService {
                   else: null,
                 },
               },
+
+              isActiveCall: { $gt: [{ $size: '$activeCallData' }, 0] },
+              activeCallType: { $ifNull: ['$activeCall.type', null] },
+              activeCallId: { $ifNull: ['$activeCall._id', null] },
             },
           },
 
@@ -689,6 +741,40 @@ export class SpacesService {
     });
 
     return subSpaces;
+  }
+
+  public async openLink({ dto, authUser }) {
+    const { linkText, linkType } = dto;
+    let query: any = {};
+
+    if (linkType === SpaceTypes.CHANNEL) {
+      query = { 'settings.channel.channelLink': linkText };
+    } else if (linkType === SpaceTypes.GROUP) {
+      query = { 'settings.group.groupLink': linkText };
+    } else if (linkType === SpaceTypes.COMMUNITY) {
+      query = { 'settings.community.communityLink': linkText };
+    } else {
+      throw new BadRequestException('spaces.invalidLinkType');
+    }
+
+    const findSpace = await this.spacesRepository.findOne({ query });
+    if (!findSpace)
+      return {
+        isDeleted: true,
+      };
+
+    const spaceId = new Types.ObjectId(findSpace?._id);
+    const userId = new Types.ObjectId(authUser?._id);
+
+    const findRequest = await this.joinRequestsRepository.findOne({
+      query: { space: spaceId, user: userId },
+    });
+    const getSpace = await this.getOne({ spaceOrUserId: spaceId, authUser });
+
+    return {
+      ...getSpace,
+      joinRequest: findRequest || undefined,
+    };
   }
 
   public async changeWallpaper({ spaceId, dto, authUser }) {

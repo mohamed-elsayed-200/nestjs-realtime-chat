@@ -5,9 +5,13 @@ import {
   MessageBody,
   ConnectedSocket,
 } from '@nestjs/websockets';
+import {
+  CallScope,
+  CallStatus,
+  SocketEvents,
+} from '../../../../common/types/enums';
 import { Socket } from 'socket.io';
 import { SocketEmitterService } from '../../services/socket-emitter.service';
-import { SocketEvents } from '../../../../common/types/enums';
 import { RoomNames } from '../../../../common/utils/room-names';
 import { StartCallDto } from './dto/start-call.dto';
 import { AcceptCallDto } from './dto/accept-call.dto';
@@ -25,6 +29,14 @@ export class CallsGateway {
     private readonly socketEmitter: SocketEmitterService,
     private readonly callsService: CallsService,
   ) {}
+
+  private notifyDirectParticipants(call: any, event: SocketEvents) {
+    if (!call) return;
+    const ids = new Set<string>();
+    if (call.caller) ids.add(call.caller.toString());
+    if (call.receiver) ids.add(call.receiver.toString());
+    ids.forEach((id) => this.socketEmitter.emitToUser(id, event, call));
+  }
 
   @SubscribeMessage(SocketEvents.WEBRTC_OFFER)
   async onWebrtcOffer(
@@ -116,6 +128,25 @@ export class CallsGateway {
     const authUser = client.data.user;
     try {
       const call = await this.callsService.startCall({ dto, authUser });
+
+      client.join(RoomNames.call(call.id));
+
+      if (call.scope === CallScope.PRIVATE) {
+        this.socketEmitter.emitToUser(
+          call.receiver?.toString(),
+          SocketEvents.CALL_RINGING,
+          call,
+        );
+      } else if ((dto as any).participantIds?.length) {
+        (dto as any).participantIds.forEach((userId: string) => {
+          this.socketEmitter.emitToUser(
+            userId,
+            SocketEvents.CALL_RINGING,
+            call,
+          );
+        });
+      }
+
       this.socketEmitter.emitToSpace(
         call.space?.toString(),
         SocketEvents.CALL_RINGING,
@@ -125,8 +156,6 @@ export class CallsGateway {
 
       return { success: true, call };
     } catch (err: any) {
-      console.log('error', err);
-
       client.emit('error', {
         event: SocketEvents.CALL_START,
         message: err?.message ?? 'Failed to start call',
@@ -142,7 +171,11 @@ export class CallsGateway {
   ) {
     const authUser = client.data.user;
     try {
-      const call = await this.callsService.acceptCall({ dto, authUser });
+      const { call } = await this.callsService.acceptCall({ dto, authUser });
+
+      client.join(RoomNames.call(dto.callId));
+
+      this.notifyDirectParticipants(call, SocketEvents.CALL_ACCEPTED);
 
       this.socketEmitter.emitToSpace(
         call.space?.toString(),
@@ -166,12 +199,14 @@ export class CallsGateway {
     @ConnectedSocket() client: Socket,
     @MessageBody() dto: RejectCallDto,
   ) {
-    const authUser = client.data.user as string;
+    const authUser = client.data.user;
     try {
       const { call, systemMessage } = await this.callsService.rejectCall({
         dto,
         authUser,
       });
+
+      this.notifyDirectParticipants(call, SocketEvents.CALL_REJECTED);
 
       this.socketEmitter.emitToSpace(
         call.space?.toString(),
@@ -189,7 +224,7 @@ export class CallsGateway {
         );
       }
 
-      return { success: true, result: { call, systemMessage } };
+      return { success: true, call, systemMessage };
     } catch (err: any) {
       client.emit('error', {
         event: SocketEvents.CALL_REJECT,
@@ -211,12 +246,11 @@ export class CallsGateway {
 
       client.join(RoomNames.call(dto.callId));
 
-      const notifyIds = new Set<string>();
-      allParticipants?.forEach((p: any) => {
-        const uid = p.user?.toString?.() ?? p.user;
-        if (uid) notifyIds.add(uid);
-      });
-
+      const notifyIds = new Set<string>(
+        (allParticipants ?? [])
+          .map((p: any) => p.user?.toString?.() ?? p.user)
+          .filter(Boolean),
+      );
       notifyIds.forEach((userId) => {
         this.socketEmitter.emitToUser(userId, SocketEvents.CALL_JOINED, {
           call,
@@ -228,6 +262,7 @@ export class CallsGateway {
         call.space?.toString(),
         SocketEvents.CALL_JOINED,
         { call, participant },
+        client.id,
       );
 
       return { success: true, call, participant };
@@ -245,27 +280,42 @@ export class CallsGateway {
     @ConnectedSocket() client: Socket,
     @MessageBody() dto: LeaveCallDto,
   ) {
-    const authUser = client.data.user as string;
+    const authUser = client.data.user;
     try {
-      const result = await this.callsService.leaveCall({ dto, authUser });
+      const { call, systemMessage } = await this.callsService.leaveCall({
+        dto,
+        authUser,
+      });
 
       const room = RoomNames.call(dto.callId);
 
       const event =
-        result?.status === 'completed'
+        call?.status === CallStatus.COMPLETED ||
+        call?.status === CallStatus.MISSED
           ? SocketEvents.CALL_ENDED
           : SocketEvents.CALL_LEFT;
 
+      this.notifyDirectParticipants(call, event);
+
       this.socketEmitter.emitToSpace(
-        result?.space?.toString(),
+        call?.space?.toString(),
         event,
-        result,
+        call,
         client.id,
       );
 
+      if (systemMessage) {
+        this.socketEmitter.emitToSpace(
+          call.space?.toString(),
+          SocketEvents.MESSAGE_NEW,
+          systemMessage,
+          client.id,
+        );
+      }
+
       client.leave(room);
 
-      return { success: true, call: result };
+      return { success: true, call };
     } catch (err: any) {
       client.emit('error', {
         event: SocketEvents.CALL_LEAVE,
@@ -289,6 +339,8 @@ export class CallsGateway {
 
       const room = RoomNames.call(dto.callId);
 
+      this.notifyDirectParticipants(call, SocketEvents.CALL_ENDED);
+
       this.socketEmitter.emitToSpace(
         call.space?.toString(),
         SocketEvents.CALL_ENDED,
@@ -308,7 +360,7 @@ export class CallsGateway {
       const sockets = await client.nsp.in(room).fetchSockets();
       sockets.forEach((s) => s.leave(room));
 
-      return { success: true, result: { call, systemMessage } };
+      return { success: true, call, systemMessage };
     } catch (err: any) {
       client.emit('error', {
         event: SocketEvents.CALL_END,

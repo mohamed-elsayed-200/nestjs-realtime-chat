@@ -76,7 +76,6 @@ const BUSY_CALL_STATUSES = [
   CallStatus.RINGING,
   CallStatus.IN_PROGRESS,
 ];
-
 @Injectable()
 export class CallsService {
   constructor(
@@ -88,9 +87,22 @@ export class CallsService {
   ) {}
 
   public async getActiveCallForUser({ authUser }) {
+    const authUserObjectId = new Types.ObjectId(authUser._id);
+
+    const myParticipant = await this.participantsRepository.findOne({
+      query: {
+        user: authUserObjectId,
+        status: {
+          $in: [ParticipantStatus.INVITED, ParticipantStatus.CONNECTED],
+        },
+      },
+    });
+
+    if (!myParticipant) return { call: null };
+
     const call = await this.callsRepository.findOne({
       query: {
-        $or: [{ caller: authUser._id }, { receiver: authUser._id }],
+        _id: myParticipant.call,
         status: {
           $in: [
             CallStatus.INITIATED,
@@ -107,14 +119,14 @@ export class CallsService {
       query: { call: call._id },
     });
 
-    const myParticipant = participants.find(
-      (p) => p.user?.toString() === authUser._id.toString(),
+    const myUpdatedParticipant = participants.find(
+      (p: any) => p.user?.toString() === authUser._id.toString(),
     );
 
     return {
       call: toCallResponse(call),
-      participant: myParticipant
-        ? toParticipantResponse(myParticipant)
+      participant: myUpdatedParticipant
+        ? toParticipantResponse(myUpdatedParticipant)
         : undefined,
       participants: participants.map(toParticipantResponse),
     };
@@ -122,12 +134,10 @@ export class CallsService {
 
   public async startCall({ dto, authUser }) {
     const authUserObjectId = new Types.ObjectId(authUser._id);
+    const spaceObjectId = new Types.ObjectId(dto?.space);
     const {
       receiver,
-      space,
-      scope = CallScope.PRIVATE,
       type = CallType.AUDIO,
-      isConference = false,
       maxParticipants = 2,
       isBroadcast = false,
       participantIds = [],
@@ -135,11 +145,42 @@ export class CallsService {
       tags,
     } = dto;
 
+    const findSpace = await this.spacesRepository.findOne({
+      query: { _id: spaceObjectId },
+    });
+    if (!findSpace) throw new BadRequestException('space not found');
+    const scope = findSpace.type as any;
+
     if (scope === CallScope.PRIVATE && !receiver) {
       throw new BadRequestException('receiver is required for private calls');
     }
 
     const isPrivate = scope === CallScope.PRIVATE;
+
+    const callerMember = await this.membersRepository.findOne({
+      query: { user: authUserObjectId, space: spaceObjectId },
+    });
+    if (!callerMember) {
+      throw new NotFoundException('You are not a member of this space');
+    }
+
+    const callerBusyParticipant = await this.participantsRepository.findOne({
+      query: {
+        user: authUserObjectId,
+        status: ParticipantStatus.CONNECTED,
+      },
+    });
+    if (callerBusyParticipant) {
+      const busyCall = await this.callsRepository.findOne({
+        query: {
+          _id: callerBusyParticipant.call,
+          status: { $in: BUSY_CALL_STATUSES },
+        },
+      });
+      if (busyCall) {
+        throw new ConflictException('You are already in another call');
+      }
+    }
 
     const callerBusyCall = await this.callsRepository.findOne({
       query: {
@@ -151,7 +192,10 @@ export class CallsService {
       throw new ConflictException('You are already in another call');
     }
 
+    let receiverMember: any = null;
     if (isPrivate) {
+      const receiverObjectId = new Types.ObjectId(receiver);
+
       const receiverBusyCall = await this.callsRepository.findOne({
         query: {
           $or: [{ caller: receiver }, { receiver }],
@@ -161,18 +205,25 @@ export class CallsService {
       if (receiverBusyCall) {
         throw new ConflictException('User is currently on another call');
       }
+
+      receiverMember = await this.membersRepository.findOne({
+        query: { user: receiverObjectId, space: spaceObjectId },
+      });
+      if (!receiverMember) {
+        throw new BadRequestException('Receiver is not a member of this space');
+      }
     }
 
     const call = await this.callsRepository.createOne({
       dto: {
         caller: authUserObjectId,
         receiver: isPrivate ? receiver : undefined,
-        space,
+        space: spaceObjectId,
         createdBy: authUserObjectId,
         scope,
         type,
         status: isPrivate ? CallStatus.RINGING : CallStatus.IN_PROGRESS,
-        isConference: isPrivate ? false : true || isConference,
+        isConference: !isPrivate,
         maxParticipants,
         isBroadcast,
         metadata,
@@ -182,17 +233,15 @@ export class CallsService {
         maxConcurrentParticipants: 1,
       },
     });
-    const findMember = await this.membersRepository.findOne({
-      query: { user: authUserObjectId },
-    });
+
     await this.participantsRepository.createOne({
       dto: {
         user: authUserObjectId,
-        member: findMember._id,
+        member: callerMember._id,
         call: call?._id,
-        space,
+        space: spaceObjectId,
         status: ParticipantStatus.CONNECTED,
-        callRole: CallParticipantRole.HOST,
+        callRole: isPrivate ? 'listener' : 'host',
         joinedAt: new Date(),
       },
     });
@@ -201,11 +250,11 @@ export class CallsService {
       await this.participantsRepository.createOne({
         dto: {
           user: receiver,
-          member: findMember._id,
+          member: receiverMember._id,
           call: call?._id,
-          space,
+          space: spaceObjectId,
           status: ParticipantStatus.INVITED,
-          callRole: CallParticipantRole.LISTENER,
+          callRole: 'listener',
           invitedAt: new Date(),
         },
       });
@@ -225,21 +274,39 @@ export class CallsService {
         (id: string) => !busyIds.includes(id),
       );
 
-      await Promise.all(
-        availableIds.map((id: string) =>
-          this.participantsRepository.createOne({
-            dto: {
-              user: id,
-              member: id,
-              call: call?._id,
-              space,
-              status: ParticipantStatus.INVITED,
-              callRole: CallParticipantRole.LISTENER,
-              invitedAt: new Date(),
+      if (availableIds.length) {
+        const memberDocs = await this.membersRepository.findMany({
+          query: {
+            space: spaceObjectId,
+            user: {
+              $in: availableIds.map((id: string) => new Types.ObjectId(id)),
             },
-          }),
-        ),
-      );
+          },
+        });
+        const memberByUserId = new Map(
+          memberDocs.map((m: any) => [m.user.toString(), m._id]),
+        );
+
+        const validIds = availableIds.filter((id: string) =>
+          memberByUserId.has(id),
+        );
+
+        await Promise.all(
+          validIds.map((id: string) =>
+            this.participantsRepository.createOne({
+              dto: {
+                user: id,
+                member: memberByUserId.get(id),
+                call: call?._id,
+                space: spaceObjectId,
+                status: ParticipantStatus.INVITED,
+                callRole: 'listener',
+                invitedAt: new Date(),
+              },
+            }),
+          ),
+        );
+      }
     }
 
     return toCallResponse(call);
@@ -262,7 +329,7 @@ export class CallsService {
       query: { call: callObjectId, user: authUserObjectId },
     });
     if (!participant) {
-      throw new ForbiddenException('You are not invited to this call');
+      throw new NotFoundException('You are not invited to this call');
     }
 
     await this.participantsRepository.updateOne({
@@ -282,7 +349,7 @@ export class CallsService {
       },
     });
 
-    return toCallResponse(updatedCall);
+    return { call: toCallResponse(updatedCall) };
   }
 
   public async rejectCall({ dto, authUser }) {
@@ -298,7 +365,7 @@ export class CallsService {
     });
 
     if (!participant) {
-      throw new ForbiddenException('You are not invited to this call');
+      throw new NotFoundException('You are not invited to this call');
     }
 
     await this.participantsRepository.updateOne({
@@ -324,7 +391,7 @@ export class CallsService {
 
       const systemMessage = await this.messagesRepository.createOne({
         dto: {
-          space: call?.space?._id,
+          space: call?.space?._id ?? call?.space,
           sender: authUserObjectId,
           messageType: MessageType.CALL_REJECTED,
           status: MessageStatus.SENT,
@@ -335,7 +402,7 @@ export class CallsService {
       });
 
       await this.membersRepository.updateMany({
-        query: { space: call?.space?._id },
+        query: { space: call?.space?._id ?? call?.space },
         dto: { lastMessage: systemMessage?._id },
       });
 
@@ -349,7 +416,7 @@ export class CallsService {
       };
     }
 
-    return toCallResponse(call);
+    return { call: toCallResponse(call) };
   }
 
   public async joinCall({ dto, authUser }) {
@@ -393,16 +460,21 @@ export class CallsService {
       });
     } else {
       const findMember = await this.membersRepository.findOne({
-        query: { user: authUserObjectId },
+        query: { user: authUserObjectId, space: call.space },
       });
+
+      if (!findMember) {
+        throw new NotFoundException('You are not a member of this space');
+      }
+
       participant = await this.participantsRepository.createOne({
         dto: {
           user: authUserObjectId,
-          member: findMember?._id,
+          member: findMember._id,
           call: callObjectId,
           space: call?.space,
           status: ParticipantStatus.CONNECTED,
-          callRole: CallParticipantRole.LISTENER,
+          callRole: 'listener',
           joinedAt: new Date(),
         },
       });
@@ -416,9 +488,11 @@ export class CallsService {
         $inc: { participantsCount: 1, maxConcurrentParticipants: 1 },
       },
     });
+
     const allParticipants = await this.participantsRepository.findMany({
       query: { call: updatedCall?._id },
     });
+
     return {
       call: toCallResponse(updatedCall),
       participant: toParticipantResponse(participant),
@@ -467,7 +541,7 @@ export class CallsService {
       dto: { $inc: { participantsCount: -1 } },
     });
 
-    return toCallResponse(updatedCall);
+    return { call: toCallResponse(updatedCall) };
   }
 
   public async endCall({ dto, authUser }) {
@@ -484,7 +558,7 @@ export class CallsService {
         call?.status,
       )
     ) {
-      return toCallResponse(call);
+      return { call: toCallResponse(call) };
     }
 
     const endedAt = new Date();
@@ -533,7 +607,7 @@ export class CallsService {
 
     const systemMessage = await this.messagesRepository.createOne({
       dto: {
-        space: call?.space?._id,
+        space: call?.space?._id ?? call?.space,
         sender: authUserObjectId,
         messageType:
           finalStatus === CallStatus.MISSED
@@ -546,24 +620,10 @@ export class CallsService {
       },
     });
 
-    await this.spacesRepository.updateOne({
-      query: { _id: call?.space?._id },
-      dto: {
-        lastMessage: systemMessage?._id,
-      },
+    await this.membersRepository.updateMany({
+      query: { space: call?.space?._id ?? call?.space },
+      dto: { lastMessage: systemMessage?._id },
     });
-
-    if (isPrivate) {
-      await this.membersRepository.updateMany({
-        query: { space: call?.space?._id },
-        dto: { lastMessage: systemMessage?._id },
-      });
-    } else {
-      await this.spacesRepository.updateOne({
-        query: { _id: call?.space?._id },
-        dto: { lastMessage: systemMessage?._id },
-      });
-    }
 
     return {
       call: toCallResponse(updatedCall),

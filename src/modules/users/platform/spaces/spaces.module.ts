@@ -7,6 +7,7 @@ import { BaseMemberModule } from '../../../../common/modules/platform/members/me
 import { BaseContactModule } from '../../../../common/modules/platform/contacts/contacts.module';
 import { BaseMessageModule } from '../../../../common/modules/platform/messages/messages.module';
 import { BaseJoinRequests } from '../../../../common/modules/platform/join-requests/join-requests.module';
+import { BaseCallsModule } from '../../../../common/modules/platform/calls/calls.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { BaseJoinRequests } from '../../../../common/modules/platform/join-reque
     BaseContactModule,
     BaseMessageModule,
     BaseJoinRequests,
+    BaseCallsModule,
   ],
   controllers: [SpacesController],
   providers: [SpacesService],
