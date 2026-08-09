@@ -131,22 +131,6 @@ export class CallsGateway {
 
       client.join(RoomNames.call(call.id));
 
-      if (call.scope === CallScope.PRIVATE) {
-        this.socketEmitter.emitToUser(
-          call.receiver?.toString(),
-          SocketEvents.CALL_RINGING,
-          call,
-        );
-      } else if ((dto as any).participantIds?.length) {
-        (dto as any).participantIds.forEach((userId: string) => {
-          this.socketEmitter.emitToUser(
-            userId,
-            SocketEvents.CALL_RINGING,
-            call,
-          );
-        });
-      }
-
       this.socketEmitter.emitToSpace(
         call.space?.toString(),
         SocketEvents.CALL_RINGING,
