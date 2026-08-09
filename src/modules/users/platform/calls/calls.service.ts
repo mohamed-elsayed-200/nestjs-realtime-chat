@@ -86,6 +86,22 @@ export class CallsService {
     private readonly membersRepository: MembersRepository,
   ) {}
 
+  public async getCallById({ callId, authUser }) {
+    const call = await this.callsRepository.findOne({
+      query: { _id: new Types.ObjectId(callId) },
+    });
+    if (!call) throw new NotFoundException('Call not found');
+
+    const participants = await this.participantsRepository.findMany({
+      query: { call: call._id },
+    });
+
+    return {
+      call: toCallResponse(call),
+      participants: participants.map(toParticipantResponse),
+    };
+  }
+
   public async getActiveCallForUser({ authUser }) {
     const authUserObjectId = new Types.ObjectId(authUser._id);
 

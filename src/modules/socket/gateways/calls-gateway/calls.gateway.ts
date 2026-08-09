@@ -230,26 +230,14 @@ export class CallsGateway {
 
       client.join(RoomNames.call(dto.callId));
 
-      const notifyIds = new Set<string>(
-        (allParticipants ?? [])
-          .map((p: any) => p.user?.toString?.() ?? p.user)
-          .filter(Boolean),
-      );
-      notifyIds.forEach((userId) => {
-        this.socketEmitter.emitToUser(userId, SocketEvents.CALL_JOINED, {
-          call,
-          participant,
-        });
-      });
-
       this.socketEmitter.emitToSpace(
         call.space?.toString(),
         SocketEvents.CALL_JOINED,
-        { call, participant },
+        { call, participant, allParticipants },
         client.id,
       );
 
-      return { success: true, call, participant };
+      return { success: true, call, participant, allParticipants };
     } catch (err: any) {
       client.emit('error', {
         event: SocketEvents.CALL_JOIN,

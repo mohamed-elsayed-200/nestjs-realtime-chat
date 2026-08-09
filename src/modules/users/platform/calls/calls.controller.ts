@@ -24,11 +24,11 @@ export class CallsController {
   public getActiveCall(@GetUser() authUser: any) {
     return this.callsService.getActiveCallForUser({ authUser });
   }
-
   @Get('/:callId')
-  @ResponseMeta({ message: 'calls.foundOne' })
-  public async getOne(
-    @Param('callId', ValidateObjectIdPipe) callId: string,
+  public getCallById(
+    @Param('callId') callId: string,
     @GetUser() authUser: any,
-  ) {}
+  ) {
+    return this.callsService.getCallById({ callId, authUser });
+  }
 }
