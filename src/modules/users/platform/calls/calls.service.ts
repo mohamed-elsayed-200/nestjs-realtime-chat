@@ -93,7 +93,16 @@ export class CallsService {
     if (!call) throw new NotFoundException('Call not found');
 
     const participants = await this.participantsRepository.findMany({
-      query: { call: call._id },
+      query: {
+        call: call._id,
+        status: {
+          $in: [
+            ParticipantStatus.CONNECTED,
+            ParticipantStatus.SPEAKING,
+            ParticipantStatus.PRESENTER,
+          ],
+        },
+      },
     });
 
     return {
@@ -570,7 +579,7 @@ export class CallsService {
       throw new NotFoundException('You are not part of this call');
     }
 
-    await this.participantsRepository.updateOne({
+    const updatedParticipant = await this.participantsRepository.updateOne({
       query: { _id: participant._id },
       dto: {
         status: ParticipantStatus.LEFT,
@@ -586,7 +595,17 @@ export class CallsService {
     });
 
     if (!remaining) {
-      return this.endCall({ dto: { callId: callObjectId }, authUser });
+      const endResult = await this.endCall({
+        dto: { callId: callObjectId },
+        authUser,
+      });
+
+      return {
+        call: endResult.call,
+        participant: toParticipantResponse(updatedParticipant),
+        participants: endResult.participants,
+        systemMessage: endResult.systemMessage,
+      };
     }
 
     const updatedCall = await this.callsRepository.updateOne({
@@ -594,7 +613,12 @@ export class CallsService {
       dto: { $inc: { participantsCount: -1 } },
     });
 
-    return { call: toCallResponse(updatedCall) };
+    return {
+      call: toCallResponse(updatedCall),
+      participant: toParticipantResponse(updatedParticipant),
+      participants: undefined,
+      systemMessage: undefined,
+    };
   }
 
   public async endCall({ dto, authUser }) {
@@ -637,8 +661,7 @@ export class CallsService {
         duration,
       },
     });
-
-    await this.participantsRepository.updateOne({
+    const affectedParticipants = await this.participantsRepository.updateMany({
       query: {
         call: callObjectId,
         status: {
@@ -680,6 +703,7 @@ export class CallsService {
 
     return {
       call: toCallResponse(updatedCall),
+      participants: affectedParticipants.map(toParticipantResponse),
       systemMessage: {
         ...systemMessage.toObject(),
         id: systemMessage._id.toString(),

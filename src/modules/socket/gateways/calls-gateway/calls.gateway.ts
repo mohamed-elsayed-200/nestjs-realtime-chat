@@ -259,10 +259,11 @@ export class CallsGateway {
   ) {
     const authUser = client.data.user;
     try {
-      const { call, systemMessage } = await this.callsService.leaveCall({
-        dto,
-        authUser,
-      });
+      const { call, systemMessage, participant, participants } =
+        await this.callsService.leaveCall({
+          dto,
+          authUser,
+        });
 
       const room = RoomNames.call(dto.callId);
 
@@ -271,8 +272,6 @@ export class CallsGateway {
         call?.status === CallStatus.MISSED
           ? SocketEvents.CALL_ENDED
           : SocketEvents.CALL_LEFT;
-
-      this.notifyDirectParticipants(call, event);
 
       this.socketEmitter.emitToSpace(
         call?.space?.toString(),
@@ -292,7 +291,7 @@ export class CallsGateway {
 
       client.leave(room);
 
-      return { success: true, call };
+      return { success: true, call, participant, participants };
     } catch (err: any) {
       client.emit('error', {
         event: SocketEvents.CALL_LEAVE,
@@ -309,14 +308,13 @@ export class CallsGateway {
   ) {
     const authUser = client.data.user;
     try {
-      const { call, systemMessage } = await this.callsService.endCall({
-        dto,
-        authUser,
-      });
+      const { call, systemMessage, participants } =
+        await this.callsService.endCall({
+          dto,
+          authUser,
+        });
 
       const room = RoomNames.call(dto.callId);
-
-      this.notifyDirectParticipants(call, SocketEvents.CALL_ENDED);
 
       this.socketEmitter.emitToSpace(
         call.space?.toString(),
@@ -337,7 +335,7 @@ export class CallsGateway {
       const sockets = await client.nsp.in(room).fetchSockets();
       sockets.forEach((s) => s.leave(room));
 
-      return { success: true, call, systemMessage };
+      return { success: true, call, systemMessage, participants };
     } catch (err: any) {
       client.emit('error', {
         event: SocketEvents.CALL_END,

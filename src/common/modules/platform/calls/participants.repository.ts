@@ -70,6 +70,15 @@ export class ParticipantsRepository {
       .exec();
   }
 
+  public async updateMany({ query, dto }) {
+    if (dto?.user) dto.user = new Types.ObjectId(dto?.user);
+    if (dto?.space) dto.space = new Types.ObjectId(dto?.space);
+    if (dto?.reviewedBy) dto.reviewedBy = new Types.ObjectId(dto?.reviewedBy);
+
+    await this.participantModel.updateMany(query, { $set: dto });
+    return this.participantModel.find(query).lean().exec();
+  }
+
   public async deleteOne({ query }) {
     return this.participantModel.findOneAndDelete(query);
   }
