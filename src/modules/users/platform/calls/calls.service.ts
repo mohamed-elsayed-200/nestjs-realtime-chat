@@ -250,7 +250,8 @@ export class CallsService {
       },
     });
 
-    await this.participantsRepository.createOne({
+    // FIX: store caller participant to return it
+    const callerParticipant = await this.participantsRepository.createOne({
       dto: {
         user: authUserObjectId,
         member: callerMember._id,
@@ -275,8 +276,12 @@ export class CallsService {
         },
       });
     } else if (participantIds.length) {
+      const filteredIds = participantIds.filter(
+        (id: string) => id !== authUser._id.toString(),
+      );
+
       const busyIds: string[] = [];
-      for (const id of participantIds) {
+      for (const id of filteredIds) {
         const busy = await this.callsRepository.findOne({
           query: {
             $or: [{ caller: id }, { receiver: id }],
@@ -286,7 +291,7 @@ export class CallsService {
         if (busy) busyIds.push(id);
       }
 
-      const availableIds = participantIds.filter(
+      const availableIds = filteredIds.filter(
         (id: string) => !busyIds.includes(id),
       );
 
@@ -325,7 +330,11 @@ export class CallsService {
       }
     }
 
-    return toCallResponse(call);
+    // FIX: return same shape as acceptCall
+    return {
+      call: toCallResponse(call),
+      participant: toParticipantResponse(callerParticipant),
+    };
   }
 
   public async acceptCall({ dto, authUser }) {
@@ -538,15 +547,9 @@ export class CallsService {
       },
     });
 
-    // Get all participants
-    const allParticipants = await this.participantsRepository.findMany({
-      query: { call: callObjectId },
-    });
-
     return {
       call: toCallResponse(updatedCall),
       participant: toParticipantResponse(participant),
-      allParticipants,
     };
   }
 

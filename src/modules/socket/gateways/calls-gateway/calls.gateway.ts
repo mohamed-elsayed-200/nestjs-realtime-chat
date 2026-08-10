@@ -127,18 +127,21 @@ export class CallsGateway {
   ) {
     const authUser = client.data.user;
     try {
-      const call = await this.callsService.startCall({ dto, authUser });
+      const { call, participant } = await this.callsService.startCall({
+        dto,
+        authUser,
+      });
 
       client.join(RoomNames.call(call.id));
 
       this.socketEmitter.emitToSpace(
         call.space?.toString(),
         SocketEvents.CALL_RINGING,
-        call,
+        { call, participant },
         client.id,
       );
 
-      return { success: true, call };
+      return { success: true, call, participant };
     } catch (err: any) {
       client.emit('error', {
         event: SocketEvents.CALL_START,
@@ -225,19 +228,21 @@ export class CallsGateway {
   ) {
     const authUser = client.data.user;
     try {
-      const { call, participant, allParticipants } =
-        await this.callsService.joinCall({ dto, authUser });
+      const { call, participant } = await this.callsService.joinCall({
+        dto,
+        authUser,
+      });
 
       client.join(RoomNames.call(dto.callId));
 
       this.socketEmitter.emitToSpace(
         call.space?.toString(),
         SocketEvents.CALL_JOINED,
-        { call, participant, allParticipants },
+        { call, participant },
         client.id,
       );
 
-      return { success: true, call, participant, allParticipants };
+      return { success: true, call, participant };
     } catch (err: any) {
       client.emit('error', {
         event: SocketEvents.CALL_JOIN,
