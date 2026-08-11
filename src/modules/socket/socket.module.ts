@@ -15,6 +15,7 @@ import { ViewsGateway } from './gateways/views-gateway/views.gateway';
 import { ViewsModule } from '../users/platform/views/views.module';
 import { CallsModule } from '../users/platform/calls/calls.module';
 import { CallsGateway } from './gateways/calls-gateway/calls.gateway';
+import { CallMessagesGateway } from './gateways/calls-gateway/call-messages.gateway';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { CallsGateway } from './gateways/calls-gateway/calls.gateway';
     MembersGateway,
     ViewsGateway,
     CallsGateway,
+    CallMessagesGateway,
   ],
   exports: [SocketEmitterService],
 })

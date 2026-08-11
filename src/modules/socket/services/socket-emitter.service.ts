@@ -35,6 +35,20 @@ export class SocketEmitterService {
     }
   }
 
+  emitToCall(
+    callId: string,
+    event: SocketEvents,
+    payload: unknown,
+    excludeSocketId?: string,
+  ) {
+    const room = RoomNames.call(callId);
+    if (excludeSocketId) {
+      this.server.to(room).except(excludeSocketId).emit(event, payload);
+    } else {
+      this.server.to(room).emit(event, payload);
+    }
+  }
+
   emitToCommunity(communityId: string, event: SocketEvents, payload: unknown) {
     const room = RoomNames.community(communityId);
     this.server.to(room).emit(event, payload);

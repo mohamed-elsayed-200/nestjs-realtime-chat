@@ -262,7 +262,20 @@ export enum SocketEvents {
   CALL_END = 'call:end',
   CALL_ENDED = 'call:ended',
   CALL_SYNC = 'call:sync',
-  
+  CALL_MESSAGE_SEND = 'call:message:send',
+  CALL_MESSAGE_SENT = 'call:message:sent',
+  CALL_MESSAGE_NEW = 'call:message:new',
+  CALL_MESSAGE_DELETE = 'call:message:delete',
+  CALL_MESSAGE_DELETED = 'call:message:deleted',
+  CALL_MESSAGE_EDIT = 'call:message:edit',
+  CALL_MESSAGE_EDITED = 'call:message:edited',
+  CALL_MESSAGE_TYPING = 'call:message:typing',
+  CALL_MESSAGE_FORWARD = 'call:message:forward',
+  CALL_MESSAGE_PIN = 'call:message:pin',
+  CALL_MESSAGE_PINNED = 'call:message:pinned',
+  CALL_MESSAGE_REACTION = 'call:message:reaction',
+  CALL_MESSAGE_REACTED = 'call:message:reacted',
+
   // Webrtc
   WEBRTC_OFFER = 'webrtc:offer',
   WEBRTC_ANSWER = 'webrtc:answer',

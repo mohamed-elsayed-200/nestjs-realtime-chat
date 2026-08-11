@@ -1,15 +1,11 @@
-import { CallsService } from './../../../users/platform/calls/calls.service';
+import { CallsService } from '../../../users/platform/calls/calls.service';
 import {
   WebSocketGateway,
   SubscribeMessage,
   MessageBody,
   ConnectedSocket,
 } from '@nestjs/websockets';
-import {
-  CallScope,
-  CallStatus,
-  SocketEvents,
-} from '../../../../common/types/enums';
+import { CallStatus, SocketEvents } from '../../../../common/types/enums';
 import { Socket } from 'socket.io';
 import { SocketEmitterService } from '../../services/socket-emitter.service';
 import { RoomNames } from '../../../../common/utils/room-names';

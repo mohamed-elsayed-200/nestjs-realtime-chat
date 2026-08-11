@@ -3,7 +3,6 @@ import { AuthGuard } from '../../../../common/guards/auth.guard';
 import { PermissionsGuard } from '../../../../common/guards/permissions-guard.guard';
 import { UserType } from '../../../../common/types/enums';
 import { ResponseMeta } from '../../../../common/decorators/response.decorator';
-import { ValidateObjectIdPipe } from '../../../../common/pipes/validate-objectId.pipe';
 import { QueryDto } from '../../../../common/modules/dto/query.dto';
 import { UserTypes } from '../../../../common/decorators/user-type.decorator';
 import { UserTypeGuard } from '../../../../common/guards/user-type.guard';
