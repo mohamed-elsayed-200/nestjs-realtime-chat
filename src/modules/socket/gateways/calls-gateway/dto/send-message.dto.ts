@@ -12,6 +12,14 @@ import { Types } from 'mongoose';
 import { MessageStatus, MessageType } from '../../../../../common/types/enums';
 
 export class SendMessageDto {
+  @IsString()
+  @IsNotEmpty()
+  id: string;
+
+  @IsNotEmpty()
+  @IsMongoId()
+  userId: string;
+
   @IsNotEmpty()
   @IsMongoId()
   callId: string;

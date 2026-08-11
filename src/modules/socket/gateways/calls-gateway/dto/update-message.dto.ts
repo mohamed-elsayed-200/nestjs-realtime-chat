@@ -3,6 +3,10 @@ import { IsString, IsOptional, IsMongoId, IsNotEmpty } from 'class-validator';
 export class UpdateMessageDto {
   @IsNotEmpty()
   @IsMongoId()
+  userId?: string;
+
+  @IsNotEmpty()
+  @IsMongoId()
   callId?: string;
 
   @IsNotEmpty()

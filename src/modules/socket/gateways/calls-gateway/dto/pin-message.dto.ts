@@ -8,6 +8,10 @@ export class PinMessageDto {
 
   @IsMongoId()
   @IsNotEmpty()
+  userId: string;
+
+  @IsMongoId()
+  @IsNotEmpty()
   callId: string;
 
   @IsBoolean()

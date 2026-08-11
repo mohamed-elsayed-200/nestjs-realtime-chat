@@ -5,6 +5,10 @@ export class ReactionMessageDto {
   @IsNotEmpty()
   message: string;
 
+  @IsMongoId()
+  @IsNotEmpty()
+  userId: string;
+
   @IsString()
   @IsNotEmpty()
   emoji: string;
