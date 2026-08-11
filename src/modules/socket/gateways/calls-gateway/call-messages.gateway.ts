@@ -50,10 +50,12 @@ export class CallMessagesGateway {
     const unifiedMessage = {
       id: dto.id || `${authUser._id}-${Date.now()}`,
       callId: dto.callId,
-      senderId: authUser._id?.toString?.() || authUser.id,
-      senderName: authUser.name || authUser.username || 'User',
-      senderAvatar: authUser.avatar,
-      senderProfileColor: authUser.profileColor,
+      sender: {
+        id: authUser?._id,
+        name: authUser.name || authUser.username,
+        avatar: authUser.avatar,
+        profileColor: authUser.profileColor,
+      },
       text: dto.text,
       content: dto.content,
       timestamp: Date.now(),
