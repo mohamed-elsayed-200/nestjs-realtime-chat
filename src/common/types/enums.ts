@@ -276,6 +276,7 @@ export enum SocketEvents {
   CALL_MESSAGE_REACTION = 'call:message:reaction',
   CALL_MESSAGE_REACTED = 'call:message:reacted',
   CALL_TOGGLE_MUTE = 'call:toggle:mute',
+  CALL_TOGGLE_RAISE_HAND = 'call:toggle:raise:hand',
   CALL_PARTICIPANT_UPDATED = 'call:participant:updated',
 
   // Webrtc

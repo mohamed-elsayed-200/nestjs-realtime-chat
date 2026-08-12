@@ -19,6 +19,7 @@ import { CallsService } from '../../../users/platform/calls/calls.service';
 import { CallStatus, SocketEvents } from '../../../../common/types/enums';
 import { SocketEmitterService } from '../../services/socket-emitter.service';
 import { RoomNames } from '../../../../common/utils/room-names';
+import { ToggleRaiseHandDto } from './dto/toggle-raise-hand.dto';
 
 @WebSocketGateway({ cors: true })
 export class CallsGateway {
@@ -357,7 +358,6 @@ export class CallsGateway {
         authUser,
       });
 
-      // Notify everyone in the call room
       client.join(RoomNames.call(dto.callId));
 
       this.socketEmitter.emitToCall(
@@ -372,6 +372,46 @@ export class CallsGateway {
       client.emit('error', {
         event: SocketEvents.CALL_TOGGLE_MUTE,
         message: err?.message ?? 'Failed to toggle mute',
+      });
+      return { success: false, error: err?.message };
+    }
+  }
+
+  @SubscribeMessage(SocketEvents.CALL_TOGGLE_RAISE_HAND)
+  async onToggleRaiseHand(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() dto: ToggleRaiseHandDto,
+  ) {
+    const authUser = client.data.user;
+    try {
+      const { call, participant } = await this.callsService.toggleRaiseHand({
+        dto,
+        authUser,
+      });
+
+      client.join(RoomNames.call(dto.callId));
+
+      this.socketEmitter.emitToCall(
+        call?.id?.toString(),
+        SocketEvents.CALL_JOINED,
+        {
+          call,
+          participant,
+          targetUserId: participant.user?.toString?.(),
+        },
+        client.id,
+      );
+
+      return {
+        success: true,
+        call,
+        participant,
+        targetUserId: participant.user?.toString?.(),
+      };
+    } catch (err: any) {
+      client.emit('error', {
+        event: SocketEvents.CALL_TOGGLE_RAISE_HAND,
+        message: err?.message ?? 'Failed to toggle raise hand',
       });
       return { success: false, error: err?.message };
     }

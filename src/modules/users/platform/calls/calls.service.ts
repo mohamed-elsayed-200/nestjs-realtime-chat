@@ -6,7 +6,6 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
-  CallParticipantRole,
   CallScope,
   CallStatus,
   CallType,
@@ -16,11 +15,11 @@ import {
 } from '../../../../common/types/enums';
 import { CallsRepository } from '../../../../common/modules/platform/calls/calls.repository';
 import { ParticipantsRepository } from '../../../../common/modules/platform/calls/participants.repository';
-import { Types } from 'mongoose';
 import { MessagesRepository } from '../../../../common/modules/platform/messages/messages.repository';
 import { SpacesRepository } from '../../../../common/modules/platform/spaces/spaces.repository';
 import { buildCallSystemMessageText } from '../../../../common/utils/call-message-text';
 import { MembersRepository } from '../../../../common/modules/platform/members/members.repository';
+import { Types } from 'mongoose';
 
 function toPersonInfo(user: any) {
   if (!user) return undefined;
@@ -115,7 +114,6 @@ export class CallsService {
   public async getActiveCallForUser({ authUser }) {
     const authUserObjectId = new Types.ObjectId(authUser._id);
 
-    // 1) Find ALL my participants (both connected and invited)
     const myParticipants = await this.participantsRepository.findMany({
       query: {
         user: authUserObjectId,
@@ -136,7 +134,6 @@ export class CallsService {
       (p) => p.status === ParticipantStatus.INVITED,
     );
 
-    // 2) Active call (CONNECTED)
     let activeCallData: any = null;
     if (connectedParticipant) {
       const call = await this.callsRepository.findOne({
@@ -170,7 +167,6 @@ export class CallsService {
       }
     }
 
-    // 3) Incoming calls (INVITED) — ALL of them
     const incomingCalls: any[] = [];
     for (const invited of invitedParticipants) {
       const call = await this.callsRepository.findOne({
@@ -821,6 +817,46 @@ export class CallsService {
       participant: toParticipantResponse(updatedParticipant),
       targetUserId: targetUserObjectId.toString(),
       isMuted: updatedParticipant.isMuted,
+    };
+  }
+
+  public async toggleRaiseHand({ dto, authUser }) {
+    const { callId } = dto;
+    const callObjectId = new Types.ObjectId(callId);
+    const authUserObjectId = new Types.ObjectId(authUser._id);
+
+    const call = await this.callsRepository.findOne({
+      query: { _id: callObjectId },
+    });
+    if (!call) throw new NotFoundException('Call not found');
+
+    if (call.scope === CallScope.PRIVATE) {
+      throw new BadRequestException(
+        'Raise hand is only available in group calls',
+      );
+    }
+
+    const participant = await this.participantsRepository.findOne({
+      query: { call: callObjectId, user: authUserObjectId },
+    });
+    if (!participant) {
+      throw new NotFoundException('You are not in this call');
+    }
+
+    const updatedParticipant = await this.participantsRepository.updateOne({
+      query: { _id: participant._id },
+      dto: {
+        isHandRaised: !participant.isHandRaised,
+        handRaisedCount: participant.isHandRaised
+          ? participant.handRaisedCount
+          : (participant.handRaisedCount ?? 0) + 1,
+        lastInteractionAt: new Date(),
+      },
+    });
+
+    return {
+      call: toCallResponse(call),
+      participant: toParticipantResponse(updatedParticipant),
     };
   }
 }
