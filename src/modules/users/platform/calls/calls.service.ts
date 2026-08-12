@@ -114,7 +114,8 @@ export class CallsService {
   public async getActiveCallForUser({ authUser }) {
     const authUserObjectId = new Types.ObjectId(authUser._id);
 
-    const myParticipant = await this.participantsRepository.findOne({
+    // 1) Find ALL my participants (both connected and invited)
+    const myParticipants = await this.participantsRepository.findMany({
       query: {
         user: authUserObjectId,
         status: {
@@ -123,37 +124,70 @@ export class CallsService {
       },
     });
 
-    if (!myParticipant) return { call: null };
+    if (!myParticipants.length) {
+      return { call: null, incomingCalls: [] };
+    }
 
-    const call = await this.callsRepository.findOne({
-      query: {
-        _id: myParticipant.call,
-        status: {
-          $in: [
-            CallStatus.INITIATED,
-            CallStatus.RINGING,
-            CallStatus.IN_PROGRESS,
-          ],
-        },
-      },
-    });
-
-    if (!call) return { call: null };
-
-    const participants = await this.participantsRepository.findMany({
-      query: { call: call._id },
-    });
-
-    const myUpdatedParticipant = participants.find(
-      (p: any) => p.user?.toString() === authUser._id.toString(),
+    const connectedParticipant = myParticipants.find(
+      (p) => p.status === ParticipantStatus.CONNECTED,
+    );
+    const invitedParticipants = myParticipants.filter(
+      (p) => p.status === ParticipantStatus.INVITED,
     );
 
+    // 2) Active call (CONNECTED)
+    let activeCallData: any = null;
+    if (connectedParticipant) {
+      const call = await this.callsRepository.findOne({
+        query: {
+          _id: connectedParticipant.call,
+          status: {
+            $in: [
+              CallStatus.INITIATED,
+              CallStatus.RINGING,
+              CallStatus.IN_PROGRESS,
+            ],
+          },
+        },
+      });
+
+      if (call) {
+        const participants = await this.participantsRepository.findMany({
+          query: { call: call._id },
+        });
+        const myUpdatedParticipant = participants.find(
+          (p: any) => p.user?.toString() === authUser._id.toString(),
+        );
+
+        activeCallData = {
+          call: toCallResponse(call),
+          participant: myUpdatedParticipant
+            ? toParticipantResponse(myUpdatedParticipant)
+            : undefined,
+          participants: participants.map(toParticipantResponse),
+        };
+      }
+    }
+
+    // 3) Incoming calls (INVITED) — ALL of them
+    const incomingCalls: any[] = [];
+    for (const invited of invitedParticipants) {
+      const call = await this.callsRepository.findOne({
+        query: {
+          _id: invited.call,
+          status: { $in: [CallStatus.INITIATED, CallStatus.RINGING] },
+        },
+      });
+      if (call) {
+        incomingCalls.push(toCallResponse(call));
+      }
+    }
+
     return {
-      call: toCallResponse(call),
-      participant: myUpdatedParticipant
-        ? toParticipantResponse(myUpdatedParticipant)
-        : undefined,
-      participants: participants.map(toParticipantResponse),
+      call: activeCallData?.call ?? null,
+      participant: activeCallData?.participant,
+      participants: activeCallData?.participants,
+      incomingCalls, // ← array
     };
   }
 
@@ -366,7 +400,7 @@ export class CallsService {
       throw new NotFoundException('You are not invited to this call');
     }
 
-    await this.participantsRepository.updateOne({
+    const updatedParticipant = await this.participantsRepository.updateOne({
       query: { _id: participant._id },
       dto: {
         status: ParticipantStatus.CONNECTED,
@@ -383,7 +417,10 @@ export class CallsService {
       },
     });
 
-    return { call: toCallResponse(updatedCall) };
+    return {
+      call: toCallResponse(updatedCall),
+      participant: toParticipantResponse(updatedParticipant),
+    };
   }
 
   public async rejectCall({ dto, authUser }) {
