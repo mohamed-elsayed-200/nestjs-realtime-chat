@@ -89,7 +89,7 @@ export class CallMessagesGateway {
     @ConnectedSocket() client: Socket,
     @MessageBody() dto: UpdateMessageDto,
   ) {
-    const { authUser, error } = this.checkAuth(client, dto.userId);
+    const { error } = this.checkAuth(client, dto.userId);
     if (error) {
       client.emit('error', {
         event: SocketEvents.CALL_MESSAGE_EDIT,

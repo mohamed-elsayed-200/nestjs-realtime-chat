@@ -197,7 +197,6 @@ export class CallsService {
     const {
       receiver,
       type = CallType.AUDIO,
-      maxParticipants = 2,
       isBroadcast = false,
       participantIds = [],
       metadata,
@@ -208,13 +207,29 @@ export class CallsService {
       query: { _id: spaceObjectId },
     });
     if (!findSpace) throw new BadRequestException('space not found');
-    const scope = findSpace.type as any;
 
-    if (scope === CallScope.PRIVATE && !receiver) {
+    const scope = findSpace.type as any;
+    const isPrivate = scope === CallScope.PRIVATE;
+
+    if (isPrivate && !receiver) {
       throw new BadRequestException('receiver is required for private calls');
     }
 
-    const isPrivate = scope === CallScope.PRIVATE;
+    if (!isPrivate) {
+      const existingCall = await this.callsRepository.findOne({
+        query: {
+          space: spaceObjectId,
+          status: { $in: BUSY_CALL_STATUSES },
+        },
+      });
+
+      if (existingCall) {
+        return this.joinCall({
+          dto: { callId: existingCall._id.toString() },
+          authUser,
+        });
+      }
+    }
 
     const callerMember = await this.membersRepository.findOne({
       query: { user: authUserObjectId, space: spaceObjectId },
@@ -293,7 +308,6 @@ export class CallsService {
       },
     });
 
-    // FIX: store caller participant to return it
     const callerParticipant = await this.participantsRepository.createOne({
       dto: {
         user: authUserObjectId,
@@ -373,7 +387,6 @@ export class CallsService {
       }
     }
 
-    // FIX: return same shape as acceptCall
     return {
       call: toCallResponse(call),
       participant: toParticipantResponse(callerParticipant),
@@ -491,12 +504,10 @@ export class CallsService {
   }
 
   public async joinCall({ dto, authUser }) {
-    // Validate the DTO first
     if (!dto?.callId) {
       throw new BadRequestException('callId is required');
     }
 
-    // Convert to ObjectId with proper error handling
     let callObjectId: Types.ObjectId;
     let authUserObjectId: Types.ObjectId;
 
@@ -507,7 +518,6 @@ export class CallsService {
       throw new BadRequestException('Invalid ID format');
     }
 
-    // Find the call
     const call = await this.callsRepository.findOne({
       query: { _id: callObjectId },
     });
@@ -516,7 +526,6 @@ export class CallsService {
       throw new NotFoundException('Call not found');
     }
 
-    // Validate call status
     if (call.scope === CallScope.PRIVATE) {
       throw new BadRequestException(
         'Use acceptCall for private calls, not joinCall',
@@ -534,7 +543,6 @@ export class CallsService {
       throw new BadRequestException('Call has reached max participants');
     }
 
-    // Find or create participant
     let participant = await this.participantsRepository.findOne({
       query: {
         call: callObjectId,
@@ -542,8 +550,12 @@ export class CallsService {
       },
     });
 
+    let shouldIncrementCount = false;
+
     if (participant) {
-      // Update existing participant
+      const wasNotConnected =
+        participant.status !== ParticipantStatus.CONNECTED;
+
       participant = await this.participantsRepository.updateOne({
         query: { _id: participant._id },
         dto: {
@@ -552,8 +564,9 @@ export class CallsService {
           leftAt: null,
         },
       });
+
+      shouldIncrementCount = wasNotConnected;
     } else {
-      // Check if user is a member of the space
       const findMember = await this.membersRepository.findOne({
         query: {
           user: authUserObjectId,
@@ -565,7 +578,6 @@ export class CallsService {
         throw new NotFoundException('You are not a member of this space');
       }
 
-      // Create new participant
       participant = await this.participantsRepository.createOne({
         dto: {
           user: authUserObjectId,
@@ -577,20 +589,25 @@ export class CallsService {
           joinedAt: new Date(),
         },
       });
+
+      shouldIncrementCount = true;
     }
 
-    // Update call
+    const updateDto: any = {
+      status: CallStatus.IN_PROGRESS,
+      startedAt: call?.startedAt ?? new Date(),
+    };
+
+    if (shouldIncrementCount) {
+      updateDto.$inc = {
+        participantsCount: 1,
+        maxConcurrentParticipants: 1,
+      };
+    }
+
     const updatedCall = await this.callsRepository.updateOne({
       query: { _id: callObjectId },
-      dto: {
-        status: CallStatus.IN_PROGRESS,
-        startedAt: call?.startedAt ?? new Date(),
-        // Use $inc for atomic increment
-        $inc: {
-          participantsCount: 1,
-          maxConcurrentParticipants: 1,
-        },
-      },
+      dto: updateDto,
     });
 
     return {

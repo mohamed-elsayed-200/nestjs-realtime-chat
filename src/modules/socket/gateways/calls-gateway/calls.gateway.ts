@@ -26,14 +26,6 @@ export class CallsGateway {
     private readonly callsService: CallsService,
   ) {}
 
-  private notifyDirectParticipants(call: any, event: SocketEvents) {
-    if (!call) return;
-    const ids = new Set<string>();
-    if (call.caller) ids.add(call.caller.toString());
-    if (call.receiver) ids.add(call.receiver.toString());
-    ids.forEach((id) => this.socketEmitter.emitToUser(id, event, call));
-  }
-
   @SubscribeMessage(SocketEvents.WEBRTC_OFFER)
   async onWebrtcOffer(
     @ConnectedSocket() client: Socket,
@@ -130,6 +122,18 @@ export class CallsGateway {
 
       client.join(RoomNames.call(call.id));
 
+      if (
+        call.status === CallStatus.IN_PROGRESS &&
+        call.participantsCount > 1
+      ) {
+        this.socketEmitter.emitToCall(
+          call.id?.toString(),
+          SocketEvents.CALL_JOINED,
+          { call, participant },
+          client.id,
+        );
+      }
+
       this.socketEmitter.emitToSpace(
         call.space?.toString(),
         SocketEvents.CALL_RINGING,
@@ -154,20 +158,21 @@ export class CallsGateway {
   ) {
     const authUser = client.data.user;
     try {
-      const { call } = await this.callsService.acceptCall({ dto, authUser });
+      const { call, participant } = await this.callsService.acceptCall({
+        dto,
+        authUser,
+      });
 
       client.join(RoomNames.call(dto.callId));
-
-      this.notifyDirectParticipants(call, SocketEvents.CALL_ACCEPTED);
 
       this.socketEmitter.emitToSpace(
         call.space?.toString(),
         SocketEvents.CALL_ACCEPTED,
-        call,
+        { call, participant },
         client.id,
       );
 
-      return { success: true, call };
+      return { success: true, call, participant };
     } catch (err: any) {
       client.emit('error', {
         event: SocketEvents.CALL_ACCEPT,
@@ -188,8 +193,6 @@ export class CallsGateway {
         dto,
         authUser,
       });
-
-      this.notifyDirectParticipants(call, SocketEvents.CALL_REJECTED);
 
       this.socketEmitter.emitToSpace(
         call.space?.toString(),
