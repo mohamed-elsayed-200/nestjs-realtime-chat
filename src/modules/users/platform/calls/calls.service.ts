@@ -76,6 +76,7 @@ const BUSY_CALL_STATUSES = [
   CallStatus.RINGING,
   CallStatus.IN_PROGRESS,
 ];
+
 @Injectable()
 export class CallsService {
   constructor(
@@ -763,6 +764,63 @@ export class CallsService {
         id: systemMessage._id.toString(),
         _id: undefined,
       },
+    };
+  }
+
+  public async toggleParticipantMute({ dto, authUser }) {
+    const { callId, targetUserId } = dto;
+    const callObjectId = new Types.ObjectId(callId);
+    const authUserObjectId = new Types.ObjectId(authUser._id);
+
+    const call = await this.callsRepository.findOne({
+      query: { _id: callObjectId },
+    });
+    if (!call) throw new NotFoundException('Call not found');
+
+    const actorParticipant = await this.participantsRepository.findOne({
+      query: { call: callObjectId, user: authUserObjectId },
+    });
+    if (!actorParticipant) {
+      throw new NotFoundException('You are not in this call');
+    }
+
+    const targetUserObjectId = targetUserId
+      ? new Types.ObjectId(targetUserId)
+      : authUserObjectId;
+
+    const targetParticipant = await this.participantsRepository.findOne({
+      query: { call: callObjectId, user: targetUserObjectId },
+    });
+    if (!targetParticipant) {
+      throw new NotFoundException('Target participant not found');
+    }
+
+    const isSelf =
+      targetUserObjectId.toString() === authUserObjectId.toString();
+
+    if (!isSelf) {
+      if (call.scope === CallScope.PRIVATE) {
+        throw new ForbiddenException('Cannot mute others in private calls');
+      }
+
+      const canMuteOthers = ['host', 'co-host'].includes(
+        actorParticipant.callRole,
+      );
+      if (!canMuteOthers) {
+        throw new ForbiddenException('Only hosts can mute participants');
+      }
+    }
+
+    const updatedParticipant = await this.participantsRepository.updateOne({
+      query: { _id: targetParticipant._id },
+      dto: { isMuted: !targetParticipant.isMuted },
+    });
+
+    return {
+      call: toCallResponse(call),
+      participant: toParticipantResponse(updatedParticipant),
+      targetUserId: targetUserObjectId.toString(),
+      isMuted: updatedParticipant.isMuted,
     };
   }
 }

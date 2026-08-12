@@ -1,14 +1,10 @@
-import { CallsService } from '../../../users/platform/calls/calls.service';
 import {
   WebSocketGateway,
   SubscribeMessage,
   MessageBody,
   ConnectedSocket,
 } from '@nestjs/websockets';
-import { CallStatus, SocketEvents } from '../../../../common/types/enums';
 import { Socket } from 'socket.io';
-import { SocketEmitterService } from '../../services/socket-emitter.service';
-import { RoomNames } from '../../../../common/utils/room-names';
 import { StartCallDto } from './dto/start-call.dto';
 import { AcceptCallDto } from './dto/accept-call.dto';
 import { RejectCallDto } from './dto/reject-call.dto';
@@ -18,6 +14,11 @@ import { EndCallDto } from './dto/end-call.dto';
 import { WebrtcOfferDto } from './dto/webrtc-offer.dto';
 import { WebrtcAnswerDto } from './dto/webrtc-answer.dto';
 import { WebrtcIceCandidateDto } from './dto/webrtcIce-candidate.dto';
+import { ToggleMuteDto } from './dto/toggle-mute.dto';
+import { CallsService } from '../../../users/platform/calls/calls.service';
+import { CallStatus, SocketEvents } from '../../../../common/types/enums';
+import { SocketEmitterService } from '../../services/socket-emitter.service';
+import { RoomNames } from '../../../../common/utils/room-names';
 
 @WebSocketGateway({ cors: true })
 export class CallsGateway {
@@ -339,6 +340,38 @@ export class CallsGateway {
       client.emit('error', {
         event: SocketEvents.CALL_END,
         message: err?.message ?? 'Failed to end call',
+      });
+      return { success: false, error: err?.message };
+    }
+  }
+
+  @SubscribeMessage(SocketEvents.CALL_TOGGLE_MUTE)
+  async onToggleMute(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() dto: ToggleMuteDto,
+  ) {
+    const authUser = client.data.user;
+    try {
+      const result = await this.callsService.toggleParticipantMute({
+        dto,
+        authUser,
+      });
+
+      // Notify everyone in the call room
+      client.join(RoomNames.call(dto.callId));
+
+      this.socketEmitter.emitToCall(
+        result?.call.id?.toString(),
+        SocketEvents.CALL_JOINED,
+        result,
+        client.id,
+      );
+
+      return { success: true, ...result };
+    } catch (err: any) {
+      client.emit('error', {
+        event: SocketEvents.CALL_TOGGLE_MUTE,
+        message: err?.message ?? 'Failed to toggle mute',
       });
       return { success: false, error: err?.message };
     }

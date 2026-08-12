@@ -72,6 +72,7 @@ export class CallMessagesGateway {
       gifPack: dto.gifPack,
       duration: dto.duration,
       audioLevels: dto.audioLevels,
+      createdAt: new Date().toISOString(),
     };
 
     this.socketEmitter.emitToCall(
