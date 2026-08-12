@@ -60,7 +60,7 @@ export class Call {
   @Prop({ default: false })
   isConference: boolean;
 
-  @Prop({ default: 2 })
+  @Prop({ default: 100 })
   maxParticipants: number;
 
   @Prop({ default: false })

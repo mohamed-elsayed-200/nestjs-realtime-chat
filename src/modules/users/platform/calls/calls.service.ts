@@ -187,7 +187,7 @@ export class CallsService {
       call: activeCallData?.call ?? null,
       participant: activeCallData?.participant,
       participants: activeCallData?.participants,
-      incomingCalls, // ← array
+      incomingCalls,
     };
   }
 
@@ -283,11 +283,11 @@ export class CallsService {
         type,
         status: isPrivate ? CallStatus.RINGING : CallStatus.IN_PROGRESS,
         isConference: !isPrivate,
-        maxParticipants,
         isBroadcast,
         metadata,
         tags,
         startedAt: isPrivate ? undefined : new Date(),
+        maxParticipants: isPrivate ? 2 : 100,
         participantsCount: 1,
         maxConcurrentParticipants: 1,
       },
