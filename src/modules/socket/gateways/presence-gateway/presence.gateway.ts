@@ -227,7 +227,6 @@ export class PresenceGateway
         );
       }
 
-      // مزامنة باقي أجهزة/تابات نفس اليوزر (مش presence عادي، ده تحديث ذاتي بس)
       this.socketEmitter.emitToUser(userId, SocketEvents.PRESENCE_USER_ONLINE, {
         userId,
         sessionId,

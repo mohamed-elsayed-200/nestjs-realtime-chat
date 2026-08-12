@@ -231,8 +231,8 @@ export class CallsGateway {
 
       client.join(RoomNames.call(dto.callId));
 
-      this.socketEmitter.emitToSpace(
-        call.space?.toString(),
+      this.socketEmitter.emitToCall(
+        call.id?.toString(),
         SocketEvents.CALL_JOINED,
         { call, participant },
         client.id,
@@ -269,10 +269,10 @@ export class CallsGateway {
           ? SocketEvents.CALL_ENDED
           : SocketEvents.CALL_LEFT;
 
-      this.socketEmitter.emitToSpace(
-        call?.space?.toString(),
+      this.socketEmitter.emitToCall(
+        call?.id?.toString(),
         event,
-        call,
+        { call, participant },
         client.id,
       );
 

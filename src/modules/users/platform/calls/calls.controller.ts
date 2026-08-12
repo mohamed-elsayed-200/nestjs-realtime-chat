@@ -20,10 +20,12 @@ export class CallsController {
   public async getAll(@Query() query: QueryDto, @GetUser() authUser: any) {}
 
   @Get('/active')
+  @ResponseMeta({ message: 'calls.active' })
   public getActiveCall(@GetUser() authUser: any) {
     return this.callsService.getActiveCallForUser({ authUser });
   }
   @Get('/:callId')
+  @ResponseMeta({ message: 'calls.byId' })
   public getCallById(
     @Param('callId') callId: string,
     @GetUser() authUser: any,
