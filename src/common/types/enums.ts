@@ -18,6 +18,7 @@ export enum ActivationStatus {
   ACTIVE = 'active',
   INACTIVE = 'inactive',
 }
+
 export enum SpaceTypes {
   PRIVATE = 'private',
   GROUP = 'group',
@@ -25,6 +26,7 @@ export enum SpaceTypes {
   COMMUNITY = 'community',
   BOT = 'bot',
 }
+
 export enum SpaceMemberRole {
   ADMIN = 'admin',
   MEMBER = 'member',

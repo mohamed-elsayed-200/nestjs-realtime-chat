@@ -1,7 +1,6 @@
 import {
   BadRequestException,
   ConflictException,
-  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -12,6 +11,8 @@ import {
   MessageStatus,
   MessageType,
   ParticipantStatus,
+  SpaceMemberPermission,
+  SpaceMemberRole,
 } from '../../../../common/types/enums';
 import { CallsRepository } from '../../../../common/modules/platform/calls/calls.repository';
 import { ParticipantsRepository } from '../../../../common/modules/platform/calls/participants.repository';
@@ -820,14 +821,14 @@ export class CallsService {
 
     if (!isSelf) {
       if (call.scope === CallScope.PRIVATE) {
-        throw new ForbiddenException('Cannot mute others in private calls');
+        throw new BadRequestException('Cannot mute others in private calls');
       }
 
       const canMuteOthers = ['host', 'co-host'].includes(
         actorParticipant.callRole,
       );
       if (!canMuteOthers) {
-        throw new ForbiddenException('Only hosts can mute participants');
+        throw new BadRequestException('Only hosts can mute participants');
       }
     }
 
@@ -898,12 +899,19 @@ export class CallsService {
       query: { user: authUserObjectId, space: spaceObjectId },
     });
     if (!member) {
-      throw new ForbiddenException('You are not a member of this space');
+      throw new BadRequestException('You are not a member of this space');
     }
 
-    const isAdmin = ['host', 'co-host', 'admin', 'owner'].includes(member.role);
-    if (!isAdmin) {
-      throw new ForbiddenException('Only admins can update call settings');
+    // Check admin permission using SpaceMemberRole enum
+    const canChangeSettings =
+      member.role === SpaceMemberRole.OWNER ||
+      (member.role === SpaceMemberRole.ADMIN &&
+        member.permissions?.includes(SpaceMemberPermission.CHANGE_SETTINGS));
+
+    if (!canChangeSettings) {
+      throw new BadRequestException(
+        'Only admins or owners can update call settings',
+      );
     }
 
     const currentSettings = space.settings ?? {};
