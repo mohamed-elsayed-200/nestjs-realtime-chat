@@ -3,9 +3,9 @@ import { INestApplicationContext } from '@nestjs/common';
 import { ServerOptions } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { createWsAuthMiddleware } from '../../../common/middleware/ws-auth.middleware';
-import { SessionsRepository } from '../../../common/modules/iam/sessions/sessions.repository';
-import { UsersRepository } from '../../../common/modules/iam/users/users.repository';
+import { createWsAuthMiddleware } from '../../../../common/middleware/ws-auth.middleware';
+import { SessionsRepository } from '../../../../common/modules/iam/sessions/sessions.repository';
+import { UsersRepository } from '../../../../common/modules/iam/users/users.repository';
 
 export class SocketIoAdapter extends IoAdapter {
   constructor(private app: INestApplicationContext) {
@@ -32,6 +32,10 @@ export class SocketIoAdapter extends IoAdapter {
         usersRepository,
       ),
     );
+
+    server.on('connection', (socket) => {
+      socket.setMaxListeners(20);
+    });
 
     return server;
   }

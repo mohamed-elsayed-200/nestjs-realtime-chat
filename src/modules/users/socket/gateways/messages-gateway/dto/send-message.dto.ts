@@ -10,7 +10,10 @@ import {
   IsNotEmpty,
 } from 'class-validator';
 import { Types } from 'mongoose';
-import { MessageStatus, MessageType } from '../../../../../common/types/enums';
+import {
+  MessageStatus,
+  MessageType,
+} from '../../../../../../common/types/enums';
 
 export class SendMessageDto {
   @IsNotEmpty()

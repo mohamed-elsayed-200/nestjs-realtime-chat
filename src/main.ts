@@ -7,7 +7,7 @@ import { ResInterceptor } from './common/interceptors/response.interceptor';
 import { Response } from 'express';
 import helmet from 'helmet';
 const cookieParser = require('cookie-parser');
-import { SocketIoAdapter } from './modules/socket/adapters/socket-io.adapter';
+import { SocketIoAdapter } from './modules/users/socket/adapters/socket-io.adapter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);

@@ -15,14 +15,14 @@ import { WebrtcOfferDto } from './dto/webrtc-offer.dto';
 import { WebrtcAnswerDto } from './dto/webrtc-answer.dto';
 import { WebrtcIceCandidateDto } from './dto/webrtcIce-candidate.dto';
 import { ToggleMuteDto } from './dto/toggle-mute.dto';
-import { CallsService } from '../../../users/platform/calls/calls.service';
-import { CallStatus, SocketEvents } from '../../../../common/types/enums';
+import { CallsService } from '../../../platform/calls/calls.service';
+import { CallStatus, SocketEvents } from '../../../../../common/types/enums';
 import { SocketEmitterService } from '../../services/socket-emitter.service';
-import { RoomNames } from '../../../../common/utils/room-names';
+import { RoomNames } from '../../../../../common/utils/room-names';
 import { ToggleRaiseHandDto } from './dto/toggle-raise-hand.dto';
 import { UpdateCallSettingsDto } from './dto/update-call-settings.dto';
 
-@WebSocketGateway({ cors: true })
+@WebSocketGateway()
 export class CallsGateway {
   constructor(
     private readonly socketEmitter: SocketEmitterService,

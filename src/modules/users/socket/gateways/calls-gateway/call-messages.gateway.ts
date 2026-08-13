@@ -6,7 +6,7 @@ import {
 } from '@nestjs/websockets';
 import { Socket } from 'socket.io';
 import { SocketEmitterService } from '../../services/socket-emitter.service';
-import { SocketEvents } from '../../../../common/types/enums';
+import { SocketEvents } from '../../../../../common/types/enums';
 import { UpdateMessageDto } from './dto/update-message.dto';
 import { SendMessageDto } from './dto/send-message.dto';
 import { DeleteMessageDto } from './dto/delete-message.dto';
@@ -14,7 +14,7 @@ import { ReactionMessageDto } from './dto/reaction-message.dto';
 import { PinMessageDto } from './dto/pin-message.dto';
 import { TypingDto } from './dto/typing-dto';
 
-@WebSocketGateway({ cors: true })
+@WebSocketGateway()
 export class CallMessagesGateway {
   constructor(private readonly socketEmitter: SocketEmitterService) {}
 
@@ -34,7 +34,7 @@ export class CallMessagesGateway {
   }
 
   @SubscribeMessage(SocketEvents.CALL_MESSAGE_SEND)
-  async onSendMessage(
+  async onCallSendMessage(
     @ConnectedSocket() client: Socket,
     @MessageBody() dto: SendMessageDto,
   ) {
@@ -86,7 +86,7 @@ export class CallMessagesGateway {
   }
 
   @SubscribeMessage(SocketEvents.CALL_MESSAGE_EDIT)
-  async onEditMessage(
+  async onCallEditMessage(
     @ConnectedSocket() client: Socket,
     @MessageBody() dto: UpdateMessageDto,
   ) {
@@ -121,7 +121,7 @@ export class CallMessagesGateway {
   }
 
   @SubscribeMessage(SocketEvents.CALL_MESSAGE_DELETE)
-  async onDeleteMessage(
+  async onCallDeleteMessage(
     @ConnectedSocket() client: Socket,
     @MessageBody() dto: DeleteMessageDto,
   ) {
@@ -155,7 +155,7 @@ export class CallMessagesGateway {
   }
 
   @SubscribeMessage(SocketEvents.CALL_MESSAGE_REACTION)
-  async onReactMessage(
+  async onCallReactMessage(
     @ConnectedSocket() client: Socket,
     @MessageBody() dto: ReactionMessageDto,
   ) {
@@ -185,7 +185,7 @@ export class CallMessagesGateway {
   }
 
   @SubscribeMessage(SocketEvents.CALL_MESSAGE_PIN)
-  async onPinMessage(
+  async onCallPinMessage(
     @ConnectedSocket() client: Socket,
     @MessageBody() dto: PinMessageDto,
   ) {

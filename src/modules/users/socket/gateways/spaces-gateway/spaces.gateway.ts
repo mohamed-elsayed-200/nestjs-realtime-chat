@@ -6,16 +6,16 @@ import {
 } from '@nestjs/websockets';
 import { Socket } from 'socket.io';
 import { SocketEmitterService } from '../../services/socket-emitter.service';
-import { SpacesService } from '../../../users/platform/spaces/spaces.service';
-import { SocketEvents } from '../../../../common/types/enums';
-import { RoomNames } from '../../../../common/utils/room-names';
+import { SpacesService } from '../../../platform/spaces/spaces.service';
+import { SocketEvents } from '../../../../../common/types/enums';
+import { RoomNames } from '../../../../../common/utils/room-names';
 import { JoinToSpaceDto } from './dto/join-to-space.dto';
 import { LeaveFromSpaceDto } from './dto/leave-from-space.dto';
 import { DeleteSpaceDto } from './dto/delete-space.dto';
 import { ChangeWallpaperDto } from './dto/change-wallpaper.dto';
 import { UpdateSpaceDto } from './dto/update-space.dto';
 
-@WebSocketGateway({ cors: true })
+@WebSocketGateway()
 export class SpacesGateway {
   constructor(
     private readonly spacesService: SpacesService,
@@ -48,7 +48,7 @@ export class SpacesGateway {
   }
 
   @SubscribeMessage(SocketEvents.SPACE_INFO_UPDATE)
-  async onUpdateGlobalSpace(
+  async onUpdateSpaceInfo(
     @ConnectedSocket() client: Socket,
     @MessageBody() dto: UpdateSpaceDto,
   ) {

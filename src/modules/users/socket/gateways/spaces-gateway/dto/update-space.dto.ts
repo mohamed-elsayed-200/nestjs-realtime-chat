@@ -9,10 +9,10 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { ChannelSettingsDto } from '../../../../users/platform/spaces/dto/global-space/channel-settings.dto';
-import { GroupSettingsDto } from '../../../../users/platform/spaces/dto/global-space/group-settings.dto';
-import { SpaceTypes } from '../../../../../common/types/enums';
-import { CommunitySettingsDto } from '../../../../users/platform/spaces/dto/global-space/community-settings.dto';
+import { ChannelSettingsDto } from '../../../../platform/spaces/dto/global-space/channel-settings.dto';
+import { GroupSettingsDto } from '../../../../platform/spaces/dto/global-space/group-settings.dto';
+import { SpaceTypes } from '../../../../../../common/types/enums';
+import { CommunitySettingsDto } from '../../../../platform/spaces/dto/global-space/community-settings.dto';
 
 export class SpaceSettingsDto {
   @IsOptional()

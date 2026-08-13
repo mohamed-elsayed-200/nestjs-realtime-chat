@@ -11,14 +11,14 @@ import {
 import { Server, Socket } from 'socket.io';
 import { SocketServerRegistry } from '../../services/socket-server.registry';
 import { SocketEmitterService } from '../../services/socket-emitter.service';
-import { RoomNames } from '../../../../common/utils/room-names';
-import { SocketEvents, SpaceTypes } from '../../../../common/types/enums';
-import { UsersRepository } from '../../../../common/modules/iam/users/users.repository';
-import { MembersRepository } from '../../../../common/modules/platform/members/members.repository';
+import { RoomNames } from '../../../../../common/utils/room-names';
+import { SocketEvents, SpaceTypes } from '../../../../../common/types/enums';
+import { UsersRepository } from '../../../../../common/modules/iam/users/users.repository';
+import { MembersRepository } from '../../../../../common/modules/platform/members/members.repository';
 
 const MAX_WATCH_USERS = 300;
 
-@WebSocketGateway({ cors: true })
+@WebSocketGateway()
 export class PresenceGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
 {

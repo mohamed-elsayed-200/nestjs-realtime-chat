@@ -6,7 +6,7 @@ import {
 } from '@nestjs/websockets';
 import { Socket } from 'socket.io';
 import { SocketEmitterService } from '../../services/socket-emitter.service';
-import { SocketEvents } from '../../../../common/types/enums';
+import { SocketEvents } from '../../../../../common/types/enums';
 import { SendMessageDto } from './dto/send-message.dto';
 import { UpdateMessageDto } from './dto/update-message.dto';
 import { DeleteMessageDto } from './dto/delete-message.dto';
@@ -14,10 +14,10 @@ import { TypingDto } from './dto/typing-dto';
 import { ForwardMessageDto } from './dto/forward-message.dto';
 import { PinMessageDto } from './dto/pin-message.dto';
 import { ReactionMessageDto } from './dto/reaction-message.dto';
-import { ReactionsService } from '../../../../modules/users/platform/reactions/reactions.service';
-import { MessagesService } from '../../../../modules/users/platform/messages/messages.service';
+import { ReactionsService } from '../../../platform/reactions/reactions.service';
+import { MessagesService } from '../../../platform/messages/messages.service';
 
-@WebSocketGateway({ cors: true })
+@WebSocketGateway()
 export class MessagesGateway {
   constructor(
     private readonly messagesService: MessagesService,

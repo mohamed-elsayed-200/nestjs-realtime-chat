@@ -6,7 +6,7 @@ import {
   IsOptional,
   IsString,
 } from 'class-validator';
-import { SpaceMemberPermission } from '../../../../../common/types/enums';
+import { SpaceMemberPermission } from '../../../../../../common/types/enums';
 
 export class PromoteAdminDto {
   @IsMongoId()

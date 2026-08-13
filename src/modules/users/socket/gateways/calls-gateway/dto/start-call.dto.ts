@@ -10,7 +10,7 @@ import {
   IsString,
   ValidateIf,
 } from 'class-validator';
-import { CallScope, CallType } from '../../../../../common/types/enums';
+import { CallScope, CallType } from '../../../../../../common/types/enums';
 
 export class StartCallDto {
   @IsMongoId()

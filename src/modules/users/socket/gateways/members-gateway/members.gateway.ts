@@ -6,10 +6,10 @@ import {
 } from '@nestjs/websockets';
 import { Socket } from 'socket.io';
 import { SocketEmitterService } from '../../services/socket-emitter.service';
-import { MembersService } from '../../../users/platform/members/members.service';
-import { SocketEvents } from '../../../../common/types/enums';
+import { MembersService } from '../../../platform/members/members.service';
+import { SocketEvents } from '../../../../../common/types/enums';
 import { AddMembersDto } from './dto/add-members.dto';
-import { RoomNames } from '../../../../common/utils/room-names';
+import { RoomNames } from '../../../../../common/utils/room-names';
 import { ToggleBanMemberDto } from './dto/toggle-ban-member.dto';
 import { PromoteAdminDto } from './dto/promote-admin.dto';
 import { DismissAdminDto } from './dto/dismiss-admin.dto';
@@ -17,7 +17,7 @@ import { UpdateAdminPermissionsDto } from './dto/update-admin-permissions.dto';
 import { UpdateMemberPermissionsDto } from './dto/update-member-permissions.dto';
 import { TransferOwnershipDto } from './dto/transfer-ownership.dto';
 
-@WebSocketGateway({ cors: true })
+@WebSocketGateway()
 export class MembersGateway {
   constructor(
     private readonly membersService: MembersService,

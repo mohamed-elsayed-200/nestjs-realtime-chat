@@ -6,11 +6,11 @@ import {
 } from '@nestjs/websockets';
 import { Socket } from 'socket.io';
 import { SocketEmitterService } from '../../services/socket-emitter.service';
-import { SocketEvents } from '../../../../common/types/enums';
-import { ViewsService } from '../../../../modules/users/platform/views/views.service';
+import { SocketEvents } from '../../../../../common/types/enums';
+import { ViewsService } from '../../../platform/views/views.service';
 import { AddViewDto } from './dto/add-view.dto';
 
-@WebSocketGateway({ cors: true })
+@WebSocketGateway()
 export class ViewsGateway {
   constructor(
     private readonly viewsService: ViewsService,
@@ -18,7 +18,7 @@ export class ViewsGateway {
   ) {}
 
   @SubscribeMessage(SocketEvents.VIEW_MESSAGE)
-  async onSendMessage(
+  async onViewMessage(
     @ConnectedSocket() client: Socket,
     @MessageBody() dto: AddViewDto,
   ) {
