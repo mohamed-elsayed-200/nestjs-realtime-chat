@@ -12,6 +12,7 @@ import { Participant } from './schemas/participant.schema';
 
 const USER_POPULATE = [
   { path: 'user', select: 'name avatar profileColor bio' },
+  { path: 'member', select: 'role permissions adminTag adminTagColor' },
 ];
 
 @Injectable()

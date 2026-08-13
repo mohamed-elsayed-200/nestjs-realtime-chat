@@ -41,6 +41,7 @@ function toSpaceInfo(space: any) {
     avatar: space.avatar,
     profileColor: space.profileColor,
     type: space.type,
+    settings: space.settings?.call,
   };
 }
 
@@ -69,6 +70,10 @@ function toParticipantResponse(participant: any) {
     call: participant.call?.toString(),
     space: participant.space?.toString(),
     userInfo: toPersonInfo(participant.user),
+    memberRole: participant.member?.role,
+    memberPermissions: participant.member?.permissions,
+    adminTag: participant.member?.adminTag,
+    adminTagColor: participant.member?.adminTagColor,
   };
 }
 const BUSY_CALL_STATUSES = [
@@ -116,7 +121,6 @@ export class CallsService {
     const authUserObjectId = new Types.ObjectId(authUser._id);
     const authUserId = authUser._id.toString();
 
-    // ─── 1. Find via Participant ───
     const myParticipants = await this.participantsRepository.findMany({
       query: {
         user: authUserObjectId,
@@ -135,7 +139,6 @@ export class CallsService {
 
     let activeCallData: any = null;
 
-    // Try each connected participant (most recent first)
     for (const cp of connectedParticipants) {
       const call = await this.callsRepository.findOne({
         query: {
@@ -145,7 +148,6 @@ export class CallsService {
       });
 
       if (call) {
-        // Found valid call
         const participants = await this.participantsRepository.findMany({
           query: { call: call._id },
         });
@@ -162,8 +164,6 @@ export class CallsService {
         };
         break;
       } else {
-        // ← ORPHAN: call ended but participant still connected
-        // Cleanup this stale participant
         await this.participantsRepository.updateOne({
           query: { _id: cp._id },
           dto: {
@@ -175,7 +175,6 @@ export class CallsService {
       }
     }
 
-    // ─── 2. Fallback: direct Call query (for private calls where user is caller/receiver) ───
     if (!activeCallData) {
       const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
 
@@ -210,7 +209,6 @@ export class CallsService {
       }
     }
 
-    // ─── 3. Incoming calls ───
     const incomingCalls: any[] = [];
     for (const invited of invitedParticipants) {
       const call = await this.callsRepository.findOne({
@@ -222,7 +220,6 @@ export class CallsService {
       if (call) {
         incomingCalls.push(toCallResponse(call));
       } else {
-        // Cleanup stale invited participants too
         await this.participantsRepository.updateOne({
           query: { _id: invited._id },
           dto: { status: ParticipantStatus.LEFT, leftAt: new Date() },
@@ -951,7 +948,6 @@ export class CallsService {
       throw new BadRequestException('You are not a member of this space');
     }
 
-    // Check admin permission using SpaceMemberRole enum
     const canChangeSettings =
       member.role === SpaceMemberRole.OWNER ||
       (member.role === SpaceMemberRole.ADMIN &&

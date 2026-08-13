@@ -12,7 +12,7 @@ import {
 const CALLER_RECEIVER_POPULATE = [
   { path: 'caller', select: 'name avatar profileColor' },
   { path: 'receiver', select: 'name avatar profileColor' },
-  { path: 'space', select: 'name avatar profileColor type' },
+  { path: 'space', select: 'name avatar profileColor type settings.call' },
 ];
 
 @Injectable()
