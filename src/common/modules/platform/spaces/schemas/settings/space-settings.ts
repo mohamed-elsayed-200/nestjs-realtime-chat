@@ -3,6 +3,7 @@ import { GroupSettings } from './group-settings';
 import { ChannelSettings } from './channel-settings';
 import { PrivateSettings } from './private-settings';
 import { CommunitySettings } from './community-settings';
+import { CallSettings } from './call-settings.schema';
 
 @Schema({ _id: false })
 export class SpaceSettings {
@@ -17,4 +18,7 @@ export class SpaceSettings {
 
   @Prop({ type: CommunitySettings })
   community?: CommunitySettings;
+
+  @Prop({ type: CallSettings })
+  call?: CallSettings;
 }

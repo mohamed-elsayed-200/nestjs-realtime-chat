@@ -278,6 +278,8 @@ export enum SocketEvents {
   CALL_TOGGLE_MUTE = 'call:toggle:mute',
   CALL_TOGGLE_RAISE_HAND = 'call:toggle:raise:hand',
   CALL_PARTICIPANT_UPDATED = 'call:participant:updated',
+  CALL_UPDATE_SETTINGS = 'call:update:settings',
+  CALL_SETTINGS_UPDATED = 'call:settings-updated',
 
   // Webrtc
   WEBRTC_OFFER = 'webrtc:offer',

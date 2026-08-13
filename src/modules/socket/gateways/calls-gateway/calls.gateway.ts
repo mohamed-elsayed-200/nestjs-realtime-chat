@@ -20,6 +20,7 @@ import { CallStatus, SocketEvents } from '../../../../common/types/enums';
 import { SocketEmitterService } from '../../services/socket-emitter.service';
 import { RoomNames } from '../../../../common/utils/room-names';
 import { ToggleRaiseHandDto } from './dto/toggle-raise-hand.dto';
+import { UpdateCallSettingsDto } from './dto/update-call-settings.dto';
 
 @WebSocketGateway({ cors: true })
 export class CallsGateway {
@@ -393,7 +394,7 @@ export class CallsGateway {
 
       this.socketEmitter.emitToCall(
         call?.id?.toString(),
-        SocketEvents.CALL_JOINED,
+        SocketEvents.CALL_PARTICIPANT_UPDATED,
         {
           call,
           participant,
@@ -412,6 +413,35 @@ export class CallsGateway {
       client.emit('error', {
         event: SocketEvents.CALL_TOGGLE_RAISE_HAND,
         message: err?.message ?? 'Failed to toggle raise hand',
+      });
+      return { success: false, error: err?.message };
+    }
+  }
+
+  @SubscribeMessage(SocketEvents.CALL_UPDATE_SETTINGS)
+  async onUpdateCallSettings(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() dto: UpdateCallSettingsDto,
+  ) {
+    const authUser = client.data.user;
+    try {
+      const result = await this.callsService.updateCallSettings({
+        dto,
+        authUser,
+      });
+
+      this.socketEmitter.emitToSpace(
+        result.spaceId,
+        SocketEvents.CALL_SETTINGS_UPDATED,
+        result,
+        client.id,
+      );
+
+      return { success: true, ...result };
+    } catch (err: any) {
+      client.emit('error', {
+        event: SocketEvents.CALL_UPDATE_SETTINGS,
+        message: err?.message ?? 'Failed to update call settings',
       });
       return { success: false, error: err?.message };
     }

@@ -188,6 +188,30 @@ export class CallsService {
     };
   }
 
+  public async getCallSettings({ spaceId, authUser }) {
+    const spaceObjectId = new Types.ObjectId(spaceId);
+    const authUserObjectId = new Types.ObjectId(authUser._id);
+
+    const space = await this.spacesRepository.findOne({
+      query: { _id: spaceObjectId },
+    });
+    if (!space) throw new NotFoundException('Space not found');
+
+    const member = await this.membersRepository.findOne({
+      query: { user: authUserObjectId, space: spaceObjectId },
+    });
+    if (!member) {
+      throw new BadRequestException('You are not a member of this space');
+    }
+
+    const settings = space.settings?.call ?? {};
+
+    return {
+      spaceId: space._id.toString(),
+      settings,
+    };
+  }
+
   public async startCall({ dto, authUser }) {
     const authUserObjectId = new Types.ObjectId(authUser._id);
     const spaceObjectId = new Types.ObjectId(dto?.space);
@@ -857,6 +881,49 @@ export class CallsService {
     return {
       call: toCallResponse(call),
       participant: toParticipantResponse(updatedParticipant),
+    };
+  }
+
+  public async updateCallSettings({ dto, authUser }) {
+    const { spaceId, settings } = dto;
+    const spaceObjectId = new Types.ObjectId(spaceId);
+    const authUserObjectId = new Types.ObjectId(authUser._id);
+
+    const space = await this.spacesRepository.findOne({
+      query: { _id: spaceObjectId },
+    });
+    if (!space) throw new NotFoundException('Space not found');
+
+    const member = await this.membersRepository.findOne({
+      query: { user: authUserObjectId, space: spaceObjectId },
+    });
+    if (!member) {
+      throw new ForbiddenException('You are not a member of this space');
+    }
+
+    const isAdmin = ['host', 'co-host', 'admin', 'owner'].includes(member.role);
+    if (!isAdmin) {
+      throw new ForbiddenException('Only admins can update call settings');
+    }
+
+    const currentSettings = space.settings ?? {};
+    const currentCallSettings = currentSettings.call ?? {};
+
+    const mergedSettings = { ...currentCallSettings, ...settings };
+
+    await this.spacesRepository.updateOne({
+      query: { _id: spaceObjectId },
+      dto: {
+        settings: {
+          ...currentSettings,
+          call: mergedSettings,
+        },
+      },
+    });
+
+    return {
+      spaceId,
+      settings: mergedSettings,
     };
   }
 }
