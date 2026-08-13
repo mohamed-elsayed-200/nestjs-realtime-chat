@@ -114,7 +114,9 @@ export class CallsService {
 
   public async getActiveCallForUser({ authUser }) {
     const authUserObjectId = new Types.ObjectId(authUser._id);
+    const authUserId = authUser._id.toString();
 
+    // ─── 1. Find via Participant ───
     const myParticipants = await this.participantsRepository.findMany({
       query: {
         user: authUserObjectId,
@@ -124,11 +126,7 @@ export class CallsService {
       },
     });
 
-    if (!myParticipants.length) {
-      return { call: null, incomingCalls: [] };
-    }
-
-    const connectedParticipant = myParticipants.find(
+    const connectedParticipants = myParticipants.filter(
       (p) => p.status === ParticipantStatus.CONNECTED,
     );
     const invitedParticipants = myParticipants.filter(
@@ -136,26 +134,23 @@ export class CallsService {
     );
 
     let activeCallData: any = null;
-    if (connectedParticipant) {
+
+    // Try each connected participant (most recent first)
+    for (const cp of connectedParticipants) {
       const call = await this.callsRepository.findOne({
         query: {
-          _id: connectedParticipant.call,
-          status: {
-            $in: [
-              CallStatus.INITIATED,
-              CallStatus.RINGING,
-              CallStatus.IN_PROGRESS,
-            ],
-          },
+          _id: cp.call,
+          status: { $in: BUSY_CALL_STATUSES },
         },
       });
 
       if (call) {
+        // Found valid call
         const participants = await this.participantsRepository.findMany({
           query: { call: call._id },
         });
         const myUpdatedParticipant = participants.find(
-          (p: any) => p.user?.toString() === authUser._id.toString(),
+          (p: any) => p.user?._id?.toString() === authUserId,
         );
 
         activeCallData = {
@@ -165,9 +160,57 @@ export class CallsService {
             : undefined,
           participants: participants.map(toParticipantResponse),
         };
+        break;
+      } else {
+        // ← ORPHAN: call ended but participant still connected
+        // Cleanup this stale participant
+        await this.participantsRepository.updateOne({
+          query: { _id: cp._id },
+          dto: {
+            status: ParticipantStatus.LEFT,
+            leftAt: new Date(),
+          },
+        });
+        console.log('Cleaned up orphan participant:', cp._id.toString());
       }
     }
 
+    // ─── 2. Fallback: direct Call query (for private calls where user is caller/receiver) ───
+    if (!activeCallData) {
+      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+
+      const directCall = await this.callsRepository.findOne({
+        query: {
+          $or: [
+            { caller: authUserObjectId },
+            { receiver: authUserObjectId },
+            { createdBy: authUserObjectId },
+          ],
+          status: { $in: BUSY_CALL_STATUSES },
+          createdAt: { $gte: fiveMinutesAgo },
+        },
+        sort: { createdAt: -1 },
+      });
+
+      if (directCall) {
+        const participants = await this.participantsRepository.findMany({
+          query: { call: directCall._id },
+        });
+        const myParticipant = participants.find(
+          (p: any) => p.user?._id?.toString() === authUserId,
+        );
+
+        activeCallData = {
+          call: toCallResponse(directCall),
+          participant: myParticipant
+            ? toParticipantResponse(myParticipant)
+            : undefined,
+          participants: participants.map(toParticipantResponse),
+        };
+      }
+    }
+
+    // ─── 3. Incoming calls ───
     const incomingCalls: any[] = [];
     for (const invited of invitedParticipants) {
       const call = await this.callsRepository.findOne({
@@ -178,6 +221,12 @@ export class CallsService {
       });
       if (call) {
         incomingCalls.push(toCallResponse(call));
+      } else {
+        // Cleanup stale invited participants too
+        await this.participantsRepository.updateOne({
+          query: { _id: invited._id },
+          dto: { status: ParticipantStatus.LEFT, leftAt: new Date() },
+        });
       }
     }
 

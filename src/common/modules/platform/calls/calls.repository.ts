@@ -31,9 +31,10 @@ export class CallsRepository {
     });
   }
 
-  public async findOne({ query, populate, select }: FindOneProps) {
+  public async findOne({ query, populate, select, sort }: FindOneProps) {
     const base = this.callModel.findOne(query);
     if (select) base.select(select);
+    if (sort) base.sort(sort);
     base.populate(populate ?? CALLER_RECEIVER_POPULATE);
     return await base.lean({ virtuals: true }).exec();
   }

@@ -4,6 +4,7 @@ import { Model, Types } from 'mongoose';
 import { aggregateQuery } from '../../data-access/aggregate-query';
 import {
   CreateOneProps,
+  FindManyProps,
   FindOneProps,
   UpdateOneProps,
 } from '../../../types/interfaces';
@@ -37,7 +38,7 @@ export class ParticipantsRepository {
     return await base.lean({ virtuals: true }).exec();
   }
 
-  public async findMany({ query, populate }: { query: any; populate?: any }) {
+  public async findMany({ query, populate }: FindManyProps) {
     return this.participantModel
       .find(query)
       .populate(populate ?? USER_POPULATE)
