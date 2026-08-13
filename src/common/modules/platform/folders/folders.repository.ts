@@ -28,21 +28,17 @@ export class FoldersRepository {
     return await base.lean().exec();
   }
 
-  public async createOne({ dto, populate }: CreateOneProps) {
-    if (dto?.user) dto.user = new Types.ObjectId(dto.user);
-    let query = this.folderModel.create(dto);
-
-    const doc = await query;
-
-    if (populate?.length) {
-      await doc.populate(populate);
-    }
-
-    return doc;
+  public async createOne({ dto }: CreateOneProps) {
+    if (dto?.createdBy) dto.createdBy = new Types.ObjectId(dto?.createdBy);
+    if (dto.spaces)
+      dto.spaces = dto.spaces.map((s: string) => new Types.ObjectId(s));
+    return this.folderModel.create(dto);
   }
 
   public async updateOne({ query, dto }) {
-    if (dto?.user) dto.user = new Types.ObjectId(dto?.user);
+    if (dto?.createdBy) dto.createdBy = new Types.ObjectId(dto?.createdBy);
+    if (dto.spaces)
+      dto.spaces = dto.spaces.map((s: string) => new Types.ObjectId(s));
     return this.folderModel.findOneAndUpdate(query, dto, { new: true });
   }
 

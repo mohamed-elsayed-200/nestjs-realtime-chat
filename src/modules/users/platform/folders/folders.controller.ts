@@ -32,15 +32,6 @@ export class FoldersController {
     return this.foldersService.getAll({ query, authUser });
   }
 
-  @Get('/:folderId')
-  @ResponseMeta({ message: 'folders.foundOne' })
-  public async getOne(
-    @Param('folderId', ValidateObjectIdPipe) folderId: string,
-    @GetUser() authUser: any,
-  ) {
-    return this.foldersService.getOne({ folderId, authUser });
-  }
-
   @Post()
   @ResponseMeta({ message: 'folders.created' })
   public async create(@Body() dto: any, @GetUser() authUser: any) {
