@@ -15,10 +15,12 @@ import { UserType } from '../../../../common/types/enums';
 import { ResponseMeta } from '../../../../common/decorators/response.decorator';
 import { ValidateObjectIdPipe } from '../../../../common/pipes/validate-objectId.pipe';
 import { FoldersService } from './folders.service';
-import { QueryDto } from '../../../../common/modules/dto/query.dto';
 import { UserTypes } from '../../../../common/decorators/user-type.decorator';
 import { UserTypeGuard } from '../../../../common/guards/user-type.guard';
 import { GetUser } from '../../../../common/decorators/get-user.decorator';
+import { ManageSpaceFolderDto } from './dto/manage-space-folder.dto';
+import { CreateFolderDto } from './dto/create-folder.dto';
+import { UpdateFolderDto } from './dto/update-folder.dto';
 
 @Controller('/users/folders')
 @UseGuards(AuthGuard, PermissionsGuard, UserTypeGuard)
@@ -28,13 +30,13 @@ export class FoldersController {
 
   @Get()
   @ResponseMeta({ message: 'folders.foundAll' })
-  public async getAll(@Query() query: QueryDto, @GetUser() authUser: any) {
-    return this.foldersService.getAll({ query, authUser });
+  public async getAll(@GetUser() authUser: any) {
+    return this.foldersService.getAll({ authUser });
   }
 
   @Post()
   @ResponseMeta({ message: 'folders.created' })
-  public async create(@Body() dto: any, @GetUser() authUser: any) {
+  public async create(@Body() dto: CreateFolderDto, @GetUser() authUser: any) {
     return this.foldersService.create({ dto, authUser });
   }
 
@@ -42,7 +44,7 @@ export class FoldersController {
   @ResponseMeta({ message: 'folders.updated' })
   public async update(
     @Param('folderId', ValidateObjectIdPipe) folderId: string,
-    @Body() dto: any,
+    @Body() dto: UpdateFolderDto,
     @GetUser() authUser: any,
   ) {
     return this.foldersService.update({ folderId, dto, authUser });
@@ -55,5 +57,18 @@ export class FoldersController {
     @GetUser() authUser: any,
   ) {
     return this.foldersService.delete({ folderId, authUser });
+  }
+
+  @Post('add-space')
+  async addSpace(@Body() dto: ManageSpaceFolderDto, @GetUser() authUser: any) {
+    return this.foldersService.addSpaceToFolder({ dto, authUser });
+  }
+
+  @Post('remove-space')
+  async removeSpace(
+    @Body() dto: ManageSpaceFolderDto,
+    @GetUser() authUser: any,
+  ) {
+    return this.foldersService.removeSpaceFromFolder({ dto, authUser });
   }
 }

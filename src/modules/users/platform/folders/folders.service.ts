@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
@@ -10,19 +11,9 @@ import { FoldersRepository } from '../../../../common/modules/platform/folders/f
 export class FoldersService {
   constructor(private readonly foldersRepository: FoldersRepository) {}
 
-  public async getAll({ query, authUser }) {
-    return this.foldersRepository.findAll({
-      query,
-      options: {
-        allowedSearchFields: ['name'],
-        pipelines: [
-          {
-            $match: {
-              createdBy: new Types.ObjectId(authUser._id),
-            },
-          },
-        ],
-      },
+  public async getAll({ authUser }) {
+    return this.foldersRepository.findMany({
+      query: { createdBy: new Types.ObjectId(authUser._id) },
     });
   }
 
@@ -56,5 +47,56 @@ export class FoldersService {
     });
     if (!deleteFolder) throw new NotFoundException('folders.notDeleted');
     return deleteFolder;
+  }
+
+  public async addSpaceToFolder({ dto, authUser }) {
+    const spaceObjectid = new Types.ObjectId(dto?.spaceId);
+    const folderObjectid = new Types.ObjectId(dto?.folderId);
+
+    const folder = await this.foldersRepository.findOne({
+      query: { _id: folderObjectid },
+    });
+    if (!folder) throw new NotFoundException('Folder not found');
+    if (folder.createdBy?.toString() !== authUser._id.toString()) {
+      throw new BadRequestException('Not your folder');
+    }
+
+    const spaceObjectId = new Types.ObjectId(spaceObjectid);
+    const currentSpaces = (folder.spaces ?? []).map(
+      (s: any) => s._id?.toString?.() ?? s.toString(),
+    );
+
+    if (currentSpaces.includes(spaceObjectid?.toString())) {
+      return folder;
+    }
+
+    const updated = await this.foldersRepository.updateOne({
+      query: { _id: new Types.ObjectId(folderObjectid) },
+      dto: { $push: { spaces: spaceObjectId } },
+    });
+
+    return updated;
+  }
+
+  public async removeSpaceFromFolder({ dto, authUser }) {
+    const spaceObjectid = new Types.ObjectId(dto?.spaceId);
+    const folderObjectid = new Types.ObjectId(dto?.folderId);
+
+    const folder = await this.foldersRepository.findOne({
+      query: {
+        _id: new Types.ObjectId(folderObjectid),
+      },
+    });
+    if (!folder) throw new NotFoundException('Folder not found');
+    if (folder.createdBy?.toString() !== authUser._id.toString()) {
+      throw new BadRequestException('Not your folder');
+    }
+
+    const updated = await this.foldersRepository.updateOne({
+      query: { _id: new Types.ObjectId(folderObjectid) },
+      dto: { $pull: { spaces: new Types.ObjectId(spaceObjectid) } },
+    });
+
+    return updated;
   }
 }

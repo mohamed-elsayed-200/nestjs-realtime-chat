@@ -1,16 +1,22 @@
-import { IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import { IsString, IsArray, IsOptional, IsNumber } from 'class-validator';
 
 export class CreateFolderDto {
-  @IsString({ message: 'folders.validation.name.isString' })
-  @MinLength(1, { message: 'folders.validation.name.minLength' })
-  @MaxLength(30, { message: 'folders.validation.name.maxLength' })
+  @IsString()
   name: string;
 
+  @IsString()
   @IsOptional()
-  @IsString({ message: 'folders.validation.icon.isString' })
   icon?: string;
 
+  @IsString()
   @IsOptional()
-  @IsString({ message: 'folders.validation.color.isString' })
   color?: string;
+
+  @IsArray()
+  @IsOptional()
+  spaceIds?: string[];
+
+  @IsNumber()
+  @IsOptional()
+  order?: number;
 }

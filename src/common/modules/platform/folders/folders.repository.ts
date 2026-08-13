@@ -3,7 +3,11 @@ import { Folder } from './folder.schema';
 import { Injectable } from '@nestjs/common';
 import { Model, Types } from 'mongoose';
 import { aggregateQuery } from '../../data-access/aggregate-query';
-import { CreateOneProps, FindOneProps } from '../../../types/interfaces';
+import {
+  CreateOneProps,
+  FindManyProps,
+  FindOneProps,
+} from '../../../types/interfaces';
 
 @Injectable()
 export class FoldersRepository {
@@ -19,6 +23,13 @@ export class FoldersRepository {
         ...options,
       },
     });
+  }
+
+  public async findMany({ query, populate, select }: FindManyProps) {
+    const base = this.folderModel.find(query);
+    if (select) base.select(select);
+    if (populate) base.populate(populate);
+    return await base.lean().exec();
   }
 
   public async findOne({ query, populate, select }: FindOneProps) {
