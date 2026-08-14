@@ -445,7 +445,7 @@ export class CallsGateway {
       client.join(RoomNames.call(dto.callId));
 
       this.socketEmitter.emitToSpace(
-        result.spaceId,
+        dto.spaceId,
         SocketEvents.CALL_SETTINGS_UPDATED,
         result,
         client.id,

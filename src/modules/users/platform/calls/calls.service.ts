@@ -958,7 +958,7 @@ export class CallsService {
   }
 
   public async updateCallSettings({ dto, authUser }) {
-    const { spaceId, settings } = dto;
+    const { spaceId, settings, callId } = dto;
     const spaceObjectId = new Types.ObjectId(spaceId);
     const authUserObjectId = new Types.ObjectId(authUser._id);
 
@@ -1002,6 +1002,7 @@ export class CallsService {
 
     return {
       spaceId,
+      callId,
       settings: mergedSettings,
     };
   }
