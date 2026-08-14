@@ -35,7 +35,7 @@ export class CallsGateway {
     @MessageBody() payload: WebrtcOfferDto,
   ) {
     const authUser = client.data.user;
-
+    client.join(RoomNames.call(payload.callId));
     this.socketEmitter.emitToCall(
       payload.callId,
       SocketEvents.WEBRTC_OFFER,
@@ -54,7 +54,7 @@ export class CallsGateway {
     @MessageBody() payload: WebrtcAnswerDto,
   ) {
     const authUser = client.data.user;
-
+    client.join(RoomNames.call(payload.callId));
     this.socketEmitter.emitToCall(
       payload.callId,
       SocketEvents.WEBRTC_ANSWER,
@@ -73,7 +73,7 @@ export class CallsGateway {
     @MessageBody() payload: WebrtcIceCandidateDto,
   ) {
     const authUser = client.data.user;
-
+    client.join(RoomNames.call(payload.callId));
     this.socketEmitter.emitToCall(
       payload.callId,
       SocketEvents.WEBRTC_ICE_CANDIDATE,
@@ -92,6 +92,7 @@ export class CallsGateway {
     @MessageBody() payload: { callId: string; toUserId: string },
   ) {
     const authUser = client.data.user;
+    client.join(RoomNames.call(payload.callId));
     this.socketEmitter.emitToCall(
       payload.callId,
       SocketEvents.SCREEN_SHARE_STARTED,
@@ -99,7 +100,6 @@ export class CallsGateway {
         callId: payload.callId,
         fromUserId: authUser._id,
       },
-      client.id,
     );
   }
 
@@ -109,6 +109,7 @@ export class CallsGateway {
     @MessageBody() payload: { callId: string; toUserId: string },
   ) {
     const authUser = client.data.user;
+    client.join(RoomNames.call(payload.callId));
     this.socketEmitter.emitToCall(
       payload.callId,
       SocketEvents.SCREEN_SHARE_STOPPED,
@@ -276,6 +277,8 @@ export class CallsGateway {
           authUser,
         });
 
+      client.join(RoomNames.call(dto.callId));
+
       const room = RoomNames.call(dto.callId);
 
       const event =
@@ -438,6 +441,8 @@ export class CallsGateway {
         dto,
         authUser,
       });
+
+      client.join(RoomNames.call(dto.callId));
 
       this.socketEmitter.emitToSpace(
         result.spaceId,
