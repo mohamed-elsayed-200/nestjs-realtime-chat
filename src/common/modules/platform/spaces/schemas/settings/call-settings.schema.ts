@@ -106,9 +106,6 @@ export class CallSettings {
   allowLinks: PermissionLevel;
 
   // ─── Screen Sharing ───
-  @Prop({ enum: PermissionLevel, default: PermissionLevel.EVERYBODY })
-  screenShareEnabled: PermissionLevel;
-
   @Prop({ enum: PermissionLevel, default: PermissionLevel.ADMINS })
   multipleSharers: PermissionLevel;
 
