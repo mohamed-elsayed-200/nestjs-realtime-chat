@@ -36,11 +36,16 @@ export class CallsGateway {
   ) {
     const authUser = client.data.user;
 
-    this.socketEmitter.emitToUser(payload.toUserId, SocketEvents.WEBRTC_OFFER, {
-      callId: payload.callId,
-      fromUserId: authUser._id,
-      sdp: payload.sdp,
-    });
+    this.socketEmitter.emitToCall(
+      payload.callId,
+      SocketEvents.WEBRTC_OFFER,
+      {
+        callId: payload.callId,
+        fromUserId: authUser._id,
+        sdp: payload.sdp,
+      },
+      client.id,
+    );
   }
 
   @SubscribeMessage(SocketEvents.WEBRTC_ANSWER)
@@ -50,14 +55,15 @@ export class CallsGateway {
   ) {
     const authUser = client.data.user;
 
-    this.socketEmitter.emitToUser(
-      payload.toUserId,
+    this.socketEmitter.emitToCall(
+      payload.callId,
       SocketEvents.WEBRTC_ANSWER,
       {
         callId: payload.callId,
         fromUserId: authUser._id,
         sdp: payload.sdp,
       },
+      client.id,
     );
   }
 
@@ -68,14 +74,15 @@ export class CallsGateway {
   ) {
     const authUser = client.data.user;
 
-    this.socketEmitter.emitToUser(
-      payload.toUserId,
+    this.socketEmitter.emitToCall(
+      payload.callId,
       SocketEvents.WEBRTC_ICE_CANDIDATE,
       {
         callId: payload.callId,
         fromUserId: authUser._id,
         candidate: payload.candidate,
       },
+      client.id,
     );
   }
 
@@ -85,13 +92,14 @@ export class CallsGateway {
     @MessageBody() payload: { callId: string; toUserId: string },
   ) {
     const authUser = client.data.user;
-    this.socketEmitter.emitToUser(
-      payload.toUserId,
+    this.socketEmitter.emitToCall(
+      payload.callId,
       SocketEvents.SCREEN_SHARE_STARTED,
       {
         callId: payload.callId,
         fromUserId: authUser._id,
       },
+      client.id,
     );
   }
 
@@ -101,13 +109,14 @@ export class CallsGateway {
     @MessageBody() payload: { callId: string; toUserId: string },
   ) {
     const authUser = client.data.user;
-    this.socketEmitter.emitToUser(
-      payload.toUserId,
+    this.socketEmitter.emitToCall(
+      payload.callId,
       SocketEvents.SCREEN_SHARE_STOPPED,
       {
         callId: payload.callId,
         fromUserId: authUser._id,
       },
+      client.id,
     );
   }
 
