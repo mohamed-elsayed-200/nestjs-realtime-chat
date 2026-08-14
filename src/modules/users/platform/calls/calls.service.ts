@@ -611,6 +611,42 @@ export class CallsService {
       throw new BadRequestException('Call has reached max participants');
     }
 
+    // ← 1. Get member FIRST (before password check)
+    const findMember = await this.membersRepository.findOne({
+      query: {
+        user: authUserObjectId,
+        space: call?.space?._id,
+      },
+    });
+
+    if (!findMember) {
+      throw new NotFoundException('You are not a member of this space');
+    }
+
+    // ← 2. Check if owner or admin
+    const isOwner = findMember.role === SpaceMemberRole.OWNER;
+    const isAdmin =
+      findMember.role === SpaceMemberRole.ADMIN &&
+      findMember.permissions.includes(
+        SpaceMemberPermission.MANAGE_LIVE_STREAMS,
+      );
+    const isAdminOrOwner = isOwner || isAdmin;
+
+    // ← 3. Password check (skip for owners/admins)
+    const findSpace = await this.spacesRepository.findOne({
+      query: { _id: call.space },
+    });
+    const callPassword = findSpace.settings.call.password;
+    const isPasswordProtected = Boolean(
+      callPassword && callPassword.length > 0,
+    );
+
+    if (isPasswordProtected && !isAdminOrOwner) {
+      if (!dto.password || dto.password !== callPassword) {
+        throw new BadRequestException('Invalid password');
+      }
+    }
+
     let participant = await this.participantsRepository.findOne({
       query: {
         call: callObjectId,
@@ -635,17 +671,7 @@ export class CallsService {
 
       shouldIncrementCount = wasNotConnected;
     } else {
-      const findMember = await this.membersRepository.findOne({
-        query: {
-          user: authUserObjectId,
-          space: call?.space?._id,
-        },
-      });
-
-      if (!findMember) {
-        throw new NotFoundException('You are not a member of this space');
-      }
-
+      // ← 4. Re-use findMember (no need to fetch again)
       participant = await this.participantsRepository.createOne({
         dto: {
           user: authUserObjectId,

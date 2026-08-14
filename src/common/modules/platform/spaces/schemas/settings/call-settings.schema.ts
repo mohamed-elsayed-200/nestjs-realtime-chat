@@ -158,7 +158,4 @@ export class CallSettings {
 
   @Prop({ enum: PermissionLevel, default: PermissionLevel.NOBODY })
   hideParticipantList: PermissionLevel;
-
-  @Prop({ default: false })
-  lockCallSecurity: boolean;
 }
