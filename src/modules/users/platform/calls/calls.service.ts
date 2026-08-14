@@ -636,7 +636,7 @@ export class CallsService {
     const findSpace = await this.spacesRepository.findOne({
       query: { _id: call.space },
     });
-    const callPassword = findSpace.settings.call.password;
+    const callPassword = findSpace?.settings?.call?.password;
     const isPasswordProtected = Boolean(
       callPassword && callPassword.length > 0,
     );
