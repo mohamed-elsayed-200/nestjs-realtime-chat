@@ -6,7 +6,7 @@ import { Types } from 'mongoose';
 export class BannedService {
   constructor(private readonly bannedRepository: BannedRepository) {}
 
-  public async getBlockedUsers({ query, authUser }) {
+  public async getBannedUsers({ query, authUser }) {
     return this.bannedRepository.findAll({
       query,
       options: {
@@ -37,7 +37,7 @@ export class BannedService {
     });
   }
 
-  public async getUsersWhoBlockedMe({ query, authUser }) {
+  public async getUsersWhoBannedMe({ query, authUser }) {
     return this.bannedRepository.findAll({
       query,
       options: {

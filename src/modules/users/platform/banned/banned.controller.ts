@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Put, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '../../../../common/guards/auth.guard';
 import { PermissionsGuard } from '../../../../common/guards/permissions-guard.guard';
 import { UserType } from '../../../../common/types/enums';
@@ -15,27 +15,21 @@ import { BannedService } from './banned.service';
 export class BannedController {
   constructor(private readonly bannedService: BannedService) {}
 
-  @Get()
+  @Get('banned-users')
   @ResponseMeta({ message: 'banned.foundAll' })
-  public async getBlockedUsers(
+  public async getBannedUsers(
     @Query() query: QueryDto,
     @GetUser() authUser: any,
   ) {
-    return this.bannedService.getBlockedUsers({ query, authUser });
+    return this.bannedService.getBannedUsers({ query, authUser });
   }
 
-  @Get('blocked-by')
+  @Get('users-who-banned-me')
   @ResponseMeta({ message: 'banned.foundAll' })
-  public async getUsersWhoBlockedMe(
+  public async getUsersWhoBannedMe(
     @Query() query: QueryDto,
     @GetUser() authUser: any,
   ) {
-    return this.bannedService.getUsersWhoBlockedMe({ query, authUser });
-  }
-
-  @Put('/toggle/:userId')
-  @ResponseMeta({ message: 'banned.toggled' })
-  public ban(@Param('userId') userId: string, @GetUser() authUser: any) {
-    return this.bannedService.toggleBan({ userId, authUser });
+    return this.bannedService.getUsersWhoBannedMe({ query, authUser });
   }
 }
