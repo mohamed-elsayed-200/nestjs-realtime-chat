@@ -289,6 +289,10 @@ export enum SocketEvents {
   WEBRTC_ICE_CANDIDATE = 'webrtc:ice-candidate',
   SCREEN_SHARE_STARTED = 'call:screen-share-started',
   SCREEN_SHARE_STOPPED = 'call:screen-share-stopped',
+
+  // Banned
+  BAN_TOGGLE = 'ban:toggle',
+  BAN_TOGGLED = 'ban:toggled',
 }
 
 export enum ViewTargetType {

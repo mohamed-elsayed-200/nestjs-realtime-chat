@@ -1,0 +1,49 @@
+import {
+  WebSocketGateway,
+  SubscribeMessage,
+  MessageBody,
+  ConnectedSocket,
+} from '@nestjs/websockets';
+import { Socket } from 'socket.io';
+import { SocketEmitterService } from '../../services/socket-emitter.service';
+import { SocketEvents } from '../../../../../common/types/enums';
+import { BannedService } from '../../../platform/banned/banned.service';
+import { ToggleBanDto } from './dto/toggle-ban.dto';
+
+@WebSocketGateway()
+export class BannedGateway {
+  constructor(
+    private readonly bannedService: BannedService,
+    private readonly socketEmitter: SocketEmitterService,
+  ) {}
+
+  @SubscribeMessage(SocketEvents.BAN_TOGGLE)
+  async onToggleBan(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() dto: ToggleBanDto,
+  ) {
+    const { target } = dto;
+    const authUser = client.data.user;
+
+    try {
+      const result = await this.bannedService.toggleBan({
+        userId: target,
+        authUser,
+      });
+
+      this.socketEmitter.emitToUser(
+        authUser?._id?.toString(),
+        SocketEvents.BAN_TOGGLED,
+        result,
+      );
+
+      return { success: true, ...result };
+    } catch (err: any) {
+      client.emit('error', {
+        event: SocketEvents.BAN_TOGGLE,
+        message: err?.message ?? 'Failed to toggle block',
+      });
+      return { success: false, error: err?.message };
+    }
+  }
+}

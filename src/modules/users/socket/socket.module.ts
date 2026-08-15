@@ -1,4 +1,4 @@
-import { Module, Global } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { MessagesGateway } from './gateways/messages-gateway/messages.gateway';
 import { SpacesGateway } from './gateways/spaces-gateway/spaces.gateway';
 import { PresenceGateway } from './gateways/presence-gateway/presence.gateway';
@@ -16,6 +16,7 @@ import { ViewsModule } from '../platform/views/views.module';
 import { CallsModule } from '../platform/calls/calls.module';
 import { CallsGateway } from './gateways/calls-gateway/calls.gateway';
 import { CallMessagesGateway } from './gateways/calls-gateway/call-messages.gateway';
+import { BannedGateway } from './gateways/banned-gateway/banned.gateway';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { CallMessagesGateway } from './gateways/calls-gateway/call-messages.gate
     ViewsGateway,
     CallsGateway,
     CallMessagesGateway,
+    BannedGateway,
   ],
   exports: [SocketEmitterService],
 })

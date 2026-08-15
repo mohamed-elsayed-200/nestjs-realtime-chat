@@ -12,6 +12,7 @@ import { JoinRequestsModule } from './platform/join-requests/join-requests.modul
 import { CommentsModule } from './platform/comments/comments.module';
 import { ViewsModule } from './platform/views/views.module';
 import { CallsModule } from './platform/calls/calls.module';
+import { BannedModule } from './platform/banned/banned.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { CallsModule } from './platform/calls/calls.module';
     CommentsModule,
     ViewsModule,
     CallsModule,
+    BannedModule,
   ],
 })
 export class UsersModule {}

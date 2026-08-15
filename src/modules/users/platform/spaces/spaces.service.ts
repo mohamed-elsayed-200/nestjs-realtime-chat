@@ -6,6 +6,7 @@ import { MessagesRepository } from '../../../../common/modules/platform/messages
 import { JoinRequestsRepository } from '../../../../common/modules/platform/join-requests/join-requests.repository';
 import { JoinRequestStatus } from './../../../../common/modules/platform/join-requests/join-request.schema';
 import { UsersRepository } from './../../../../common/modules/iam/users/users.repository';
+import { BannedRepository } from '../../../../common/modules/platform/banned/banned.repository';
 import { CallsRepository } from './../../../../common/modules/platform/calls/calls.repository';
 import {
   BadRequestException,
@@ -36,6 +37,7 @@ export class SpacesService {
     private readonly usersRepository: UsersRepository,
     private readonly joinRequestsRepository: JoinRequestsRepository,
     private readonly callsRepository: CallsRepository,
+    private readonly bannedRepository: BannedRepository,
   ) {}
 
   public async getOne({ spaceOrUserId, authUser }) {
@@ -105,6 +107,8 @@ export class SpacesService {
 
       let userContact = null;
       let otherParty = null;
+      let iBlockedThem = false;
+      let theyBlockedMe = false;
 
       if (isPrivate) {
         if (findSpace?.sender?._id.toString() === userId.toString()) {
@@ -120,6 +124,15 @@ export class SpacesService {
           },
           select: '_id name avatar profileColor',
         });
+
+        if (otherParty?._id) {
+          const result = await this.bannedRepository.findBothDirections({
+            userA: userId.toString(), // me
+            userB: otherParty._id.toString(), // he
+          });
+          iBlockedThem = Boolean(result.iBlockedThem);
+          theyBlockedMe = Boolean(result.theyBlockedMe);
+        }
       }
 
       const dataMember = isMember
@@ -193,6 +206,8 @@ export class SpacesService {
           : findSpace?.profileColor,
 
         isContact: isPrivate ? !!userContact : false,
+        iBlockedThem: isPrivate ? iBlockedThem : false,
+        theyBlockedMe: isPrivate ? theyBlockedMe : false,
 
         ...dataMember,
       };
@@ -211,6 +226,18 @@ export class SpacesService {
         select: '_id name avatar profileColor',
       });
 
+      let iBlockedThem = false;
+      let theyBlockedMe = false;
+
+      if (user?._id) {
+        const result = await this.bannedRepository.findBothDirections({
+          userA: userId.toString(), // me
+          userB: user._id.toString(), // he
+        });
+        iBlockedThem = Boolean(result.iBlockedThem);
+        theyBlockedMe = Boolean(result.theyBlockedMe);
+      }
+
       const response = {
         id: user?._id,
         unreadCount: 0,
@@ -224,6 +251,8 @@ export class SpacesService {
         avatar: findContact?.avatar || user?.avatar,
         profileColor: findContact?.profileColor || user?.profileColor,
         isContact: findContact?._id ? true : false,
+        iBlockedThem,
+        theyBlockedMe,
         isActiveCall: false,
         activeCallType: null,
         activeCallId: null,
@@ -404,6 +433,72 @@ export class SpacesService {
             },
           },
 
+          // جديد: هات الـ banned documents في الاتجاهين بيني وبين otherParty
+          {
+            $lookup: {
+              from: 'banneds', // تأكد من اسم الـ collection الفعلي عندك (راجع ملحوظة تحت)
+              let: { otherPartyId: '$otherParty._id' },
+              pipeline: [
+                {
+                  $match: {
+                    $expr: {
+                      $or: [
+                        {
+                          $and: [
+                            { $eq: ['$bannedBy', userId] },
+                            { $eq: ['$bannedUser', '$$otherPartyId'] },
+                          ],
+                        },
+                        {
+                          $and: [
+                            { $eq: ['$bannedBy', '$$otherPartyId'] },
+                            { $eq: ['$bannedUser', userId] },
+                          ],
+                        },
+                      ],
+                    },
+                  },
+                },
+                {
+                  $project: { _id: 1, bannedBy: 1, bannedUser: 1 },
+                },
+              ],
+              as: 'blockDocs',
+            },
+          },
+          {
+            $addFields: {
+              iBlockedThem: {
+                $gt: [
+                  {
+                    $size: {
+                      $filter: {
+                        input: '$blockDocs',
+                        as: 'b',
+                        cond: { $eq: ['$$b.bannedBy', userId] },
+                      },
+                    },
+                  },
+                  0,
+                ],
+              },
+              theyBlockedMe: {
+                $gt: [
+                  {
+                    $size: {
+                      $filter: {
+                        input: '$blockDocs',
+                        as: 'b',
+                        cond: { $ne: ['$$b.bannedBy', userId] },
+                      },
+                    },
+                  },
+                  0,
+                ],
+              },
+            },
+          },
+
           {
             $addFields: {
               resolvedName: {
@@ -529,6 +624,21 @@ export class SpacesService {
                 $cond: {
                   if: { $eq: ['$space.type', 'private'] },
                   then: { $gt: [{ $size: '$userContacts' }, 0] },
+                  else: false,
+                },
+              },
+
+              iBlockedThem: {
+                $cond: {
+                  if: { $eq: ['$space.type', 'private'] },
+                  then: '$iBlockedThem',
+                  else: false,
+                },
+              },
+              theyBlockedMe: {
+                $cond: {
+                  if: { $eq: ['$space.type', 'private'] },
+                  then: '$theyBlockedMe',
                   else: false,
                 },
               },

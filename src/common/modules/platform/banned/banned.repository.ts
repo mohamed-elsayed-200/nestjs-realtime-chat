@@ -3,6 +3,7 @@ import { Banned } from './banned.schema';
 import { Injectable } from '@nestjs/common';
 import { Model, Types } from 'mongoose';
 import { aggregateQuery } from '../../data-access/aggregate-query';
+import { FindOneProps } from '../../../../common/types/interfaces';
 
 @Injectable()
 export class BannedRepository {
@@ -18,6 +19,14 @@ export class BannedRepository {
         ...options,
       },
     });
+  }
+
+  public async findOne({ query, populate, select, sort }: FindOneProps) {
+    const base = this.bannedModel.findOne(query);
+    if (select) base.select(select);
+    if (sort) base.sort(sort);
+    if (populate) base.populate(populate);
+    return await base.lean().exec();
   }
 
   public async createOne({ dto }) {
@@ -47,5 +56,24 @@ export class BannedRepository {
         },
       ],
     });
+  }
+
+  public async findBothDirections({ userA, userB }) {
+    const [iBlockedThem, theyBlockedMe] = await Promise.all([
+      this.bannedModel
+        .findOne({
+          bannedBy: new Types.ObjectId(userA),
+          bannedUser: new Types.ObjectId(userB),
+        })
+        .lean(),
+      this.bannedModel
+        .findOne({
+          bannedBy: new Types.ObjectId(userB),
+          bannedUser: new Types.ObjectId(userA),
+        })
+        .lean(),
+    ]);
+
+    return { iBlockedThem, theyBlockedMe };
   }
 }
