@@ -90,7 +90,23 @@ export class ContactsService {
       },
     });
 
-    await this.syncContactToSpaces(userId, contact);
+    await this.spacesRepository.updateMany({
+      query: {
+        sender: userId,
+      },
+      dto: {
+        senderContact: contact._id,
+      },
+    });
+
+    await this.spacesRepository.updateMany({
+      query: {
+        received: userId,
+      },
+      dto: {
+        receivedContact: contact._id,
+      },
+    });
 
     return {
       _id: contact.contact._id,
@@ -112,7 +128,23 @@ export class ContactsService {
     if (!contact) {
       throw new NotFoundException('Contact not found');
     }
-    await this.syncContactToSpaces(contact.contact.toString(), contact);
+    await this.spacesRepository.updateMany({
+      query: {
+        sender: contact.contact.toString(),
+      },
+      dto: {
+        senderContact: contact._id,
+      },
+    });
+
+    await this.spacesRepository.updateMany({
+      query: {
+        received: contact.contact.toString(),
+      },
+      dto: {
+        receivedContact: contact._id,
+      },
+    });
 
     return {
       _id: contact.contact._id,
@@ -131,9 +163,28 @@ export class ContactsService {
     });
 
     if (!contact) throw new NotFoundException('Contact not found');
-    const userData = await this.removeContactFromSpaces(
-      contact.contact.toString(),
-    );
+    const userData = await this.usersRepository.findOne({
+      query: { _id: contact.contact.toString() },
+      select: 'name avatar profileColor username',
+    });
+
+    await this.spacesRepository.updateMany({
+      query: {
+        sender: contact.contact.toString(),
+      },
+      dto: {
+        senderContact: null,
+      },
+    });
+
+    await this.spacesRepository.updateMany({
+      query: {
+        received: contact.contact.toString(),
+      },
+      dto: {
+        receivedContact: null,
+      },
+    });
 
     return {
       name: userData?.name,
@@ -141,84 +192,5 @@ export class ContactsService {
       avatar: userData?.avatar,
       _id: userData?._id,
     };
-  }
-
-  private async syncContactToSpaces(contactUserId: string, contact: any) {
-    const contactObjectId = new Types.ObjectId(contactUserId);
-
-    await this.spacesRepository.updateMany({
-      query: {
-        'sender._id': contactObjectId,
-        $or: [
-          { 'sender._id': contactObjectId },
-          { 'received._id': contactObjectId },
-        ],
-      },
-      dto: {
-        'sender.name': contact.name,
-        'sender.avatar': contact.avatar,
-        'sender.profileColor': contact.profileColor,
-        'sender.isContact': true,
-        'sender.contactName': contact.name,
-        'sender.contactProfileColor': contact.profileColor,
-        'sender.contactAvatar': contact.avatar,
-      },
-    });
-
-    await this.spacesRepository.updateMany({
-      query: {
-        'received._id': contactObjectId,
-        $or: [
-          { 'sender._id': contactObjectId },
-          { 'received._id': contactObjectId },
-        ],
-      },
-      dto: {
-        'received.name': contact.name,
-        'received.avatar': contact.avatar,
-        'received.profileColor': contact.profileColor,
-        'received.isContact': true,
-        'received.contactName': contact.name,
-        'received.contactProfileColor': contact.profileColor,
-        'received.contactAvatar': contact.avatar,
-      },
-    });
-  }
-
-  private async removeContactFromSpaces(contactUserId: string) {
-    const contactObjectId = new Types.ObjectId(contactUserId);
-
-    const userData = await this.usersRepository.findOne({
-      query: { _id: contactUserId },
-      select: 'name avatar profileColor username',
-    });
-
-    await this.spacesRepository.updateMany({
-      query: { 'sender._id': contactObjectId },
-      dto: {
-        'sender.isContact': false,
-        'sender.name': userData.name,
-        'sender.avatar': userData.avatar,
-        'sender.profileColor': userData.profileColor,
-        'sender.contactName': null,
-        'sender.contactProfileColor': null,
-        'sender.contactAvatar': null,
-      },
-    });
-
-    await this.spacesRepository.updateMany({
-      query: { 'received._id': contactObjectId },
-      dto: {
-        'received.isContact': false,
-        'received.name': userData.name,
-        'received.avatar': userData.avatar,
-        'received.profileColor': userData.profileColor,
-        'received.contactName': null,
-        'received.contactProfileColor': null,
-        'received.contactAvatar': null,
-      },
-    });
-
-    return userData;
   }
 }

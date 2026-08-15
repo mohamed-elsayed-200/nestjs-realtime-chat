@@ -23,7 +23,6 @@ export class Contact {
 
 export const ContactSchema = SchemaFactory.createForClass(Contact);
 
-ContactSchema.index({ me: 1 });
 ContactSchema.index({ contact: 1 });
 ContactSchema.index({ name: 1 });
-ContactSchema.index({ me: 1, contact: 1 });
+ContactSchema.index({ me: 1, contact: 1 }, { unique: true });
