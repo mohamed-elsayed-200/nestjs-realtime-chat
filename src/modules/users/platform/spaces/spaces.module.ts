@@ -8,6 +8,7 @@ import { BaseContactModule } from '../../../../common/modules/platform/contacts/
 import { BaseMessageModule } from '../../../../common/modules/platform/messages/messages.module';
 import { BaseJoinRequests } from '../../../../common/modules/platform/join-requests/join-requests.module';
 import { BaseCallsModule } from '../../../../common/modules/platform/calls/calls.module';
+import { BaseBannedModule } from '../../../../common/modules/platform/banned/banned.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { BaseCallsModule } from '../../../../common/modules/platform/calls/calls
     BaseMessageModule,
     BaseJoinRequests,
     BaseCallsModule,
+    BaseBannedModule,
   ],
   controllers: [SpacesController],
   providers: [SpacesService],

@@ -17,6 +17,7 @@ import { CallsModule } from '../platform/calls/calls.module';
 import { CallsGateway } from './gateways/calls-gateway/calls.gateway';
 import { CallMessagesGateway } from './gateways/calls-gateway/call-messages.gateway';
 import { BannedGateway } from './gateways/banned-gateway/banned.gateway';
+import { BannedModule } from '../platform/banned/banned.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { BannedGateway } from './gateways/banned-gateway/banned.gateway';
     SpacesModule,
     ReactionsModule,
     ViewsModule,
+    BannedModule,
   ],
   providers: [
     SocketServerRegistry,
