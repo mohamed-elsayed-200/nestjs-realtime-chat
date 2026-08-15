@@ -16,7 +16,6 @@ import {
   SpaceTypes,
 } from '../../../../common/types/enums';
 import { MessagesRepository } from '../../../../common/modules/platform/messages/messages.repository';
-import { text } from 'stream/consumers';
 
 @Injectable()
 export class MessagesService {
@@ -62,8 +61,14 @@ export class MessagesService {
       return this.messagesRepository.findAll({
         query,
         options: {
-          allowedSearchFields: [],
-          allowedFilterFields: [],
+          allowedSearchFields: ['text', 'content'],
+          allowedFilterFields: [
+            'isPinned',
+            'messageType',
+            'isEdited',
+            'sender',
+            'createdAt',
+          ],
           pipelines: [
             {
               $match: {
@@ -79,7 +84,13 @@ export class MessagesService {
       query,
       options: {
         allowedSearchFields: ['text', 'content'],
-        allowedFilterFields: ['isPinned', 'messageType', 'isEdited', 'sender'],
+        allowedFilterFields: [
+          'isPinned',
+          'messageType',
+          'isEdited',
+          'sender',
+          'createdAt',
+        ],
         pipelines: [
           {
             $match: {
