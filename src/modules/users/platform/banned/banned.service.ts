@@ -66,30 +66,33 @@ export class BannedService {
   }
 
   public async toggleBan({ userId, authUser }) {
-    if (userId === authUser._id.toString()) {
+    const authUserObjectId = new Types.ObjectId(authUser?._id);
+    const userObjectId = new Types.ObjectId(userId);
+
+    if (userObjectId?.toString() === authUserObjectId?.toString()) {
       throw new BadRequestException('blocks.cannotBlockSelf');
     }
 
     const existing = await this.bannedRepository.findOne({
-      query: { bannedBy: authUser._id.toString(), bannedUser: userId },
+      query: { bannedBy: authUserObjectId, bannedUser: userObjectId },
     });
 
     if (existing) {
       await this.bannedRepository.deleteOne({
-        query: { bannedBy: authUser._id.toString(), bannedUser: userId },
+        query: { bannedBy: authUserObjectId, bannedUser: userObjectId },
       });
       return {
         blocked: false,
-        userId,
+        userId: userObjectId,
       };
     }
 
     await this.bannedRepository.createOne({
-      dto: { bannedBy: authUser._id.toString(), bannedUser: userId },
+      dto: { bannedBy: authUserObjectId, bannedUser: userObjectId },
     });
     return {
       blocked: true,
-      userId,
+      userId: userObjectId,
     };
   }
 
