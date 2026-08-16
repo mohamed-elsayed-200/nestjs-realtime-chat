@@ -464,6 +464,7 @@ export class MessagesService {
       id: message?._id?.toString(),
       _id: undefined,
       parentSpace,
+      spaceType: space?.type,
       replyTo: message?.replyTo?._id
         ? {
             ...message?.toObject()?.replyTo,
