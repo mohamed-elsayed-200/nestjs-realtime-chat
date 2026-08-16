@@ -57,4 +57,9 @@ export class SocketEmitterService {
   emitToAll(event: SocketEvents, payload: unknown) {
     this.server.emit(event, payload);
   }
+
+  async joinUserSocketsToRoom(userId: string, room: string) {
+    const userRoom = RoomNames.user(userId);
+    await this.server.in(userRoom).socketsJoin(room);
+  }
 }

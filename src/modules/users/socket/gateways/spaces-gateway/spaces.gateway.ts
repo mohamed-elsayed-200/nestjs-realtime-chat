@@ -92,7 +92,12 @@ export class SpacesGateway {
         dto,
       });
 
-      client.join(RoomNames.space(createdSpace.id));
+      const spaceRoom = RoomNames.space(createdSpace.id);
+      client.join(spaceRoom);
+      await this.socketEmitter.joinUserSocketsToRoom(
+        createdSpace.received?.id?.toString(),
+        spaceRoom,
+      );
 
       this.socketEmitter.emitToSpace(
         createdSpace.id,
@@ -199,10 +204,6 @@ export class SpacesGateway {
     try {
       await this.spacesService.deleteSpace({ spaceId, dto: payload, authUser });
 
-      const room = RoomNames.space(spaceId);
-      const clientsInRoom = await client.nsp.in(room).fetchSockets();
-      clientsInRoom.forEach((s) => s.leave(room));
-
       this.socketEmitter.emitToSpace(
         spaceId,
         SocketEvents.SPACE_DELETED,
@@ -210,6 +211,9 @@ export class SpacesGateway {
         client?.id,
       );
 
+      const room = RoomNames.space(spaceId);
+      const clientsInRoom = await client.nsp.in(room).fetchSockets();
+      clientsInRoom.forEach((s) => s.leave(room));
       return { success: true, spaceId };
     } catch (err: any) {
       client.emit('error', {

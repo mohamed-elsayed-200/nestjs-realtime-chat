@@ -2,6 +2,7 @@ import {
   IsMongoId,
   IsNotEmpty,
   IsOptional,
+  IsString,
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
@@ -19,8 +20,8 @@ export class CreatePrivateSpaceDto {
   @IsMongoId({ message: 'categories.validation.memberId.isMongoId' })
   memberId: string;
 
-  @IsOptional()
-  @ValidateNested()
-  @Type(() => SpaceSettingsDto)
-  settings?: Partial<SpaceSettingsDto>;
+  // @IsOptional()
+  // @ValidateNested()
+  // @Type(() => SpaceSettingsDto)
+  // settings?: Partial<SpaceSettingsDto>;
 }
