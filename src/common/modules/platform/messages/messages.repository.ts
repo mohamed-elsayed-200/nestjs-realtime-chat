@@ -21,6 +21,13 @@ export class MessagesRepository {
     });
   }
 
+  async getMessageStatistics({ spaceId }) {
+    return this.messageModel.aggregate([
+      { $match: { space: spaceId } },
+      { $group: { _id: '$messageType', count: { $sum: 1 } } },
+    ]);
+  }
+
   public async findMany({ query, populate, sort }: FindManyProps) {
     let base = this.messageModel.find(query);
     if (sort) base.sort(sort);

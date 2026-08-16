@@ -1,14 +1,10 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { BannedRepository } from '../../../../common/modules/platform/banned/banned.repository';
 import { Types } from 'mongoose';
-import { UsersRepository } from '../../../../common/modules/iam/users/users.repository';
 
 @Injectable()
 export class BannedService {
-  constructor(
-    private readonly bannedRepository: BannedRepository,
-    private readonly usersRepository: UsersRepository,
-  ) {}
+  constructor(private readonly bannedRepository: BannedRepository) {}
 
   public async getBannedUsers({ query, authUser }) {
     return this.bannedRepository.findAll({
@@ -85,16 +81,9 @@ export class BannedService {
         query: { bannedBy: authUserObjectId, bannedUser: userObjectId },
       });
 
-      const user = await this.usersRepository.findOne({
-        query: { _id: userObjectId },
-        select: 'avatar profileColor name',
-      });
-
       return {
         blocked: false,
         userId: userObjectId,
-        userAvatar: user?.avatar ?? null,
-        userProfileColor: user?.profileColor ?? null,
       };
     }
 

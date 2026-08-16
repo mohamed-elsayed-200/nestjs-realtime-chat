@@ -33,7 +33,11 @@ export class BannedGateway {
 
       this.socketEmitter.emitToUser(target, SocketEvents.BAN_TOGGLED, {
         ...result,
-        by: authUser?._id,
+        by: {
+          id: authUser?._id,
+          avatar: authUser?.avatar ?? null,
+          profileColor: authUser?.profileColor ?? null,
+        },
       });
 
       return { success: true, ...result };

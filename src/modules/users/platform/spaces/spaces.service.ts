@@ -175,6 +175,14 @@ export class SpacesService {
           }
         : {};
 
+      const messageStats = await this.messagesRepository.getMessageStatistics({
+        spaceId,
+      });
+      const statistics = messageStats.reduce((acc, stat) => {
+        acc[stat._id] = stat.count;
+        return acc;
+      });
+
       const response = {
         id: findSpace?._id,
         type: findSpace?.type,
@@ -192,7 +200,7 @@ export class SpacesService {
         isActiveCall: Boolean(activeCall),
         activeCallType: activeCall?.type ?? null,
         activeCallId: activeCall?._id?.toString() ?? null,
-
+        statistics,
         name: isPrivate
           ? userContact?.name || otherParty?.name || null
           : findSpace?.name,
