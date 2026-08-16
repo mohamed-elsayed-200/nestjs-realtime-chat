@@ -7,6 +7,7 @@ import { UserTypeGuard } from '../../../../common/guards/user-type.guard';
 import { UserType } from '../../../../common/types/enums';
 import { UserTypes } from '../../../../common/decorators/user-type.decorator';
 import { QueryDto } from '../../../../common/modules/dto/query.dto';
+import { GetUser } from '../../../../common/decorators/get-user.decorator';
 
 @Controller('/users/members')
 @UseGuards(AuthGuard, UserTypeGuard)
@@ -19,14 +20,15 @@ export class MembersController {
   public async getAll(
     @Param('spaceId', ValidateObjectIdPipe) spaceId: string,
     @Query() query: QueryDto,
+    @GetUser() authUser: any,
   ) {
-    return this.membersService.getAll({ query, spaceId });
+    return this.membersService.getAll({ authUser, query, spaceId });
   }
 
   @Get('/single-member')
   @ResponseMeta({ message: 'members.foundOne' })
-  public async getOne(@Query() query: string) {
-    return this.membersService.getOne({ query });
+  public async getOne(@GetUser() authUser: any, @Query() query: string) {
+    return this.membersService.getOne({ authUser, query });
   }
 
   @Get('/banned/:spaceId')
@@ -34,7 +36,8 @@ export class MembersController {
   public async getBannedBySpace(
     @Param('spaceId', ValidateObjectIdPipe) spaceId: string,
     @Query() query: QueryDto,
+    @GetUser() authUser: any,
   ) {
-    return this.membersService.getBannedBySpace({ query, spaceId });
+    return this.membersService.getBannedBySpace({ authUser, query, spaceId });
   }
 }

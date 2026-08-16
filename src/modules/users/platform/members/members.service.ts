@@ -4,7 +4,6 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
-import { MembersRepository } from '../../../../common/modules/platform/members/members.repository';
 import { Types } from 'mongoose';
 import {
   adminPermissionList,
@@ -12,8 +11,10 @@ import {
   SpaceMemberPermission,
   SpaceMemberRole,
 } from '../../../../common/types/enums';
+import { MembersRepository } from '../../../../common/modules/platform/members/members.repository';
 import { SpacesRepository } from '../../../../common/modules/platform/spaces/spaces.repository';
 import { UsersRepository } from '../../../../common/modules/iam/users/users.repository';
+import { BannedRepository } from '../../../../common/modules/platform/banned/banned.repository';
 
 @Injectable()
 export class MembersService {
@@ -21,9 +22,12 @@ export class MembersService {
     private readonly membersRepository: MembersRepository,
     private readonly usersRepository: UsersRepository,
     private readonly spacesRepository: SpacesRepository,
+    private readonly bannedRepository: BannedRepository,
   ) {}
 
-  public async getAll({ query, spaceId }) {
+  public async getAll({ query, spaceId, authUser }) {
+    const userObjectId = new Types.ObjectId(authUser._id);
+
     return this.membersRepository.findAll({
       query,
       options: {
@@ -48,6 +52,34 @@ export class MembersService {
               preserveNullAndEmptyArrays: true,
             },
           },
+
+          // جديد: هل العضو ده عمل حظر ليا؟
+          {
+            $lookup: {
+              from: 'banneds', // تأكد من اسم الـ collection الفعلي عندك
+              let: { memberId: '$user._id' },
+              pipeline: [
+                {
+                  $match: {
+                    $expr: {
+                      $and: [
+                        { $eq: ['$bannedBy', '$$memberId'] },
+                        { $eq: ['$bannedUser', userObjectId] },
+                      ],
+                    },
+                  },
+                },
+                { $project: { _id: 1 } },
+              ],
+              as: 'memberBlockDoc',
+            },
+          },
+          {
+            $addFields: {
+              memberHasBlockedMe: { $gt: [{ $size: '$memberBlockDoc' }, 0] },
+            },
+          },
+
           {
             $addFields: {
               rolePriority: {
@@ -84,7 +116,14 @@ export class MembersService {
                 name: '$user.name',
                 username: '$user.username',
                 profileColor: '$user.profileColor',
-                avatar: '$user.avatar',
+                avatar: {
+                  $cond: {
+                    if: '$memberHasBlockedMe',
+                    then: null,
+                    else: '$user.avatar',
+                  },
+                },
+                theyBlockedMe: '$memberHasBlockedMe',
               },
               addedById: '$addedBy',
               bannedById: '$bannedBy',
@@ -101,7 +140,9 @@ export class MembersService {
     });
   }
 
-  public async getBannedBySpace({ query, spaceId }) {
+  public async getBannedBySpace({ query, spaceId, authUser }) {
+    const userObjectId = new Types.ObjectId(authUser._id);
+
     return this.membersRepository.findAll({
       query,
       options: {
@@ -126,6 +167,34 @@ export class MembersService {
               preserveNullAndEmptyArrays: true,
             },
           },
+
+          // جديد: هل العضو المحظور إداريًا ده عمل حظر شخصي ليا؟
+          {
+            $lookup: {
+              from: 'banneds', // تأكد من اسم الـ collection الفعلي عندك
+              let: { memberId: '$user._id' },
+              pipeline: [
+                {
+                  $match: {
+                    $expr: {
+                      $and: [
+                        { $eq: ['$bannedBy', '$$memberId'] },
+                        { $eq: ['$bannedUser', userObjectId] },
+                      ],
+                    },
+                  },
+                },
+                { $project: { _id: 1 } },
+              ],
+              as: 'memberBlockDoc',
+            },
+          },
+          {
+            $addFields: {
+              memberHasBlockedMe: { $gt: [{ $size: '$memberBlockDoc' }, 0] },
+            },
+          },
+
           {
             $project: {
               id: 1,
@@ -135,7 +204,14 @@ export class MembersService {
                 name: '$user.name',
                 username: '$user.username',
                 profileColor: '$user.profileColor',
-                avatar: '$user.avatar',
+                avatar: {
+                  $cond: {
+                    if: '$memberHasBlockedMe',
+                    then: null,
+                    else: '$user.avatar',
+                  },
+                },
+                theyBlockedMe: '$memberHasBlockedMe',
               },
             },
           },
@@ -144,7 +220,7 @@ export class MembersService {
     });
   }
 
-  public async getOne({ query }) {
+  public async getOne({ query, authUser }) {
     const { memberId, userId, spaceId } = query;
     let finalQuery: any = {};
     if (memberId) {
@@ -160,7 +236,7 @@ export class MembersService {
     if (!memberId && !userId && !spaceId)
       throw new NotFoundException('members.notFoundOne');
 
-    const member = await this.membersRepository.findOne({
+    const member: any = await this.membersRepository.findOne({
       query: finalQuery,
       populate: [
         {
@@ -195,7 +271,23 @@ export class MembersService {
 
     if (!member) throw new NotFoundException('members.notFoundOne');
 
-    return member;
+    let theyBlockedMe = false;
+    if (member.user?._id && authUser?._id) {
+      const result = await this.bannedRepository.findBothDirections({
+        userA: authUser._id.toString(),
+        userB: member.user._id.toString(),
+      });
+      theyBlockedMe = Boolean(result.theyBlockedMe);
+    }
+
+    return {
+      ...member,
+      user: {
+        ...member.user,
+        avatar: theyBlockedMe ? null : member.user?.avatar,
+        theyBlockedMe,
+      },
+    };
   }
 
   public async promoteAdmin({ dto, authUser }) {
