@@ -86,35 +86,70 @@ export class SpacesGateway {
     @MessageBody() dto: CreatePrivateSpaceDto,
   ) {
     const authUser = client.data.user;
+    if (!authUser?._id) {
+      return { success: false, error: 'Unauthorized' };
+    }
+
     try {
-      const createdSpace = await this.spacesService.createPrivateSpace({
-        authUser,
-        dto,
-      });
+      const { forRequester, forOtherUser } =
+        await this.spacesService.createPrivateSpace({ authUser, dto });
 
-      const spaceRoom = RoomNames.space(createdSpace.id);
+      const spaceRoom = RoomNames.space(forRequester.id);
       client.join(spaceRoom);
-      await this.socketEmitter.joinUserSocketsToRoom(
-        createdSpace.received?.id?.toString(),
-        spaceRoom,
-      );
 
-      this.socketEmitter.emitToSpace(
-        createdSpace.id,
+      const otherUserId = dto.memberId;
+      await this.socketEmitter.joinUserSocketsToRoom(otherUserId, spaceRoom);
+
+      this.socketEmitter.emitToUser(
+        otherUserId,
         SocketEvents.SPACE_CREATED_PRIVATE,
-        createdSpace,
-        client?.id,
+        forOtherUser,
       );
 
-      return { success: true, space: createdSpace };
+      return { success: true, space: forRequester };
     } catch (err: any) {
-      client.emit('error', {
-        event: SocketEvents.SPACE_CREATE_PRIVATE,
-        message: err?.message ?? 'Failed to create space',
-      });
-      return { success: false, error: err?.message };
+      return {
+        success: false,
+        error: err?.message ?? 'Failed to create space',
+      };
     }
   }
+
+  // @SubscribeMessage(SocketEvents.SPACE_CREATE_PRIVATE)
+  // async onCreatePrivate(
+  //   @ConnectedSocket() client: Socket,
+  //   @MessageBody() dto: CreatePrivateSpaceDto,
+  // ) {
+  //   const authUser = client.data.user;
+  //   try {
+  //     const createdSpace = await this.spacesService.createPrivateSpace({
+  //       authUser,
+  //       dto,
+  //     });
+
+  //     const spaceRoom = RoomNames.space(createdSpace.id);
+  //     client.join(spaceRoom);
+  //     await this.socketEmitter.joinUserSocketsToRoom(
+  //       createdSpace.received?.id?.toString(),
+  //       spaceRoom,
+  //     );
+
+  //     this.socketEmitter.emitToSpace(
+  //       createdSpace.id,
+  //       SocketEvents.SPACE_CREATED_PRIVATE,
+  //       createdSpace,
+  //       client?.id,
+  //     );
+
+  //     return { success: true, space: createdSpace };
+  //   } catch (err: any) {
+  //     client.emit('error', {
+  //       event: SocketEvents.SPACE_CREATE_PRIVATE,
+  //       message: err?.message ?? 'Failed to create space',
+  //     });
+  //     return { success: false, error: err?.message };
+  //   }
+  // }
 
   @SubscribeMessage(SocketEvents.SPACE_JOIN)
   async onJoinSpace(
@@ -204,16 +239,18 @@ export class SpacesGateway {
     try {
       await this.spacesService.deleteSpace({ spaceId, dto: payload, authUser });
 
-      this.socketEmitter.emitToSpace(
-        spaceId,
-        SocketEvents.SPACE_DELETED,
-        spaceId,
-        client?.id,
-      );
+      if (dto.everybody) {
+        this.socketEmitter.emitToSpace(
+          spaceId,
+          SocketEvents.SPACE_DELETED,
+          spaceId,
+          client?.id,
+        );
 
-      const room = RoomNames.space(spaceId);
-      const clientsInRoom = await client.nsp.in(room).fetchSockets();
-      clientsInRoom.forEach((s) => s.leave(room));
+        const room = RoomNames.space(spaceId);
+        const clientsInRoom = await client.nsp.in(room).fetchSockets();
+        clientsInRoom.forEach((s) => s.leave(room));
+      }
       return { success: true, spaceId };
     } catch (err: any) {
       client.emit('error', {

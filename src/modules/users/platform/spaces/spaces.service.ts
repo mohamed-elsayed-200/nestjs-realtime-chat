@@ -1050,63 +1050,19 @@ export class SpacesService {
     const userId = new Types.ObjectId(authUser._id);
     const otherUserId = new Types.ObjectId(memberId);
 
-    const findUser = await this.usersRepository.findOne({
-      query: { _id: otherUserId },
-      select: 'name profileColor avatar username bio',
-    });
+    const [findOtherUser, findAuthUser] = await Promise.all([
+      this.usersRepository.findOne({
+        query: { _id: otherUserId },
+        select: 'name profileColor avatar username bio',
+      }),
+      this.usersRepository.findOne({
+        query: { _id: userId },
+        select: 'name profileColor avatar username bio',
+      }),
+    ]);
 
-    if (!findUser)
+    if (!findOtherUser)
       throw new InternalServerErrorException('spaces.memberNotFound');
-
-    const existingSpace = await this.spacesRepository.findOne({
-      query: {
-        type: SpaceTypes.PRIVATE,
-        $or: [
-          { sender: userId, received: otherUserId },
-          { sender: otherUserId, received: userId },
-        ],
-      },
-    });
-
-    if (existingSpace) {
-      await this.membersRepository.updateOne({
-        query: {
-          space: existingSpace._id,
-          user: userId,
-        },
-        dto: { isDeleted: false },
-      });
-
-      const [senderContact, receivedContact] = await Promise.all([
-        this.contactsRepository.findOne({
-          query: { me: userId, contact: otherUserId },
-          select: 'name profileColor avatar',
-        }),
-        this.contactsRepository.findOne({
-          query: { me: otherUserId, contact: userId },
-          select: 'name profileColor avatar',
-        }),
-      ]);
-      const contactToUse = senderContact || receivedContact;
-
-      return {
-        ...existingSpace,
-        id: existingSpace._id,
-        _id: undefined,
-        __v: undefined,
-        profileColor: contactToUse?.profileColor ?? findUser.profileColor,
-        name: contactToUse?.name ?? findUser.name,
-        avatar: contactToUse?.avatar ?? findUser.avatar,
-        isContact: !!contactToUse,
-        received: {
-          id: findUser._id,
-          name: findUser.name,
-          profileColor: findUser.profileColor,
-          avatar: findUser.avatar,
-          username: findUser.username,
-        },
-      };
-    }
 
     const [senderContact, receivedContact] = await Promise.all([
       this.contactsRepository.findOne({
@@ -1118,61 +1074,100 @@ export class SpacesService {
         select: 'name profileColor avatar',
       }),
     ]);
-    const contactToUse = senderContact || receivedContact;
 
-    const space = await this.spacesRepository.createOne({
-      dto: {
-        status: ActivationStatus.ACTIVE,
+    const existingSpace = await this.spacesRepository.findOne({
+      query: {
         type: SpaceTypes.PRIVATE,
-        createdBy: userId,
-        sender: userId,
-        received: otherUserId,
-        senderContact: senderContact?._id || null,
-        receivedContact: receivedContact?._id || null,
+        $or: [
+          { sender: userId, received: otherUserId },
+          { sender: otherUserId, received: userId },
+        ],
       },
     });
 
-    if (!space) throw new InternalServerErrorException('spaces.notCreated');
+    let space: any;
 
-    const members =
-      otherUserId.toString() === userId.toString()
-        ? [userId]
-        : [otherUserId, userId];
+    if (existingSpace) {
+      await this.membersRepository.updateOne({
+        query: { space: existingSpace._id, user: userId },
+        dto: { isDeleted: false },
+      });
+      space = existingSpace;
+    } else {
+      space = await this.spacesRepository.createOne({
+        dto: {
+          status: ActivationStatus.ACTIVE,
+          type: SpaceTypes.PRIVATE,
+          createdBy: userId,
+          sender: userId,
+          received: otherUserId,
+          senderContact: senderContact?._id || null,
+          receivedContact: receivedContact?._id || null,
+        },
+      });
 
-    await Promise.all(
-      members.map((id) =>
-        this.membersRepository.createOne({
-          dto: {
-            user: id,
-            space: new Types.ObjectId(space._id.toString()),
-            role:
-              id.toString() === userId.toString()
-                ? SpaceMemberRole.OWNER
-                : SpaceMemberRole.MEMBER,
-            joinedAt: new Date(),
-            isPined: false,
-            isMuted: false,
-            isArchived: false,
-          },
-        }),
-      ),
+      if (!space) throw new InternalServerErrorException('spaces.notCreated');
+
+      const members =
+        otherUserId.toString() === userId.toString()
+          ? [userId]
+          : [otherUserId, userId];
+
+      await Promise.all(
+        members.map((id) =>
+          this.membersRepository.createOne({
+            dto: {
+              user: id,
+              space: new Types.ObjectId(space._id.toString()),
+              role:
+                id.toString() === userId.toString()
+                  ? SpaceMemberRole.OWNER
+                  : SpaceMemberRole.MEMBER,
+              joinedAt: new Date(),
+              isPined: false,
+              isMuted: false,
+              isArchived: false,
+            },
+          }),
+        ),
+      );
+
+      space = space.toObject();
+    }
+
+    // منظور صاحب الطلب: بيشوف بيانات الطرف التاني (findOtherUser) كـ received
+    const forRequester = this.buildSpaceView(
+      space,
+      senderContact,
+      findOtherUser,
     );
 
+    // منظور الطرف التاني: بيشوف بيانات صاحب الطلب (findAuthUser) كـ received
+    const forOtherUser = this.buildSpaceView(
+      space,
+      receivedContact,
+      findAuthUser,
+    );
+
+    return { forRequester, forOtherUser };
+  }
+
+  private buildSpaceView(space: any, contact: any, otherUserData: any) {
     return {
-      ...space.toObject(),
-      id: space?.id,
+      ...space,
+      id: space._id?.toString() ?? space.id,
       _id: undefined,
       __v: undefined,
-      profileColor: contactToUse?.profileColor ?? findUser.profileColor,
-      name: contactToUse?.name ?? findUser.name,
-      avatar: contactToUse?.avatar ?? findUser.avatar,
-      isContact: !!contactToUse,
+      profileColor: contact?.profileColor ?? otherUserData.profileColor,
+      name: contact?.name ?? otherUserData.name,
+      avatar: contact?.avatar ?? otherUserData.avatar,
+      isContact: !!contact,
       received: {
-        id: findUser._id,
-        name: findUser.name,
-        profileColor: findUser.profileColor,
-        avatar: findUser.avatar,
-        username: findUser.username,
+        id: otherUserData._id,
+        name: otherUserData.name,
+        profileColor: otherUserData.profileColor,
+        avatar: otherUserData.avatar,
+        username: otherUserData.username,
       },
     };
   }
