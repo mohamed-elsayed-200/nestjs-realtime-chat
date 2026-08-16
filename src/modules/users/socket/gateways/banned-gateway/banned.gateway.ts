@@ -31,11 +31,10 @@ export class BannedGateway {
         authUser,
       });
 
-      this.socketEmitter.emitToUser(
-        authUser?._id?.toString(),
-        SocketEvents.BAN_TOGGLED,
-        result,
-      );
+      this.socketEmitter.emitToUser(target, SocketEvents.BAN_TOGGLED, {
+        ...result,
+        by: authUser?._id,
+      });
 
       return { success: true, ...result };
     } catch (err: any) {

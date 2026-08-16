@@ -155,7 +155,7 @@ export class SpacesService {
                   id: otherParty?._id,
                   name: otherParty?.name,
                   username: otherParty?.username,
-                  avatar: otherParty?.avatar,
+                  avatar: theyBlockedMe ? null : otherParty?.avatar,
                   profileColor: otherParty?.profileColor,
                   bio: otherParty?.bio,
                 }
@@ -198,7 +198,9 @@ export class SpacesService {
           : findSpace?.name,
 
         avatar: isPrivate
-          ? userContact?.avatar || otherParty?.avatar || null
+          ? theyBlockedMe
+            ? null
+            : userContact?.avatar || otherParty?.avatar || null
           : findSpace?.avatar,
 
         profileColor: isPrivate
@@ -248,7 +250,7 @@ export class SpacesService {
         bio: user?.bio,
         name: findContact?.name || user?.name,
         username: user?.username,
-        avatar: findContact?.avatar || user?.avatar,
+        avatar: theyBlockedMe ? null : findContact?.avatar || user?.avatar,
         profileColor: findContact?.profileColor || user?.profileColor,
         isContact: findContact?._id ? true : false,
         iBlockedThem,
@@ -260,7 +262,7 @@ export class SpacesService {
         received: {
           id: user?._id,
           name: findContact?.name || user?.name,
-          avatar: findContact?.avatar || user?.avatar,
+          avatar: theyBlockedMe ? null : findContact?.avatar || user?.avatar,
           profileColor: findContact?.profileColor || user?.profileColor,
           username: user?.username,
           bio: user?.bio,
@@ -501,16 +503,24 @@ export class SpacesService {
 
           {
             $addFields: {
+              resolvedAvatar: {
+                $cond: {
+                  if: '$theyBlockedMe',
+                  then: null,
+                  else: {
+                    $ifNull: [
+                      '$userContact.avatar',
+                      {
+                        $ifNull: ['$spaceContact.avatar', '$otherParty.avatar'],
+                      },
+                    ],
+                  },
+                },
+              },
               resolvedName: {
                 $ifNull: [
                   '$userContact.name',
                   { $ifNull: ['$spaceContact.name', '$otherParty.name'] },
-                ],
-              },
-              resolvedAvatar: {
-                $ifNull: [
-                  '$userContact.avatar',
-                  { $ifNull: ['$spaceContact.avatar', '$otherParty.avatar'] },
                 ],
               },
               resolvedProfileColor: {

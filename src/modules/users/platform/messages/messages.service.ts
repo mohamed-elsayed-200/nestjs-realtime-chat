@@ -119,6 +119,33 @@ export class MessagesService {
               preserveNullAndEmptyArrays: true,
             },
           },
+
+          {
+            $lookup: {
+              from: 'banneds',
+              let: { senderId: '$sender._id' },
+              pipeline: [
+                {
+                  $match: {
+                    $expr: {
+                      $and: [
+                        { $eq: ['$bannedBy', '$$senderId'] },
+                        { $eq: ['$bannedUser', userObjectId] },
+                      ],
+                    },
+                  },
+                },
+                { $project: { _id: 1 } },
+              ],
+              as: 'senderBlockDoc',
+            },
+          },
+          {
+            $addFields: {
+              senderHasBlockedMe: { $gt: [{ $size: '$senderBlockDoc' }, 0] },
+            },
+          },
+
           {
             $lookup: {
               from: 'messages',
@@ -293,10 +320,17 @@ export class MessagesService {
               sender: {
                 _id: '$sender._id',
                 profileColor: '$sender.profileColor',
-                avatar: '$sender.avatar',
+                avatar: {
+                  $cond: {
+                    if: '$senderHasBlockedMe',
+                    then: null,
+                    else: '$sender.avatar',
+                  },
+                },
                 name: '$sender.name',
                 adminTag: '$member.adminTag',
                 adminTagColor: '$member.adminTagColor',
+                theyBlockedMe: '$senderHasBlockedMe',
               },
               forwardFrom: {
                 $cond: {
@@ -340,18 +374,6 @@ export class MessagesService {
         ],
       },
     });
-  }
-
-  public async getOne({ messageId, authUser }) {
-    const message = await this.messagesRepository.findOne({
-      query: { _id: messageId },
-    });
-
-    if (!message) throw new NotFoundException('messages.notFound');
-    return {
-      ...message,
-      isOutgoing: message.sender?.toString() === authUser?._id?.toString(),
-    };
   }
 
   public async create({ dto, authUser }) {
