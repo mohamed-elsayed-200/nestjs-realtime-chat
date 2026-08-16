@@ -18,7 +18,6 @@ import { UserTypes } from '../../../../common/decorators/user-type.decorator';
 import { QueryDto } from '../../../../common/modules/dto/query.dto';
 import { GetUser } from '../../../../common/decorators/get-user.decorator';
 import { OpenLinkDto } from './dto/open-space.dto';
-import { CreatePrivateSpaceDto } from './dto/private-space/create-private-space.dto';
 import { CreateGlobalSpaceDto } from './dto/global-space/create-global-space.dto';
 
 @Controller('/users/spaces')
@@ -82,15 +81,6 @@ export class SpacesController {
     @GetUser() authUser: any,
   ) {
     return this.spacesService.toggleArchive({ spaceId, authUser });
-  }
-
-  @Post('/private-space')
-  @ResponseMeta({ message: 'spaces.createdPrivate', statusCode: 201 })
-  public async createPrivateSpace(
-    @Body() dto: CreatePrivateSpaceDto,
-    @GetUser() authUser: any,
-  ) {
-    return this.spacesService.createPrivateSpace({ dto, authUser });
   }
 
   @Post('/global-space')

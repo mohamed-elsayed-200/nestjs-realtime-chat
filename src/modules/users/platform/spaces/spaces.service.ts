@@ -178,10 +178,13 @@ export class SpacesService {
       const messageStats = await this.messagesRepository.getMessageStatistics({
         spaceId,
       });
-      const statistics = messageStats.reduce((acc, stat) => {
-        acc[stat._id] = stat.count;
-        return acc;
-      });
+      const statistics = messageStats.reduce(
+        (acc, stat) => {
+          acc[stat._id] = stat.count;
+          return acc;
+        },
+        {} as Record<string, number>,
+      );
 
       const response = {
         id: findSpace?._id,
@@ -1088,12 +1091,15 @@ export class SpacesService {
 
       return {
         ...existingSpace,
+        id: existingSpace._id,
+        _id: undefined,
+        __v: undefined,
         profileColor: contactToUse?.profileColor ?? findUser.profileColor,
         name: contactToUse?.name ?? findUser.name,
         avatar: contactToUse?.avatar ?? findUser.avatar,
         isContact: !!contactToUse,
         received: {
-          _id: findUser._id,
+          id: findUser._id,
           name: findUser.name,
           profileColor: findUser.profileColor,
           avatar: findUser.avatar,
@@ -1154,12 +1160,15 @@ export class SpacesService {
 
     return {
       ...space.toObject(),
+      id: space?.id,
+      _id: undefined,
+      __v: undefined,
       profileColor: contactToUse?.profileColor ?? findUser.profileColor,
       name: contactToUse?.name ?? findUser.name,
       avatar: contactToUse?.avatar ?? findUser.avatar,
       isContact: !!contactToUse,
       received: {
-        _id: findUser._id,
+        id: findUser._id,
         name: findUser.name,
         profileColor: findUser.profileColor,
         avatar: findUser.avatar,

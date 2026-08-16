@@ -14,6 +14,7 @@ import { LeaveFromSpaceDto } from './dto/leave-from-space.dto';
 import { DeleteSpaceDto } from './dto/delete-space.dto';
 import { ChangeWallpaperDto } from './dto/change-wallpaper.dto';
 import { UpdateSpaceDto } from './dto/update-space.dto';
+import { CreatePrivateSpaceDto } from './dto/create-private-space.dto';
 
 @WebSocketGateway()
 export class SpacesGateway {
@@ -79,6 +80,37 @@ export class SpacesGateway {
     }
   }
 
+  @SubscribeMessage(SocketEvents.SPACE_CREATE_PRIVATE)
+  async onCreatePrivate(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() dto: CreatePrivateSpaceDto,
+  ) {
+    const authUser = client.data.user;
+    try {
+      const createdSpace = await this.spacesService.createPrivateSpace({
+        authUser,
+        dto,
+      });
+
+      client.join(RoomNames.space(createdSpace.id));
+
+      this.socketEmitter.emitToSpace(
+        createdSpace.id,
+        SocketEvents.SPACE_CREATED_PRIVATE,
+        createdSpace,
+        client?.id,
+      );
+
+      return { success: true, space: createdSpace };
+    } catch (err: any) {
+      client.emit('error', {
+        event: SocketEvents.SPACE_CREATE_PRIVATE,
+        message: err?.message ?? 'Failed to create space',
+      });
+      return { success: false, error: err?.message };
+    }
+  }
+
   @SubscribeMessage(SocketEvents.SPACE_JOIN)
   async onJoinSpace(
     @ConnectedSocket() client: Socket,
@@ -110,7 +142,7 @@ export class SpacesGateway {
       return { success: true, space: updatedSpace };
     } catch (err: any) {
       client.emit('error', {
-        event: SocketEvents.SPACE_JOINED,
+        event: SocketEvents.SPACE_JOIN,
         message: err?.message ?? 'Failed to join space',
       });
       return { success: false, error: err?.message };

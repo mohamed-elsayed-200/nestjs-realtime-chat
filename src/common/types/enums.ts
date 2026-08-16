@@ -219,6 +219,8 @@ export enum SocketEvents {
   SPACE_LEFT = 'space:left',
   SPACE_INFO_UPDATE = 'space:info-update',
   SPACE_INFO_UPDATED = 'space:info-updated',
+  SPACE_CREATE_PRIVATE = 'space:create-private',
+  SPACE_CREATED_PRIVATE = 'space:created-private',
   SPACE_READ = 'space:read',
   SPACE_READABLE = 'space:readable',
   SPACE_DELETE = 'space:delete',
