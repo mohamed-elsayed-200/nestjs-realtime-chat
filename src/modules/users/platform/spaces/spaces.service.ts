@@ -127,8 +127,8 @@ export class SpacesService {
 
         if (otherParty?._id) {
           const result = await this.bannedRepository.findBothDirections({
-            userA: userId.toString(), // me
-            userB: otherParty._id.toString(), // he
+            userA: userId.toString(),
+            userB: otherParty._id.toString(),
           });
           iBlockedThem = Boolean(result.iBlockedThem);
           theyBlockedMe = Boolean(result.theyBlockedMe);
@@ -199,7 +199,7 @@ export class SpacesService {
         settings: findSpace?.settings,
         bio: findSpace?.bio || otherParty?.bio,
         createdBy: findSpace?.createdBy,
-        wallpaper: findSpace?.wallpaper || member?.wallpaper,
+        wallpaper: member?.wallpaper || findSpace?.wallpaper,
         isActiveCall: Boolean(activeCall),
         activeCallType: activeCall?.type ?? null,
         activeCallId: activeCall?._id?.toString() ?? null,
@@ -244,8 +244,8 @@ export class SpacesService {
 
       if (user?._id) {
         const result = await this.bannedRepository.findBothDirections({
-          userA: userId.toString(), // me
-          userB: user._id.toString(), // he
+          userA: userId.toString(),
+          userB: user._id.toString(),
         });
         iBlockedThem = Boolean(result.iBlockedThem);
         theyBlockedMe = Boolean(result.theyBlockedMe);
@@ -446,10 +446,9 @@ export class SpacesService {
             },
           },
 
-          // جديد: هات الـ banned documents في الاتجاهين بيني وبين otherParty
           {
             $lookup: {
-              from: 'banneds', // تأكد من اسم الـ collection الفعلي عندك (راجع ملحوظة تحت)
+              from: 'banneds',
               let: { otherPartyId: '$otherParty._id' },
               pipeline: [
                 {
@@ -668,12 +667,12 @@ export class SpacesService {
                 $cond: {
                   if: {
                     $and: [
-                      { $ne: ['$space.wallpaper', null] },
-                      { $ne: ['$space.wallpaper', ''] },
+                      { $ne: ['$wallpaper', null] },
+                      { $ne: ['$wallpaper', ''] },
                     ],
                   },
-                  then: '$space.wallpaper',
-                  else: '$wallpaper',
+                  then: '$wallpaper',
+                  else: '$space.wallpaper',
                 },
               },
 
@@ -1135,14 +1134,12 @@ export class SpacesService {
       space = space.toObject();
     }
 
-    // منظور صاحب الطلب: بيشوف بيانات الطرف التاني (findOtherUser) كـ received
     const forRequester = this.buildSpaceView(
       space,
       senderContact,
       findOtherUser,
     );
 
-    // منظور الطرف التاني: بيشوف بيانات صاحب الطلب (findAuthUser) كـ received
     const forOtherUser = this.buildSpaceView(
       space,
       receivedContact,
