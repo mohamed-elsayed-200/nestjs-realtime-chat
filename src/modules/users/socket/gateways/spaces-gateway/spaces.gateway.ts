@@ -268,7 +268,7 @@ export class SpacesGateway {
     const authUser = client.data.user;
 
     try {
-      const result = await this.spacesService.clearHistory({
+      await this.spacesService.clearHistory({
         dto,
         authUser,
       });
@@ -286,19 +286,16 @@ export class SpacesGateway {
           },
           client?.id,
         );
-      } else {
-        this.socketEmitter.emitToUser(
-          authUser?._id,
-          SocketEvents.SPACE_HISTORY_CLEARED,
-          {
-            spaceId: dto.space,
-            userId: authUser?._id,
-            everybody: false,
-          },
-        );
       }
 
-      return { success: true, ...result };
+      return {
+        success: true,
+        result: {
+          spaceId: dto.space,
+          userId: authUser?._id,
+          everybody: false,
+        },
+      };
     } catch (err: any) {
       client.emit('error', {
         event: SocketEvents.SPACE_CLEAR_HISTORY,
