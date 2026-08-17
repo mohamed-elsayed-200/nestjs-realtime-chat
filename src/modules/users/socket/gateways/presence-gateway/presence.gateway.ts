@@ -348,10 +348,7 @@ export class PresenceGateway
   }
 
   @SubscribeMessage(SocketEvents.AUTH_ANNOUNCE_LOGIN)
-  handleAnnounceLogin(
-    @ConnectedSocket() client: Socket,
-    @MessageBody() dto?: { device?: string },
-  ) {
+  async handleAnnounceLogin(@ConnectedSocket() client: Socket) {
     const userId = client.data.userId as string;
     const sessionId = client.data.sessionId as string;
     const sessionKey = client.data.sessionKey as string;
@@ -359,16 +356,12 @@ export class PresenceGateway
       return { success: false, error: 'Unauthorized' };
     }
 
+    const findSession = await this.sessionsService.getOne({ sessionId });
+
     this.server
       .to(RoomNames.user(userId))
       .except(RoomNames.session(sessionKey))
-      .emit(SocketEvents.AUTH_NEW_LOGIN, {
-        sessionId,
-        device: dto?.device,
-        ip: client.handshake.address,
-        userAgent: client.handshake.headers['user-agent'],
-        loggedInAt: new Date().toISOString(),
-      });
+      .emit(SocketEvents.AUTH_NEW_LOGIN, { session: findSession });
 
     return { success: true };
   }

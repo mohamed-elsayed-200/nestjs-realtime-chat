@@ -22,6 +22,14 @@ export class SessionsService {
     );
   }
 
+  public async getOne({ sessionId }) {
+    const session = await this.sessionsRepository.findOne({
+      query: { _id: sessionId },
+    });
+    if (!session) throw new NotFoundException('sessions.notFound');
+    return session;
+  }
+
   public async active({ targetSessionId, currSessionId, authUser }) {
     if (targetSessionId === currSessionId?.toString() || !currSessionId) {
       throw new BadRequestException('sessions.cannotModifyCurrentSession');
