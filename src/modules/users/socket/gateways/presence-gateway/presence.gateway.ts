@@ -182,6 +182,101 @@ export class PresenceGateway
     return spaceIds;
   }
 
+  // async handleConnection(@ConnectedSocket() client: Socket) {
+  //   const userId = client.data.userId as string;
+  //   const sessionId = client.data.sessionId as string;
+
+  //   if (!userId || !sessionId) {
+  //     client.disconnect();
+  //     return;
+  //   }
+
+  //   const sessionKey = this.getSessionKey(userId, sessionId);
+
+  //   client.join(RoomNames.user(userId));
+  //   client.join(RoomNames.session(sessionKey));
+
+  //   const sessionSockets =
+  //     this.sessionConnections.get(sessionKey) ?? new Set<string>();
+  //   const isFirstConnectionInSession = sessionSockets.size === 0;
+  //   sessionSockets.add(client.id);
+  //   this.sessionConnections.set(sessionKey, sessionSockets);
+
+  //   const userSessionSet = this.userSessions.get(userId) ?? new Set<string>();
+  //   const isNewSession = !userSessionSet.has(sessionKey);
+  //   userSessionSet.add(sessionKey);
+  //   this.userSessions.set(userId, userSessionSet);
+
+  //   const spaceIds = await this.joinUserToSpaceRooms(client, userId);
+
+  //   if (!this.sessionConnections.get(sessionKey)?.has(client.id)) return;
+
+  //   client.data.spaceIds = spaceIds;
+  //   client.data.sessionKey = sessionKey;
+
+  //   if (isFirstConnectionInSession) {
+  //     if (isNewSession) {
+  //       this.broadcastPresence(
+  //         SocketEvents.PRESENCE_USER_ONLINE,
+  //         userId,
+  //         spaceIds,
+  //         {
+  //           userId,
+  //           sessionId,
+  //         },
+  //       );
+  //     }
+
+  //     this.socketEmitter.emitToUser(userId, SocketEvents.PRESENCE_USER_ONLINE, {
+  //       userId,
+  //       sessionId,
+  //       isSelf: true,
+  //     });
+  //   }
+  // }
+
+  // async handleDisconnect(@ConnectedSocket() client: Socket) {
+  //   const userId = client.data.userId as string;
+  //   const sessionKey = client.data.sessionKey as string;
+
+  //   if (!userId || !sessionKey) return;
+
+  //   const spaceIds = (client.data.spaceIds as string[]) ?? [];
+  //   const sessionSockets = this.sessionConnections.get(sessionKey);
+  //   if (!sessionSockets) return;
+
+  //   sessionSockets.delete(client.id);
+  //   if (sessionSockets.size > 0) return;
+
+  //   this.sessionConnections.delete(sessionKey);
+
+  //   const userSessionSet = this.userSessions.get(userId);
+  //   if (!userSessionSet) return;
+
+  //   userSessionSet.delete(sessionKey);
+  //   if (userSessionSet.size > 0) return;
+
+  //   this.userSessions.delete(userId);
+
+  //   const lastSeenAt = new Date();
+  //   this.usersRepository
+  //     .updateOne({ query: { _id: userId }, dto: { lastSeenAt } })
+  //     .catch((err) =>
+  //       console.error(`Failed to update lastSeenAt for ${userId}:`, err),
+  //     );
+
+  //   this.broadcastPresence(
+  //     SocketEvents.PRESENCE_USER_OFFLINE,
+  //     userId,
+  //     spaceIds,
+  //     {
+  //       userId,
+  //       sessionId: sessionKey.split(':')[1],
+  //       lastSeenAt: lastSeenAt.toISOString(),
+  //     },
+  //   );
+  // }
+
   async handleConnection(@ConnectedSocket() client: Socket) {
     const userId = client.data.userId as string;
     const sessionId = client.data.sessionId as string;
@@ -207,12 +302,22 @@ export class PresenceGateway
     userSessionSet.add(sessionKey);
     this.userSessions.set(userId, userSessionSet);
 
+    // لازم تتحط قبل أي await - لو الـ client اتقطع أثناء الانتظار،
+    // handleDisconnect المفروض يلاقي sessionKey جاهز ويعمل cleanup صح
+    // بدل ما يسيب entry عالق للأبد في sessionConnections/userSessions
+    client.data.sessionKey = sessionKey;
+    client.data.spaceIds = [];
+
     const spaceIds = await this.joinUserToSpaceRooms(client, userId);
 
-    if (!this.sessionConnections.get(sessionKey)?.has(client.id)) return;
+    if (!this.sessionConnections.get(sessionKey)?.has(client.id)) {
+      // الـ client اتقطع فعلا أثناء الـ await، وhandleDisconnect عمل
+      // cleanup صح بفضل إن sessionKey كان متسجل بدري - مفيش حاجة
+      // تانية مطلوبة هنا
+      return;
+    }
 
     client.data.spaceIds = spaceIds;
-    client.data.sessionKey = sessionKey;
 
     if (isFirstConnectionInSession) {
       if (isNewSession) {

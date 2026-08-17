@@ -570,7 +570,6 @@ export class MessagesService {
       query: {
         _id: { $in: dto?.messages },
         space: spaceObjectId,
-
         ...(!canDeleteAny && { sender: userObjectId }),
       },
     });
@@ -587,66 +586,60 @@ export class MessagesService {
     }
 
     const foundIds = messages.map((m) => m._id.toString());
-
     const isSenderOfAll = messages.every(
       (msg) => msg.sender?.toString() === userObjectId.toString(),
     );
 
     const deleteForAll = isPrivate
-      ? dto?.everybody && isSenderOfAll
+      ? Boolean(dto?.everybody) && isSenderOfAll
       : canDeleteAny || isSenderOfAll;
 
-    if (deleteForAll && !isPrivate && !canDeleteAny && !isSenderOfAll) {
-      throw new BadRequestException('messages.notAllowedToDeleteForEveryone');
-    }
-
-    let allParticipantIds: Types.ObjectId[] = [];
     if (isPrivate) {
-      const privateMembers = await this.membersRepository.findMany({
-        query: { space: spaceObjectId },
-      });
-      allParticipantIds = privateMembers.map(
-        (m: any) => new Types.ObjectId(String(m.user)),
-      );
-    } else {
-      const spaceMembers = await this.membersRepository.findMany({
-        query: { space: spaceObjectId, isBanned: false, isDeleted: false },
-      });
-      allParticipantIds = spaceMembers.map(
-        (m: any) => new Types.ObjectId(String(m.user)),
-      );
-    }
+      let deleteTargetIds: Types.ObjectId[] = [userObjectId];
 
-    const deleteTargetIds = deleteForAll ? allParticipantIds : [userObjectId];
+      if (deleteForAll) {
+        const privateMembers = await this.membersRepository.findMany({
+          query: { space: spaceObjectId },
+        });
+        deleteTargetIds = privateMembers.map(
+          (m: any) => new Types.ObjectId(String(m.user)),
+        );
+      }
 
-    if (isPrivate) {
       await this.messagesRepository.updateMany({
         query: { _id: { $in: foundIds } },
-        dto: {
-          $addToSet: { deletedFrom: { $each: deleteTargetIds } },
+        dto: { $addToSet: { deletedFrom: { $each: deleteTargetIds } } },
+      });
+
+      const affectedOthers = await this.membersRepository.findMany({
+        query: {
+          space: spaceObjectId,
+          user: { $in: deleteTargetIds, $ne: userObjectId },
+          lastMessage: { $in: foundIds },
         },
       });
-    } else {
-      await this.messagesRepository.deleteMany({
-        query: { _id: { $in: foundIds } },
-      });
-    }
 
-    if (isPrivate) {
-      for (const uid of allParticipantIds) {
+      for (const m of affectedOthers) {
+        const uid = new Types.ObjectId(String(m.user));
         const lastMsg = await this.messagesRepository.findOne({
-          query: {
-            space: spaceObjectId,
-            deletedFrom: { $ne: uid },
-          },
+          query: { space: spaceObjectId, deletedFrom: { $ne: uid } },
           sort: { createdAt: -1 },
         });
-
         await this.membersRepository.updateOne({
           query: { space: spaceObjectId, user: uid },
           dto: { lastMessage: lastMsg?._id || null },
         });
       }
+
+      const myLastMessage = await this.messagesRepository.findOne({
+        query: { space: spaceObjectId, deletedFrom: { $ne: userObjectId } },
+        sort: { createdAt: -1 },
+      });
+
+      await this.membersRepository.updateOne({
+        query: { space: spaceObjectId, user: userObjectId },
+        dto: { lastMessage: myLastMessage?._id || null },
+      });
 
       if (deleteForAll) {
         const unreadDeletedCount = messages.filter(
@@ -654,48 +647,45 @@ export class MessagesService {
         ).length;
 
         if (unreadDeletedCount > 0) {
-          for (const uid of allParticipantIds) {
-            if (uid.toString() !== userObjectId.toString()) {
-              await this.membersRepository.updateOne({
-                query: { space: spaceObjectId, user: uid },
-                dto: { $inc: { unreadCount: -unreadDeletedCount } },
-              });
-            }
-          }
+          await this.membersRepository.updateMany({
+            query: { space: spaceObjectId, user: { $ne: userObjectId } },
+            dto: { $inc: { unreadCount: -unreadDeletedCount } },
+          });
         }
       }
-    } else {
-      const lastMsg = await this.messagesRepository.findOne({
+
+      return {
+        deletedCount: foundIds.length,
+        lastMessage: {
+          ...myLastMessage,
+          id: myLastMessage?._id,
+          _id: undefined,
+        },
+      };
+    }
+
+    await this.messagesRepository.deleteMany({
+      query: { _id: { $in: foundIds } },
+    });
+
+    let spaceLastMessage: any = null;
+    if (space.lastMessage && foundIds.includes(space.lastMessage.toString())) {
+      spaceLastMessage = await this.messagesRepository.findOne({
         query: { space: spaceObjectId },
         sort: { createdAt: -1 },
       });
 
       await this.spacesRepository.updateOne({
         query: { _id: spaceObjectId },
-        dto: { lastMessage: lastMsg?._id || null },
+        dto: { lastMessage: spaceLastMessage?._id || null },
       });
     }
 
-    const myLastMessage = isPrivate
-      ? await this.messagesRepository.findOne({
-          query: {
-            space: spaceObjectId,
-            deletedFrom: { $ne: userObjectId },
-          },
-          sort: { createdAt: -1 },
-        })
-      : await this.messagesRepository.findOne({
-          query: { space: spaceObjectId },
-          sort: { createdAt: -1 },
-        });
-
     return {
       deletedCount: foundIds.length,
-      lastMessage: {
-        ...myLastMessage,
-        id: myLastMessage?._id,
-        _id: undefined,
-      },
+      lastMessage: spaceLastMessage
+        ? { ...spaceLastMessage, id: spaceLastMessage._id, _id: undefined }
+        : null,
     };
   }
 
