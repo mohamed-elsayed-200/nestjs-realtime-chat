@@ -15,6 +15,7 @@ import { DeleteSpaceDto } from './dto/delete-space.dto';
 import { ChangeWallpaperDto } from './dto/change-wallpaper.dto';
 import { UpdateSpaceDto } from './dto/update-space.dto';
 import { CreatePrivateSpaceDto } from './dto/create-private-space.dto';
+import { ClearHistoryDto } from './dto/clear-history.dto';
 
 @WebSocketGateway()
 export class SpacesGateway {
@@ -114,42 +115,6 @@ export class SpacesGateway {
       };
     }
   }
-
-  // @SubscribeMessage(SocketEvents.SPACE_CREATE_PRIVATE)
-  // async onCreatePrivate(
-  //   @ConnectedSocket() client: Socket,
-  //   @MessageBody() dto: CreatePrivateSpaceDto,
-  // ) {
-  //   const authUser = client.data.user;
-  //   try {
-  //     const createdSpace = await this.spacesService.createPrivateSpace({
-  //       authUser,
-  //       dto,
-  //     });
-
-  //     const spaceRoom = RoomNames.space(createdSpace.id);
-  //     client.join(spaceRoom);
-  //     await this.socketEmitter.joinUserSocketsToRoom(
-  //       createdSpace.received?.id?.toString(),
-  //       spaceRoom,
-  //     );
-
-  //     this.socketEmitter.emitToSpace(
-  //       createdSpace.id,
-  //       SocketEvents.SPACE_CREATED_PRIVATE,
-  //       createdSpace,
-  //       client?.id,
-  //     );
-
-  //     return { success: true, space: createdSpace };
-  //   } catch (err: any) {
-  //     client.emit('error', {
-  //       event: SocketEvents.SPACE_CREATE_PRIVATE,
-  //       message: err?.message ?? 'Failed to create space',
-  //     });
-  //     return { success: false, error: err?.message };
-  //   }
-  // }
 
   @SubscribeMessage(SocketEvents.SPACE_JOIN)
   async onJoinSpace(
@@ -290,6 +255,54 @@ export class SpacesGateway {
       client.emit('error', {
         event: SocketEvents.SPACE_WALLPAPER_CHANGED,
         message: err?.message ?? 'Failed to change wallpaper',
+      });
+      return { success: false, error: err?.message };
+    }
+  }
+
+  @SubscribeMessage(SocketEvents.SPACE_CLEAR_HISTORY)
+  async onClearHistory(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() dto: ClearHistoryDto,
+  ) {
+    const authUser = client.data.user;
+
+    try {
+      const result = await this.spacesService.clearHistory({
+        dto,
+        authUser,
+      });
+
+      const everybody = Boolean(dto.everybody);
+
+      if (everybody) {
+        this.socketEmitter.emitToSpace(
+          dto.space,
+          SocketEvents.SPACE_HISTORY_CLEARED,
+          {
+            spaceId: dto.space,
+            userId: authUser?._id,
+            everybody: true,
+          },
+          client?.id,
+        );
+      } else {
+        this.socketEmitter.emitToUser(
+          authUser?._id,
+          SocketEvents.SPACE_HISTORY_CLEARED,
+          {
+            spaceId: dto.space,
+            userId: authUser?._id,
+            everybody: false,
+          },
+        );
+      }
+
+      return { success: true, ...result };
+    } catch (err: any) {
+      client.emit('error', {
+        event: SocketEvents.SPACE_CLEAR_HISTORY,
+        message: err?.message ?? 'Failed to clear history',
       });
       return { success: false, error: err?.message };
     }

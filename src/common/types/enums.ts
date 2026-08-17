@@ -227,6 +227,8 @@ export enum SocketEvents {
   SPACE_DELETED = 'space:deleted',
   SPACE_CHANGE_WALLPAPER = 'space:change-wallpaper',
   SPACE_WALLPAPER_CHANGED = 'space:wallpaper-changed',
+  SPACE_CLEAR_HISTORY = 'space:clear-history',
+  SPACE_HISTORY_CLEARED = 'space:history-cleared',
 
   // Members
   MEMBER_ADD = 'member:add',
