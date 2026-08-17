@@ -15,6 +15,7 @@ import { RoomNames } from '../../../../../common/utils/room-names';
 import { SocketEvents, SpaceTypes } from '../../../../../common/types/enums';
 import { UsersRepository } from '../../../../../common/modules/iam/users/users.repository';
 import { MembersRepository } from '../../../../../common/modules/platform/members/members.repository';
+import { SessionsService } from '../../../../../modules/users/platform/sessions/sessions.service';
 
 const MAX_WATCH_USERS = 300;
 
@@ -32,6 +33,7 @@ export class PresenceGateway
     private readonly socketEmitter: SocketEmitterService,
     private readonly usersRepository: UsersRepository,
     private readonly membersRepository: MembersRepository,
+    private readonly sessionsService: SessionsService,
   ) {}
 
   afterInit(server: Server) {
@@ -181,101 +183,6 @@ export class PresenceGateway
 
     return spaceIds;
   }
-
-  // async handleConnection(@ConnectedSocket() client: Socket) {
-  //   const userId = client.data.userId as string;
-  //   const sessionId = client.data.sessionId as string;
-
-  //   if (!userId || !sessionId) {
-  //     client.disconnect();
-  //     return;
-  //   }
-
-  //   const sessionKey = this.getSessionKey(userId, sessionId);
-
-  //   client.join(RoomNames.user(userId));
-  //   client.join(RoomNames.session(sessionKey));
-
-  //   const sessionSockets =
-  //     this.sessionConnections.get(sessionKey) ?? new Set<string>();
-  //   const isFirstConnectionInSession = sessionSockets.size === 0;
-  //   sessionSockets.add(client.id);
-  //   this.sessionConnections.set(sessionKey, sessionSockets);
-
-  //   const userSessionSet = this.userSessions.get(userId) ?? new Set<string>();
-  //   const isNewSession = !userSessionSet.has(sessionKey);
-  //   userSessionSet.add(sessionKey);
-  //   this.userSessions.set(userId, userSessionSet);
-
-  //   const spaceIds = await this.joinUserToSpaceRooms(client, userId);
-
-  //   if (!this.sessionConnections.get(sessionKey)?.has(client.id)) return;
-
-  //   client.data.spaceIds = spaceIds;
-  //   client.data.sessionKey = sessionKey;
-
-  //   if (isFirstConnectionInSession) {
-  //     if (isNewSession) {
-  //       this.broadcastPresence(
-  //         SocketEvents.PRESENCE_USER_ONLINE,
-  //         userId,
-  //         spaceIds,
-  //         {
-  //           userId,
-  //           sessionId,
-  //         },
-  //       );
-  //     }
-
-  //     this.socketEmitter.emitToUser(userId, SocketEvents.PRESENCE_USER_ONLINE, {
-  //       userId,
-  //       sessionId,
-  //       isSelf: true,
-  //     });
-  //   }
-  // }
-
-  // async handleDisconnect(@ConnectedSocket() client: Socket) {
-  //   const userId = client.data.userId as string;
-  //   const sessionKey = client.data.sessionKey as string;
-
-  //   if (!userId || !sessionKey) return;
-
-  //   const spaceIds = (client.data.spaceIds as string[]) ?? [];
-  //   const sessionSockets = this.sessionConnections.get(sessionKey);
-  //   if (!sessionSockets) return;
-
-  //   sessionSockets.delete(client.id);
-  //   if (sessionSockets.size > 0) return;
-
-  //   this.sessionConnections.delete(sessionKey);
-
-  //   const userSessionSet = this.userSessions.get(userId);
-  //   if (!userSessionSet) return;
-
-  //   userSessionSet.delete(sessionKey);
-  //   if (userSessionSet.size > 0) return;
-
-  //   this.userSessions.delete(userId);
-
-  //   const lastSeenAt = new Date();
-  //   this.usersRepository
-  //     .updateOne({ query: { _id: userId }, dto: { lastSeenAt } })
-  //     .catch((err) =>
-  //       console.error(`Failed to update lastSeenAt for ${userId}:`, err),
-  //     );
-
-  //   this.broadcastPresence(
-  //     SocketEvents.PRESENCE_USER_OFFLINE,
-  //     userId,
-  //     spaceIds,
-  //     {
-  //       userId,
-  //       sessionId: sessionKey.split(':')[1],
-  //       lastSeenAt: lastSeenAt.toISOString(),
-  //     },
-  //   );
-  // }
 
   async handleConnection(@ConnectedSocket() client: Socket) {
     const userId = client.data.userId as string;
@@ -455,5 +362,40 @@ export class PresenceGateway
       sessionCount: sessions ? sessions.size : 0,
       sessions: sessions ? Array.from(sessions) : [],
     };
+  }
+
+  @SubscribeMessage(SocketEvents.PRESENCE_INACTIVE_SESSIONS)
+  async onInactive(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() dto: { targetSessionId: string },
+  ) {
+    const authUser = client.data.user;
+    const currSessionId = client.data.sessionId;
+
+    try {
+      await this.sessionsService.inactive({
+        authUser,
+        currSessionId,
+        targetSessionId: dto.targetSessionId,
+      });
+
+      const targetSessionKey = this.getSessionKey(
+        authUser?._id,
+        dto.targetSessionId,
+      );
+
+      this.socketEmitter.emitToSession(
+        targetSessionKey,
+        SocketEvents.PRESENCE_INACTIVATED_SESSIONS,
+        dto.targetSessionId,
+      );
+
+      return { success: true, targetSessionId: dto.targetSessionId };
+    } catch (err: any) {
+      return {
+        success: false,
+        error: err?.message ?? 'Failed to update space',
+      };
+    }
   }
 }

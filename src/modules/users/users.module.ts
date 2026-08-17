@@ -13,6 +13,7 @@ import { CommentsModule } from './platform/comments/comments.module';
 import { ViewsModule } from './platform/views/views.module';
 import { CallsModule } from './platform/calls/calls.module';
 import { BannedModule } from './platform/banned/banned.module';
+import { SessionsModule } from './platform/sessions/sessions.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { BannedModule } from './platform/banned/banned.module';
     ViewsModule,
     CallsModule,
     BannedModule,
+    SessionsModule,
   ],
 })
 export class UsersModule {}

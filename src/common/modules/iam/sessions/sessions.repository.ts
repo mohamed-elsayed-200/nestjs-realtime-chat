@@ -25,6 +25,14 @@ export class SessionsRepository {
     });
   }
 
+  public async findAll({ query, populate, select }: FindOneProps) {
+    if (query?.user) query.user = new Types.ObjectId(query?.user);
+    let item = this.sessionModel.find(query);
+    if (populate) item.populate(populate);
+    if (select) item.select(select);
+    return await item.exec();
+  }
+
   public async findOne({ query, populate, select }: FindOneProps) {
     if (query?.user) query.user = new Types.ObjectId(query?.user);
     let item = this.sessionModel.findOne(query);
