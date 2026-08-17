@@ -192,6 +192,8 @@ export enum SpaceHistory {
 export enum SocketEvents {
   // User
   USER_LOGOUT = 'user:logout',
+  AUTH_ANNOUNCE_LOGIN = 'auth:announce-login',
+  AUTH_NEW_LOGIN = 'auth:new-login',
 
   // Views
   VIEW_MESSAGE = 'view:message',

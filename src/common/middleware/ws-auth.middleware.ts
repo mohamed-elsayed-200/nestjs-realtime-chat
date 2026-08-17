@@ -1,4 +1,3 @@
-// ws-auth.middleware.ts
 import { Socket } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';

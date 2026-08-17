@@ -209,18 +209,12 @@ export class PresenceGateway
     userSessionSet.add(sessionKey);
     this.userSessions.set(userId, userSessionSet);
 
-    // لازم تتحط قبل أي await - لو الـ client اتقطع أثناء الانتظار،
-    // handleDisconnect المفروض يلاقي sessionKey جاهز ويعمل cleanup صح
-    // بدل ما يسيب entry عالق للأبد في sessionConnections/userSessions
     client.data.sessionKey = sessionKey;
     client.data.spaceIds = [];
 
     const spaceIds = await this.joinUserToSpaceRooms(client, userId);
 
     if (!this.sessionConnections.get(sessionKey)?.has(client.id)) {
-      // الـ client اتقطع فعلا أثناء الـ await، وhandleDisconnect عمل
-      // cleanup صح بفضل إن sessionKey كان متسجل بدري - مفيش حاجة
-      // تانية مطلوبة هنا
       return;
     }
 
@@ -349,6 +343,32 @@ export class PresenceGateway
         this.sessionConnections.delete(otherSessionKey);
       });
     }
+
+    return { success: true };
+  }
+
+  @SubscribeMessage(SocketEvents.AUTH_ANNOUNCE_LOGIN)
+  handleAnnounceLogin(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() dto?: { device?: string },
+  ) {
+    const userId = client.data.userId as string;
+    const sessionId = client.data.sessionId as string;
+    const sessionKey = client.data.sessionKey as string;
+    if (!userId || !sessionId || !sessionKey) {
+      return { success: false, error: 'Unauthorized' };
+    }
+
+    this.server
+      .to(RoomNames.user(userId))
+      .except(RoomNames.session(sessionKey))
+      .emit(SocketEvents.AUTH_NEW_LOGIN, {
+        sessionId,
+        device: dto?.device,
+        ip: client.handshake.address,
+        userAgent: client.handshake.headers['user-agent'],
+        loggedInAt: new Date().toISOString(),
+      });
 
     return { success: true };
   }
