@@ -10,10 +10,16 @@ import { ActivationStatus } from '../../../../common/types/enums';
 @Injectable()
 export class SessionsService {
   constructor(private readonly sessionsRepository: SessionsRepository) {}
-  public async getAll({ authUser }) {
-    return this.sessionsRepository.findAll({
+  public async getAll({ authUser, currSessionId }) {
+    const sessions = await this.sessionsRepository.findAll({
       query: { user: new Types.ObjectId(authUser) },
     });
+
+    return sessions?.map((s) =>
+      s?._id?.toString() === currSessionId?.toString()
+        ? { ...s.toObject(), isCurrent: true }
+        : s,
+    );
   }
 
   public async active({ targetSessionId, currSessionId, authUser }) {

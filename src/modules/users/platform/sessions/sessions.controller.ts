@@ -16,8 +16,9 @@ export class SessionsController {
   constructor(private readonly sessionsService: SessionsService) {}
   @Get()
   @ResponseMeta({ message: 'sessions.foundAll' })
-  public async getAll(@GetUser() authUser: any) {
-    return this.sessionsService.getAll({ authUser });
+  public async getAll(@GetUser() authUser: any, @Req() req: any) {
+    const currSessionId = req?.targetSessionId;
+    return this.sessionsService.getAll({ authUser, currSessionId });
   }
 
   @Put('/:targetSessionId/active')
