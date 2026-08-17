@@ -39,6 +39,13 @@ export class MembersGateway {
           dto: payload,
           authUser,
         });
+      const spaceRoom = RoomNames.space(dto.space);
+      client.join(spaceRoom);
+      if (addedUserIds?.length > 0) {
+        for (const userId of addedUserIds) {
+          await this.socketEmitter.joinUserSocketsToRoom(userId, spaceRoom);
+        }
+      }
 
       this.socketEmitter.emitToSpace(
         dto.space,
@@ -46,16 +53,6 @@ export class MembersGateway {
         updatedSpace,
         client.id,
       );
-
-      if (addedUserIds?.length > 0) {
-        for (const userId of addedUserIds) {
-          this.socketEmitter.emitToUser(
-            userId,
-            SocketEvents.MEMBER_ADDED,
-            updatedSpace,
-          );
-        }
-      }
 
       return { success: true, space: updatedSpace };
     } catch (err: any) {
