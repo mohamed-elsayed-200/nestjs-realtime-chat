@@ -17,7 +17,7 @@ export class SessionsController {
   @Get()
   @ResponseMeta({ message: 'sessions.foundAll' })
   public async getAll(@GetUser() authUser: any, @Req() req: any) {
-    const currSessionId = req?.targetSessionId;
+    const currSessionId = req?.sessionId;
     return this.sessionsService.getAll({ authUser, currSessionId });
   }
 
@@ -29,7 +29,7 @@ export class SessionsController {
     @Req() req: any,
     @GetUser() authUser: any,
   ) {
-    const currSessionId = req?.targetSessionId;
+    const currSessionId = req?.sessionId;
     return this.sessionsService.active({
       targetSessionId,
       currSessionId,
