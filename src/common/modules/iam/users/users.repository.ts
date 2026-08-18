@@ -72,10 +72,10 @@ export class UsersRepository {
     if (dto?.roles) {
       dto.roles = dto?.roles?.map((r) => new Types.ObjectId(r));
     }
-    await this.userModel.findOneAndUpdate(query, dto, {
+    const updated = await this.userModel.findOneAndUpdate(query, dto, {
       new: true,
     });
-    return dto;
+    return updated;
   }
 
   public async deleteOne({ query }) {
