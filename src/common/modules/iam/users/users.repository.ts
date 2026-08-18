@@ -69,6 +69,10 @@ export class UsersRepository {
       const hashPassword = await bcrypt.hash(dto.password, 10);
       dto.password = hashPassword;
     }
+    if (dto.passcodeLock) {
+      const hashPasscodeLock = await bcrypt.hash(dto.passcodeLock, 10);
+      dto.passcodeLock = hashPasscodeLock;
+    }
     if (dto?.roles) {
       dto.roles = dto?.roles?.map((r) => new Types.ObjectId(r));
     }

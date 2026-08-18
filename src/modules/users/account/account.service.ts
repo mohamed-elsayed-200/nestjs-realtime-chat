@@ -45,5 +45,26 @@ export class AccountService {
       dto: { password: newPassword },
     });
     if (!updatePassword) throw new BadRequestException('common.failed');
+
+    return user;
+  }
+
+  public async verifyPasscode({ authUserId, dto }) {
+    const { passcode } = dto;
+
+    const user = await this.usersRepository.findOne({
+      query: { _id: authUserId },
+      select: '+passcodeLock',
+    });
+    if (!user) throw new NotFoundException('account.accountNotFound');
+
+    if (!user.isPasscodeLocked || !user.passcodeLock) {
+      throw new BadRequestException('account.passcodeNotEnabled');
+    }
+
+    const isMatch = await bcrypt.compare(passcode, user.passcodeLock);
+    if (!isMatch) throw new BadRequestException('account.invalidPasscode');
+
+    return { valid: true };
   }
 }

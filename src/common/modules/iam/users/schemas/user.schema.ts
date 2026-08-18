@@ -73,6 +73,9 @@ export class User {
 
   @Prop({ select: false })
   passcodeLock: string;
+
+  @Prop({ type: Boolean })
+  isPasscodeLocked: boolean;
 }
 export const UserSchema = SchemaFactory.createForClass(User);
 UserSchema.index({ email: 1 });

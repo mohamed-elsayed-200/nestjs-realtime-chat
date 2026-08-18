@@ -1,5 +1,5 @@
 import { ChangeInformationDto } from './dto/change-information.dto';
-import { Body, Controller, Get, Put, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, Put, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '../../../common/guards/auth.guard';
 import { UserTypeGuard } from '../../../common/guards/user-type.guard';
 import { UserType } from '../../../common/types/enums';
@@ -17,7 +17,6 @@ export class AccountController {
   @Get()
   @ResponseMeta({
     message: 'account.found',
-    statusCode: 200,
   })
   public async findMyAccount(@GetUser('_id') authUserId: string) {
     return this.accountService.findMyAccount({ authUserId });
@@ -26,7 +25,6 @@ export class AccountController {
   @Put('/change-password')
   @ResponseMeta({
     message: 'account.updatedPassword',
-    statusCode: 200,
   })
   public async updatePassword(
     @GetUser('_id') authUserId: any,
@@ -38,12 +36,22 @@ export class AccountController {
   @Put('/change-information')
   @ResponseMeta({
     message: 'account.updatedInformation',
-    statusCode: 200,
   })
   public async changeInformation(
     @GetUser('_id') authUserId: string,
     @Body() dto: ChangeInformationDto,
   ) {
     return this.accountService.changeInfo({ authUserId, dto });
+  }
+
+  @Post('/verify-passcode')
+  @ResponseMeta({
+    message: 'account.updatedInformation',
+  })
+  public async verifyPasscode(
+    @GetUser('_id') authUserId: string,
+    @Body() dto: ChangeInformationDto,
+  ) {
+    return this.accountService.verifyPasscode({ authUserId, dto });
   }
 }

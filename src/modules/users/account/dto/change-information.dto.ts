@@ -51,7 +51,11 @@ export class ChangeInformationDto {
 
   @IsOptional()
   @IsString({ message: 'users.validation.passcodeLock.isString' })
-  passcodeLock: boolean;
+  passcodeLock: string;
+
+  @IsOptional()
+  @IsString({ message: 'users.validation.passcodeLock.isString' })
+  isPasscodeLocked: string;
 
   @IsOptional()
   @IsString({ message: 'users.validation.name.isString' })
