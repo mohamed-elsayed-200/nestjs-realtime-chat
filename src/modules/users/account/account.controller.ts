@@ -8,6 +8,7 @@ import { ResponseMeta } from '../../../common/decorators/response.decorator';
 import { UserTypes } from '../../../common/decorators/user-type.decorator';
 import { GetUser } from '../../../common/decorators/get-user.decorator';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { VerifyPasscodeDto } from './dto/verify-passcode.dto';
 
 @Controller('/users/account')
 @UseGuards(AuthGuard, UserTypeGuard)
@@ -50,7 +51,7 @@ export class AccountController {
   })
   public async verifyPasscode(
     @GetUser('_id') authUserId: string,
-    @Body() dto: ChangeInformationDto,
+    @Body() dto: VerifyPasscodeDto,
   ) {
     return this.accountService.verifyPasscode({ authUserId, dto });
   }
