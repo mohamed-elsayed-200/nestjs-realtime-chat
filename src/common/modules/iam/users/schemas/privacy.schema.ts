@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { PrivacyValue } from 'src/common/types/enums';
+import { PrivacyValue } from '../../../../../common/types/enums';
 
 @Schema({ _id: false })
 export class UserPrivacy {

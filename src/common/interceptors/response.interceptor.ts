@@ -1,4 +1,9 @@
-import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
+import {
+  CallHandler,
+  ExecutionContext,
+  Injectable,
+  NestInterceptor,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
@@ -59,7 +64,9 @@ export class ResInterceptor implements NestInterceptor {
 
     return next.handle().pipe(
       map((data) => {
-        const message = responseMeta?.message ? i18n?.t(responseMeta.message) : undefined;
+        const message = responseMeta?.message
+          ? i18n?.t(responseMeta.message)
+          : undefined;
 
         if (responseMeta?.statusCode) {
           response.status(responseMeta.statusCode);

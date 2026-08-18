@@ -15,7 +15,7 @@ export class AccountService {
   public async findMyAccount({ authUserId }) {
     const account = await this.usersRepository.findOne({
       query: { _id: authUserId, status: UserStatus.ACTIVE },
-      select: '+email +phone',
+      select: '+email',
     });
     return account;
   }
