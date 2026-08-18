@@ -367,7 +367,7 @@ export class PresenceGateway
   }
 
   @SubscribeMessage(SocketEvents.PRESENCE_ONLINE_SESSIONS)
-  async getUserSessions(@MessageBody() dto: { userId: string }) {
+  async getOnlineSessions(@MessageBody() dto: { userId: string }) {
     const sessions = this.userSessions.get(dto.userId);
     return {
       success: true,
