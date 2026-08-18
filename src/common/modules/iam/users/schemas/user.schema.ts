@@ -1,6 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import { UserStatus, UserType } from '../../../../types/enums';
+import { UserPrivacy, UserPrivacySchema } from './privacy.schema';
 import mongoose, { HydratedDocument } from 'mongoose';
-import { UserStatus, UserType } from '../../../../common/types/enums';
 
 export type UserDocument = HydratedDocument<User>;
 
@@ -66,6 +67,12 @@ export class User {
 
   @Prop({ type: Date, default: null })
   lastSeenAt: Date;
+
+  @Prop({ type: UserPrivacySchema })
+  privacy: UserPrivacy;
+
+  @Prop({ select: false })
+  passcodeLock: string;
 }
 export const UserSchema = SchemaFactory.createForClass(User);
 UserSchema.index({ email: 1 });

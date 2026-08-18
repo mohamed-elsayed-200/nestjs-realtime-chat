@@ -5,7 +5,7 @@ import * as bcrypt from 'bcrypt';
 import { UserType } from '../../../types/enums';
 import { FindManyProps, FindOneProps } from '../../../types/interfaces';
 import { aggregateQuery } from '../../data-access/aggregate-query';
-import { User, UserDocument } from './user.schema';
+import { User, UserDocument } from './schemas/user.schema';
 
 @Injectable()
 export class UsersRepository {

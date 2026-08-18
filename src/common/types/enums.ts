@@ -68,6 +68,11 @@ export enum SpaceMemberPermission {
   ADD_SPACES_IN_COMMUNITY = 'add-spaces-community',
 }
 
+export enum PrivacyValue {
+  EVERYBODY = 'everybody',
+  CONTACTS = 'contacts',
+  NOBODY = 'nobody',
+}
 export const memberPermissionList: string[] = [
   SpaceMemberPermission.SEND_MESSAGES,
   SpaceMemberPermission.ADD_COMMENTS,

@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { Types } from 'mongoose';
 import { SessionsRepository } from '../../../../common/modules/iam/sessions/sessions.repository';
-import { User } from '../../../../common/modules/iam/users/user.schema';
+import { User } from '../../../../common/modules/iam/users/schemas/user.schema';
 import { ActivationStatus } from '../../../../common/types/enums';
 
 @Injectable()
