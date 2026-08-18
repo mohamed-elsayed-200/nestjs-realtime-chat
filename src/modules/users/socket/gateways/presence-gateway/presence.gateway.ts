@@ -361,7 +361,14 @@ export class PresenceGateway
     this.server
       .to(RoomNames.user(userId))
       .except(RoomNames.session(sessionKey))
-      .emit(SocketEvents.AUTH_NEW_LOGIN, { session: findSession });
+      .emit(SocketEvents.AUTH_NEW_LOGIN, {
+        session: {
+          ...findSession.toObject(),
+          id: findSession?.id,
+          _id: undefined,
+          __v: undefined,
+        },
+      });
 
     return { success: true };
   }
