@@ -358,3 +358,9 @@ export enum CallParticipantRole {
   LISTENER = 'listener',
   RAISED_HAND = 'raised_hand',
 }
+
+export const BUSY_CALL_STATUSES = [
+  CallStatus.INITIATED,
+  CallStatus.RINGING,
+  CallStatus.IN_PROGRESS,
+];

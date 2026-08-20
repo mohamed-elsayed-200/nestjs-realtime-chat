@@ -1,3 +1,4 @@
+import { CreateContactService } from './services/create-contact.service';
 import {
   Controller,
   Get,
@@ -14,22 +15,31 @@ import { PermissionsGuard } from '../../../../common/guards/permissions-guard.gu
 import { UserType } from '../../../../common/types/enums';
 import { ResponseMeta } from '../../../../common/decorators/response.decorator';
 import { ValidateObjectIdPipe } from '../../../../common/pipes/validate-objectId.pipe';
-import { ContactsService } from './contacts.service';
 import { QueryDto } from '../../../../common/modules/dto/query.dto';
 import { UserTypes } from '../../../../common/decorators/user-type.decorator';
 import { UserTypeGuard } from '../../../../common/guards/user-type.guard';
 import { GetUser } from '../../../../common/decorators/get-user.decorator';
+import { DeleteContactService } from './services/delete-contact.service';
+import { GetMyContactsService } from './services/get-my-contacts.service';
+import { GetSingleContactService } from './services/get-single-contact.service';
+import { UpdateContactService } from './services/update-contact.service';
 
 @Controller('/users/contacts')
 @UseGuards(AuthGuard, PermissionsGuard, UserTypeGuard)
 @UserTypes(UserType.USER)
 export class ContactsController {
-  constructor(private readonly contactsService: ContactsService) {}
+  constructor(
+    private readonly createContactService: CreateContactService,
+    private readonly deleteContactService: DeleteContactService,
+    private readonly updateContactService: UpdateContactService,
+    private readonly getMyContactsService: GetMyContactsService,
+    private readonly getSingleContactService: GetSingleContactService,
+  ) {}
 
   @Get()
   @ResponseMeta({ message: 'contacts.foundAll' })
   public async getAll(@Query() query: QueryDto, @GetUser() authUser: any) {
-    return this.contactsService.getAll({ query, authUser });
+    return this.getMyContactsService.getAll({ query, authUser });
   }
 
   @Get('/:contactId')
@@ -38,13 +48,13 @@ export class ContactsController {
     @Param('contactId', ValidateObjectIdPipe) contactId: string,
     @GetUser() authUser: any,
   ) {
-    return this.contactsService.getOne({ contactId, authUser });
+    return this.getSingleContactService.getOne({ contactId, authUser });
   }
 
   @Post()
   @ResponseMeta({ message: 'contacts.created' })
   public async create(@Body() dto: any, @GetUser() authUser: any) {
-    return this.contactsService.create({ dto, authUser });
+    return this.createContactService.create({ dto, authUser });
   }
 
   @Put('/:contactId')
@@ -54,7 +64,7 @@ export class ContactsController {
     @Body() dto: any,
     @GetUser() authUser: any,
   ) {
-    return this.contactsService.update({ contactId, dto, authUser });
+    return this.updateContactService.update({ contactId, dto, authUser });
   }
 
   @Delete('/:contactId')
@@ -63,6 +73,6 @@ export class ContactsController {
     @Param('contactId', ValidateObjectIdPipe) contactId: string,
     @GetUser() authUser: any,
   ) {
-    return this.contactsService.delete({ contactId, authUser });
+    return this.deleteContactService.delete({ contactId, authUser });
   }
 }

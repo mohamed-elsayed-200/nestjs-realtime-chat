@@ -7,13 +7,17 @@ import { UserTypes } from '../../../../common/decorators/user-type.decorator';
 import { UserTypeGuard } from '../../../../common/guards/user-type.guard';
 import { GetUser } from '../../../../common/decorators/get-user.decorator';
 import { QueryDto } from '../../../../common/modules/dto/query.dto';
-import { BannedService } from './banned.service';
+import { GetBannedUsersService } from './services/get-banned-users.service';
+import { GetUsersWhoBannedMeService } from './services/get-users-who-banned-me.service';
 
 @Controller('/users/banned')
 @UseGuards(AuthGuard, PermissionsGuard, UserTypeGuard)
 @UserTypes(UserType.USER)
 export class BannedController {
-  constructor(private readonly bannedService: BannedService) {}
+  constructor(
+    private readonly getBannedUsersService: GetBannedUsersService,
+    private readonly getUsersWhoBannedMeService: GetUsersWhoBannedMeService,
+  ) {}
 
   @Get('banned-users')
   @ResponseMeta({ message: 'banned.foundAll' })
@@ -21,7 +25,7 @@ export class BannedController {
     @Query() query: QueryDto,
     @GetUser() authUser: any,
   ) {
-    return this.bannedService.getBannedUsers({ query, authUser });
+    return this.getBannedUsersService.getBannedUsers({ query, authUser });
   }
 
   @Get('users-who-banned-me')
@@ -30,6 +34,9 @@ export class BannedController {
     @Query() query: QueryDto,
     @GetUser() authUser: any,
   ) {
-    return this.bannedService.getUsersWhoBannedMe({ query, authUser });
+    return this.getUsersWhoBannedMeService.getUsersWhoBannedMe({
+      query,
+      authUser,
+    });
   }
 }

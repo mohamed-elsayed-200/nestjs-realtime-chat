@@ -69,4 +69,59 @@ export class CallsRepository {
   public async deleteOne({ query }) {
     return this.callModel.findOneAndDelete(query);
   }
+
+  public async toPersonInfo(user: any) {
+    if (!user) return undefined;
+    return {
+      id: user._id?.toString() ?? user.id,
+      name: user.name,
+      avatar: user.avatar,
+      profileColor: user.profileColor,
+      bio: user.bio,
+    };
+  }
+
+  public async toSpaceInfo(space: any) {
+    if (!space) return undefined;
+    return {
+      id: space._id?.toString() ?? space.id,
+      name: space.name,
+      avatar: space.avatar,
+      profileColor: space.profileColor,
+      type: space.type,
+      settings: space.settings?.call,
+    };
+  }
+
+  public async toCallResponse(call: any) {
+    if (!call) return call;
+
+    return {
+      ...call,
+      id: call?._id?.toString() ?? call?.id,
+      caller: call?.caller?._id?.toString() ?? call?.caller?.toString(),
+      receiver: call?.receiver?._id?.toString() ?? call?.receiver?.toString(),
+      space: call?.space?._id?.toString() ?? call?.space?.toString(),
+      callerUser: this.toPersonInfo(call?.caller),
+      receiverUser: this.toPersonInfo(call?.receiver),
+      spaceInfo: this.toSpaceInfo(call?.space),
+    };
+  }
+
+  public async toParticipantResponse(participant: any) {
+    if (!participant) return participant;
+
+    return {
+      ...participant,
+      id: participant._id?.toString() ?? participant.id,
+      user: participant.user?._id?.toString() ?? participant.user?.toString(),
+      call: participant.call?.toString(),
+      space: participant.space?.toString(),
+      userInfo: this.toPersonInfo(participant.user),
+      memberRole: participant.member?.role,
+      memberPermissions: participant.member?.permissions,
+      adminTag: participant.member?.adminTag,
+      adminTagColor: participant.member?.adminTagColor,
+    };
+  }
 }

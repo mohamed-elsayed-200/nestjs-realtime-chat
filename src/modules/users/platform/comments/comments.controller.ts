@@ -1,3 +1,4 @@
+import { CreateCommentService } from './service/create-comment.service';
 import {
   Controller,
   Get,
@@ -14,19 +15,30 @@ import { PermissionsGuard } from '../../../../common/guards/permissions-guard.gu
 import { UserType } from '../../../../common/types/enums';
 import { ResponseMeta } from '../../../../common/decorators/response.decorator';
 import { ValidateObjectIdPipe } from '../../../../common/pipes/validate-objectId.pipe';
-import { CommentsService } from './comments.service';
 import { QueryDto } from '../../../../common/modules/dto/query.dto';
 import { UserTypes } from '../../../../common/decorators/user-type.decorator';
 import { UserTypeGuard } from '../../../../common/guards/user-type.guard';
 import { GetUser } from '../../../../common/decorators/get-user.decorator';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
+import { UpdateCommentService } from './service/update-comment.service';
+import { DeleteCommentService } from './service/delete-comment.service';
+import { GetCommentService } from './service/get-comment.service';
+import { GetCommentsService } from './service/get-comments.service';
+import { GetRepliesCommentsService } from './service/get-replies-comments.service';
 
 @Controller('/users/comments')
 @UseGuards(AuthGuard, PermissionsGuard, UserTypeGuard)
 @UserTypes(UserType.USER)
 export class CommentsController {
-  constructor(private readonly commentsService: CommentsService) {}
+  constructor(
+    private readonly getCommentService: GetCommentService,
+    private readonly getCommentsService: GetCommentsService,
+    private readonly getRepliesCommentService: GetRepliesCommentsService,
+    private readonly createCommentService: CreateCommentService,
+    private readonly updateCommentService: UpdateCommentService,
+    private readonly deleteCommentService: DeleteCommentService,
+  ) {}
 
   @Get('/by-message/:messageId')
   @ResponseMeta({ message: 'comments.foundAll' })
@@ -35,7 +47,7 @@ export class CommentsController {
     @Param('messageId') messageId: string,
     @GetUser() authUser: any,
   ) {
-    return this.commentsService.getAll({ query, messageId, authUser });
+    return this.getCommentsService.getAll({ query, messageId, authUser });
   }
 
   @Get('/replies/:parentId')
@@ -45,7 +57,11 @@ export class CommentsController {
     @Param('parentId') parentId: string,
     @GetUser() authUser: any,
   ) {
-    return this.commentsService.getReplies({ query, parentId, authUser });
+    return this.getRepliesCommentService.getReplies({
+      query,
+      parentId,
+      authUser,
+    });
   }
 
   @Get('/:commentId')
@@ -53,13 +69,13 @@ export class CommentsController {
   public async getOne(
     @Param('commentId', ValidateObjectIdPipe) commentId: string,
   ) {
-    return this.commentsService.getOne({ commentId });
+    return this.getCommentService.getOne({ commentId });
   }
 
   @Post()
   @ResponseMeta({ message: 'comments.created' })
   public async create(@Body() dto: CreateCommentDto, @GetUser() authUser: any) {
-    return this.commentsService.create({ dto, authUser });
+    return this.createCommentService.create({ dto, authUser });
   }
 
   @Put('/:commentId')
@@ -69,7 +85,7 @@ export class CommentsController {
     @Body() dto: UpdateCommentDto,
     @GetUser() authUser: any,
   ) {
-    return this.commentsService.update({ commentId, dto, authUser });
+    return this.updateCommentService.update({ commentId, dto, authUser });
   }
 
   @Delete('/:commentId')
@@ -78,6 +94,6 @@ export class CommentsController {
     @Param('commentId', ValidateObjectIdPipe) commentId: string,
     @GetUser() authUser: any,
   ) {
-    return this.commentsService.delete({ commentId, authUser });
+    return this.deleteCommentService.delete({ commentId, authUser });
   }
 }
