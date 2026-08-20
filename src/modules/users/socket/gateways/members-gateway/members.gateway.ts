@@ -6,7 +6,6 @@ import {
 } from '@nestjs/websockets';
 import { Socket } from 'socket.io';
 import { SocketEmitterService } from '../../services/socket-emitter.service';
-import { MembersService } from '../../../platform/members/members.service';
 import { SocketEvents } from '../../../../../common/types/enums';
 import { AddMembersDto } from './dto/add-members.dto';
 import { RoomNames } from '../../../../../common/utils/room-names';
@@ -16,12 +15,25 @@ import { DismissAdminDto } from './dto/dismiss-admin.dto';
 import { UpdateAdminPermissionsDto } from './dto/update-admin-permissions.dto';
 import { UpdateMemberPermissionsDto } from './dto/update-member-permissions.dto';
 import { TransferOwnershipDto } from './dto/transfer-ownership.dto';
+import { TransferOwnershipService } from './../../../platform/members/services/transfer-ownership.service';
+import { UpdateAdminPermissionsService } from './../../../platform/members/services/update-admin-permissions.service';
+import { AddMembersToSpaceService } from './../../../platform/members/services/add-members-to-space.service';
+import { ToggleBanMemberService } from './../../../platform/members/services/toggle-ban.service';
+import { PromoteMemberToAdminService } from './../../../platform/members/services/promote-member-to-admin.service';
+import { DismissMemberFromAdminService } from './../../../platform/members/services/dismiss-member-from-admin.service';
+import { UpdateMemberPermissionsService } from './../../../platform/members/services/update-member-permissions.service';
 
 @WebSocketGateway()
 export class MembersGateway {
   constructor(
-    private readonly membersService: MembersService,
     private readonly socketEmitter: SocketEmitterService,
+    private readonly addMembersToSpaceService: AddMembersToSpaceService,
+    private readonly toggleBanMemberService: ToggleBanMemberService,
+    private readonly promoteMemberToAdminService: PromoteMemberToAdminService,
+    private readonly dismissMemberFromAdminService: DismissMemberFromAdminService,
+    private readonly updateAdminPermissionsService: UpdateAdminPermissionsService,
+    private readonly updateMemberPermissionsService: UpdateMemberPermissionsService,
+    private readonly transferOwnershipService: TransferOwnershipService,
   ) {}
 
   @SubscribeMessage(SocketEvents.MEMBER_ADD)
@@ -34,7 +46,7 @@ export class MembersGateway {
 
     try {
       const { space: updatedSpace, addedUserIds } =
-        await this.membersService.addMembers({
+        await this.addMembersToSpaceService.add({
           space,
           dto: payload,
           authUser,
@@ -72,7 +84,7 @@ export class MembersGateway {
     const authUser = client.data.user;
 
     try {
-      const result = await this.membersService.toggleBan({
+      const result = await this.toggleBanMemberService.toggle({
         authUser,
         dto,
       });
@@ -113,7 +125,10 @@ export class MembersGateway {
     const authUser = client.data.user;
 
     try {
-      const result = await this.membersService.promoteAdmin({ dto, authUser });
+      const result = await this.promoteMemberToAdminService.promote({
+        dto,
+        authUser,
+      });
 
       this.socketEmitter.emitToSpace(
         result.spaceId,
@@ -140,7 +155,10 @@ export class MembersGateway {
     const authUser = client.data.user;
 
     try {
-      const result = await this.membersService.dismissAdmin({ dto, authUser });
+      const result = await this.dismissMemberFromAdminService.dismiss({
+        dto,
+        authUser,
+      });
 
       this.socketEmitter.emitToSpace(
         result.spaceId,
@@ -167,7 +185,7 @@ export class MembersGateway {
     const authUser = client.data.user;
 
     try {
-      const result = await this.membersService.updateAdminPermissions({
+      const result = await this.updateAdminPermissionsService.update({
         dto,
         authUser,
       });
@@ -197,7 +215,7 @@ export class MembersGateway {
     const authUser = client.data.user;
 
     try {
-      const result = await this.membersService.updateMemberPermissions({
+      const result = await this.updateMemberPermissionsService.update({
         dto,
         authUser,
       });
@@ -227,7 +245,7 @@ export class MembersGateway {
     const authUser = client.data.user;
 
     try {
-      const result = await this.membersService.transferOwnership({
+      const result = await this.transferOwnershipService.transfer({
         dto,
         authUser,
       });
