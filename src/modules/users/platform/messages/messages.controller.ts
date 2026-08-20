@@ -1,4 +1,4 @@
-import { GetMessagesService } from './service/get-messages.service';
+import { GetMessagesService } from './services/get-messages.service';
 import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '../../../../common/guards/auth.guard';
 import { ResponseMeta } from '../../../../common/decorators/response.decorator';

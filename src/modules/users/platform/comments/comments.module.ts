@@ -5,12 +5,12 @@ import { BaseCommentsModule } from '../../../../common/modules/platform/comments
 import { BaseMemberModule } from '../../../../common/modules/platform/members/members.module';
 import { BaseMessageModule } from '../../../../common/modules/platform/messages/messages.module';
 import { BaseReactionModule } from '../../../../common/modules/platform/reactions/reactions.module';
-import { CreateCommentService } from './service/create-comment.service';
-import { DeleteCommentService } from './service/delete-comment.service';
-import { GetCommentService } from './service/get-comment.service';
-import { GetCommentsService } from './service/get-comments.service';
-import { GetRepliesCommentsService } from './service/get-replies-comments.service';
-import { UpdateCommentService } from './service/update-comment.service';
+import { CreateCommentService } from './services/create-comment.service';
+import { DeleteCommentService } from './services/delete-comment.service';
+import { GetCommentService } from './services/get-comment.service';
+import { GetCommentsService } from './services/get-comments.service';
+import { GetRepliesCommentsService } from './services/get-replies-comments.service';
+import { UpdateCommentService } from './services/update-comment.service';
 
 @Module({
   imports: [

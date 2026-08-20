@@ -1,13 +1,13 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Types } from 'mongoose';
-import { UsersRepository } from '../../../../common/modules/iam/users/users.repository';
-import { SpaceTypes, UserType } from '../../../../common/types/enums';
+import { UsersRepository } from '../../../../../common/modules/iam/users/users.repository';
+import { SpaceTypes, UserType } from '../../../../../common/types/enums';
 
 @Injectable()
-export class PeoplesService {
+export class GetPeoplesService {
   constructor(private readonly usersRepository: UsersRepository) {}
 
-  public async getAll({ queryPeoples, authUser }) {
+  public async get({ queryPeoples, authUser }) {
     const { excludeExistingSpaces, ...query } = queryPeoples;
     const userId = new Types.ObjectId(authUser?._id);
 
@@ -115,24 +115,5 @@ export class PeoplesService {
         pipelines: pipeline,
       },
     });
-  }
-
-  public async getOne({ peopleIdOrUsername }) {
-    const people = await this.usersRepository.findOne({
-      query: {
-        $or: [{ _id: peopleIdOrUsername }, { username: peopleIdOrUsername }],
-      },
-    });
-
-    if (!people) throw new NotFoundException('peoples.notFound');
-
-    return {
-      name: people?.name,
-      email: people?.email,
-      username: people?.username,
-      avatar: people?.avatar,
-      status: people?.status,
-      roles: people?.roles,
-    };
   }
 }
