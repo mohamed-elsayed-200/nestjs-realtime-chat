@@ -1,5 +1,5 @@
 import { ChangeInformationDto } from './dto/change-information.dto';
-import { Body, Controller, Get, Put, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Put, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '../../../common/guards/auth.guard';
 import { UserTypeGuard } from '../../../common/guards/user-type.guard';
 import { UserType } from '../../../common/types/enums';

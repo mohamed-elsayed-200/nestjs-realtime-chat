@@ -12,7 +12,7 @@ import {
 } from 'nestjs-i18n';
 import * as path from 'path';
 import { UsersModule } from './modules/users/users.module';
-import { SocketModule } from './modules/users/socket/socket.module';
+import { SocketModule } from './modules/socket/socket.module';
 
 @Module({
   imports: [
