@@ -9,24 +9,36 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { DeleteJoinRequestService } from './services/delete-join-request.service';
+import { AcceptJoinRequestService } from './services/accept-join-request.service';
+import { SendRequestDto } from './dto/send-request.dto';
+import { AcceptRequestDto } from './dto/accept-request.dto';
+import { RejectRequestDto } from './dto/reject-request.dto';
+import { CancelJoinRequestService } from './services/cancel-join-request.service';
+import { GetJoinRequestService } from './services/get-join-requests.service';
+import { RejectJoinRequestService } from './services/reject-join-request.service';
+import { SendJoinRequestService } from './services/send-join-request.service';
 import { AuthGuard } from '../../../../common/guards/auth.guard';
 import { UserTypeGuard } from '../../../../common/guards/user-type.guard';
 import { UserType } from '../../../../common/types/enums';
 import { UserTypes } from '../../../../common/decorators/user-type.decorator';
-import { JoinRequestsService } from './join-requests.service';
 import { ResponseMeta } from '../../../../common/decorators/response.decorator';
 import { ValidateObjectIdPipe } from '../../../../common/pipes/validate-objectId.pipe';
 import { GetUser } from '../../../../common/decorators/get-user.decorator';
 import { QueryDto } from '../../../../common/modules/dto/query.dto';
-import { SendRequestDto } from './dto/send-request.dto';
-import { AcceptRequestDto } from './dto/accept-request.dto';
-import { RejectRequestDto } from './dto/reject-request.dto';
 
 @Controller('/users/join-requests')
 @UseGuards(AuthGuard, UserTypeGuard)
 @UserTypes(UserType.USER)
 export class JoinRequestsController {
-  constructor(private readonly joinRequestsService: JoinRequestsService) {}
+  constructor(
+    private readonly acceptJoinRequestService: AcceptJoinRequestService,
+    private readonly cancelJoinRequestService: CancelJoinRequestService,
+    private readonly deleteJoinRequestService: DeleteJoinRequestService,
+    private readonly getJoinRequestService: GetJoinRequestService,
+    private readonly rejectJoinRequestService: RejectJoinRequestService,
+    private readonly sendJoinRequestService: SendJoinRequestService,
+  ) {}
 
   @Get('/:space')
   @ResponseMeta({ message: 'joinRequests.foundOne' })
@@ -35,7 +47,7 @@ export class JoinRequestsController {
     @GetUser() authUser: any,
     @Query() query: QueryDto,
   ) {
-    return this.joinRequestsService.getAll({ space, query, authUser });
+    return this.getJoinRequestService.get({ space, query, authUser });
   }
 
   @Post('/send')
@@ -44,7 +56,7 @@ export class JoinRequestsController {
     @Body() dto: SendRequestDto,
     @GetUser() authUser: any,
   ) {
-    return this.joinRequestsService.sendRequest({ dto, authUser });
+    return this.sendJoinRequestService.send({ dto, authUser });
   }
 
   @Put('/accept')
@@ -53,7 +65,7 @@ export class JoinRequestsController {
     @Body() dto: AcceptRequestDto,
     @GetUser() authUser: any,
   ) {
-    return this.joinRequestsService.acceptRequest({ dto, authUser });
+    return this.acceptJoinRequestService.accept({ dto, authUser });
   }
 
   @Put('/reject')
@@ -62,7 +74,7 @@ export class JoinRequestsController {
     @Body() dto: RejectRequestDto,
     @GetUser() authUser: any,
   ) {
-    return this.joinRequestsService.rejectRequest({ dto, authUser });
+    return this.rejectJoinRequestService.reject({ dto, authUser });
   }
 
   @Put('/cancel/:request')
@@ -71,7 +83,7 @@ export class JoinRequestsController {
     @Param('request', ValidateObjectIdPipe) request: string,
     @GetUser() authUser: any,
   ) {
-    return this.joinRequestsService.cancelRequest({ request, authUser });
+    return this.cancelJoinRequestService.cancel({ request, authUser });
   }
 
   @Delete('/:request')
@@ -80,6 +92,6 @@ export class JoinRequestsController {
     @Param('request', ValidateObjectIdPipe) request: string,
     @GetUser() authUser: any,
   ) {
-    return this.joinRequestsService.deleteRequest({ request, authUser });
+    return this.deleteJoinRequestService.delete({ request, authUser });
   }
 }

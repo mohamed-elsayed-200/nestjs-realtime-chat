@@ -1,4 +1,3 @@
-import { UsersRepository } from './../../../../../common/modules/iam/users/users.repository';
 import { Types } from 'mongoose';
 import {
   BadRequestException,
@@ -11,7 +10,7 @@ import { MembersRepository } from './../../../../../common/modules/platform/memb
 import { JoinRequestStatus } from '../../../../../common/modules/platform/join-requests/join-request.schema';
 
 @Injectable()
-export class RejectRequestsService {
+export class RejectJoinRequestService {
   constructor(
     private readonly membersRepository: MembersRepository,
     private readonly joinRequestsRepository: JoinRequestsRepository,

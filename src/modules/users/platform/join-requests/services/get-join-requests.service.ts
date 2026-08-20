@@ -10,7 +10,7 @@ import { JoinRequestStatus } from '../../../../../common/modules/platform/join-r
 import { emptyAggregateQuery } from '../../../../../common/modules/data-access/aggregate-query';
 
 @Injectable()
-export class GetJoinRequestsService {
+export class GetJoinRequestService {
   constructor(
     private readonly membersRepository: MembersRepository,
     private readonly joinRequestsRepository: JoinRequestsRepository,

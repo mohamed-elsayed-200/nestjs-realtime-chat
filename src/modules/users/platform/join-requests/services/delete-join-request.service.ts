@@ -10,7 +10,7 @@ import { JoinRequestsRepository } from './../../../../../common/modules/platform
 import { MembersRepository } from './../../../../../common/modules/platform/members/members.repository';
 
 @Injectable()
-export class DeleteJoinRequestsService {
+export class DeleteJoinRequestService {
   constructor(
     private readonly membersRepository: MembersRepository,
     private readonly joinRequestsRepository: JoinRequestsRepository,
