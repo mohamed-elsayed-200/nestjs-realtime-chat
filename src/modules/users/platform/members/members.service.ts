@@ -778,6 +778,7 @@ export class MembersService {
     if (!member) throw new NotFoundException('members.notFound');
     if (member.role !== SpaceMemberRole.OWNER)
       throw new BadRequestException('spaces.cantAddMembers');
+
     const mappedIds: string[] = memberIds.map((id: any) => String(id));
     const uniqueIds: string[] = [...new Set<string>(mappedIds)];
     const validUsers = await this.usersRepository.findMany({
@@ -790,25 +791,41 @@ export class MembersService {
 
     const userIds: string[] = validUsers.map((u: any) => u._id.toString());
 
+    // Fetch isBanned along with isDeleted so we can filter out banned users
     const existing = await this.membersRepository.findMany({
       query: {
         space: spaceObjectId,
         user: { $in: userIds.map((id: string) => new Types.ObjectId(id)) },
       },
-      select: 'user isDeleted',
+      select: 'user isDeleted isBanned',
     });
 
     const existingMap = new Map(
-      existing.map((m) => [m.user.toString(), m.isDeleted]),
+      existing.map((m) => [
+        m.user.toString(),
+        { isDeleted: m.isDeleted, isBanned: m.isBanned },
+      ]),
     );
 
     const toRestore: string[] = [];
     const toInsert: string[] = [];
+    const skippedBanned: string[] = []; // optional: track ignored banned users
 
     for (const id of userIds) {
-      const isDeleted = existingMap.get(id);
-      if (isDeleted === undefined) toInsert.push(id);
-      else if (isDeleted === true) toRestore.push(id);
+      const existingMember = existingMap.get(id);
+
+      // Skip banned users entirely, do not restore or insert them
+      if (existingMember?.isBanned) {
+        skippedBanned.push(id);
+        continue;
+      }
+
+      if (existingMember === undefined) {
+        toInsert.push(id);
+      } else if (existingMember.isDeleted === true) {
+        toRestore.push(id);
+      }
+      // if existingMember exists and isDeleted === false, user is already a member, skip
     }
 
     if (toRestore.length > 0) {
@@ -850,6 +867,7 @@ export class MembersService {
           query: { _id: spaceObjectId },
         }),
         addedUserIds: [],
+        skippedBanned, // optional
       };
     }
 
@@ -865,6 +883,7 @@ export class MembersService {
         _id: undefined,
       },
       addedUserIds: [...toInsert, ...toRestore],
+      skippedBanned, // optional
     };
   }
 }
