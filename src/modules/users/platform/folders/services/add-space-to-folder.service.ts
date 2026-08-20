@@ -10,7 +10,7 @@ import { FoldersRepository } from '../../../../../common/modules/platform/folder
 export class AddSpaceToFolderService {
   constructor(private readonly foldersRepository: FoldersRepository) {}
 
-  public async addSpaceToFolder({ dto, authUser }) {
+  public async add({ dto, authUser }) {
     const spaceObjectid = new Types.ObjectId(dto?.spaceId);
     const folderObjectid = new Types.ObjectId(dto?.folderId);
 
