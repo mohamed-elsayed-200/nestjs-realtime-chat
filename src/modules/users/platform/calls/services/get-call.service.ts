@@ -11,7 +11,7 @@ export class GetCallService {
     private readonly participantsRepository: ParticipantsRepository,
   ) {}
 
-  public async getCallById({ callId, authUser }) {
+  public async get({ callId, authUser }) {
     const userObjectId = new Types.ObjectId(authUser);
     const callObjectId = new Types.ObjectId(new Types.ObjectId(callId));
     const call = await this.callsRepository.findOne({

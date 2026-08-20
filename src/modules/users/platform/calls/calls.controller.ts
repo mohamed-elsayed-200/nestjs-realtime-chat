@@ -26,13 +26,13 @@ export class CallsController {
     @Param('spaceId') spaceId: string,
     @GetUser() authUser: any,
   ) {
-    return this.getCallSettingsServices.getCallSettings({ spaceId, authUser });
+    return this.getCallSettingsServices.get({ spaceId, authUser });
   }
 
   @Get('/active')
   @ResponseMeta({ message: 'calls.active' })
   public getActiveCall(@GetUser() authUser: any) {
-    return this.getActiveCallService.getActiveCallForUser({ authUser });
+    return this.getActiveCallService.get({ authUser });
   }
 
   @Get('/:callId')
@@ -41,6 +41,6 @@ export class CallsController {
     @Param('callId') callId: string,
     @GetUser() authUser: any,
   ) {
-    return this.getCallService.getCallById({ callId, authUser });
+    return this.getCallService.get({ callId, authUser });
   }
 }

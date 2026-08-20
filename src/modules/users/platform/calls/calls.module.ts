@@ -15,7 +15,7 @@ import { LeaveCallService } from './services/leave-call.service';
 import { RejectCallService } from './services/reject-call.service';
 import { StartCallService } from './services/start-call.service';
 import { ToggleParticipantMuteService } from './services/toggle-participant-mute.service';
-import { UpdateCallService } from './services/update-call-settings.service';
+import { UpdateCallSettingsService } from './services/update-call-settings.service';
 import { ToggleRaiseHandService } from './services/toggle-raise-hand.service';
 
 @Module({
@@ -39,7 +39,7 @@ import { ToggleRaiseHandService } from './services/toggle-raise-hand.service';
     StartCallService,
     ToggleParticipantMuteService,
     ToggleRaiseHandService,
-    UpdateCallService,
+    UpdateCallSettingsService,
   ],
   exports: [
     AcceptCallService,
@@ -53,7 +53,7 @@ import { ToggleRaiseHandService } from './services/toggle-raise-hand.service';
     StartCallService,
     ToggleParticipantMuteService,
     ToggleRaiseHandService,
-    UpdateCallService,
+    UpdateCallSettingsService,
   ],
 })
 export class CallsModule {}

@@ -22,7 +22,7 @@ export class EndCallService {
     private readonly membersRepository: MembersRepository,
   ) {}
 
-  public async endCall({ dto, authUser }) {
+  public async end({ dto, authUser }) {
     const callObjectId = new Types.ObjectId(dto.callId);
     const authUserObjectId = new Types.ObjectId(authUser._id);
 

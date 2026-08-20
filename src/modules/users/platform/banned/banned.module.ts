@@ -16,11 +16,6 @@ import { AssertNotBannedService } from './services/assert-not-banned.service';
     ToggleBanService,
     AssertNotBannedService,
   ],
-  exports: [
-    GetBannedUsersService,
-    GetUsersWhoBannedMeService,
-    ToggleBanService,
-    AssertNotBannedService,
-  ],
+  exports: [ToggleBanService, AssertNotBannedService],
 })
 export class BannedModule {}

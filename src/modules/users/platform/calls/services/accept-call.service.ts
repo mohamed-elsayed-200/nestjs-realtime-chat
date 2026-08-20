@@ -18,7 +18,7 @@ export class AcceptCallService {
     private readonly participantsRepository: ParticipantsRepository,
   ) {}
 
-  public async acceptCall({ dto, authUser }) {
+  public async accept({ dto, authUser }) {
     const callObjectId = new Types.ObjectId(dto.callId);
     const authUserObjectId = new Types.ObjectId(authUser._id);
 

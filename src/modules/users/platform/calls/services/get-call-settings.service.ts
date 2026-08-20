@@ -14,7 +14,7 @@ export class GetCallSettingsServices {
     private readonly membersRepository: MembersRepository,
   ) {}
 
-  public async getCallSettings({ spaceId, authUser }) {
+  public async get({ spaceId, authUser }) {
     const spaceObjectId = new Types.ObjectId(spaceId);
     const authUserObjectId = new Types.ObjectId(authUser._id);
 

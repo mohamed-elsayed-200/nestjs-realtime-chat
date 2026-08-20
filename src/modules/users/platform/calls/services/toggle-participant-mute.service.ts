@@ -15,7 +15,7 @@ export class ToggleParticipantMuteService {
     private readonly participantsRepository: ParticipantsRepository,
   ) {}
 
-  public async toggleParticipantMute({ dto, authUser }) {
+  public async toggle({ dto, authUser }) {
     const { callId, targetUserId } = dto;
     const callObjectId = new Types.ObjectId(callId);
     const authUserObjectId = new Types.ObjectId(authUser._id);

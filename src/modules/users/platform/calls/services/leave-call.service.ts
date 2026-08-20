@@ -13,7 +13,7 @@ export class LeaveCallService {
     private readonly endCallService: EndCallService,
   ) {}
 
-  public async leaveCall({ dto, authUser }) {
+  public async leave({ dto, authUser }) {
     const callObjectId = new Types.ObjectId(dto.callId);
     const authUserObjectId = new Types.ObjectId(authUser._id);
 
@@ -46,7 +46,7 @@ export class LeaveCallService {
     });
 
     if (!remaining) {
-      const endResult = await this.endCallService.endCall({
+      const endResult = await this.endCallService.end({
         dto: { callId: callObjectId },
         authUser,
       });

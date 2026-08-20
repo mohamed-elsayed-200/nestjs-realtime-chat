@@ -6,7 +6,7 @@ import { Types } from 'mongoose';
 export class AssertNotBannedService {
   constructor(private readonly bannedRepository: BannedRepository) {}
 
-  public async assertNotBanned({ userA, userB }) {
+  public async assert({ userA, userB }) {
     const block = await this.bannedRepository.findEitherDirection({
       userA,
       userB,

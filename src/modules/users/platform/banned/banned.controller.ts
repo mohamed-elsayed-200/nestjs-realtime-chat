@@ -25,7 +25,7 @@ export class BannedController {
     @Query() query: QueryDto,
     @GetUser() authUser: any,
   ) {
-    return this.getBannedUsersService.getBannedUsers({ query, authUser });
+    return this.getBannedUsersService.get({ query, authUser });
   }
 
   @Get('users-who-banned-me')
@@ -34,7 +34,7 @@ export class BannedController {
     @Query() query: QueryDto,
     @GetUser() authUser: any,
   ) {
-    return this.getUsersWhoBannedMeService.getUsersWhoBannedMe({
+    return this.getUsersWhoBannedMeService.get({
       query,
       authUser,
     });

@@ -15,18 +15,34 @@ import { WebrtcOfferDto } from './dto/webrtc-offer.dto';
 import { WebrtcAnswerDto } from './dto/webrtc-answer.dto';
 import { WebrtcIceCandidateDto } from './dto/webrtcIce-candidate.dto';
 import { ToggleMuteDto } from './dto/toggle-mute.dto';
-import { CallsService } from '../../../platform/calls/calls.service';
 import { CallStatus, SocketEvents } from '../../../../../common/types/enums';
 import { SocketEmitterService } from '../../services/socket-emitter.service';
 import { RoomNames } from '../../../../../common/utils/room-names';
+import { UpdateCallSettingsService } from './../../../platform/calls/services/update-call-settings.service';
+import { JoinCallService } from './../../../platform/calls/services/join-call.service';
+import { AcceptCallService } from './../../../platform/calls/services/accept-call.service';
 import { ToggleRaiseHandDto } from './dto/toggle-raise-hand.dto';
 import { UpdateCallSettingsDto } from './dto/update-call-settings.dto';
+import { StartCallService } from '../../../../../modules/users/platform/calls/services/start-call.service';
+import { RejectCallService } from '../../../../../modules/users/platform/calls/services/reject-call.service';
+import { LeaveCallService } from '../../../../../modules/users/platform/calls/services/leave-call.service';
+import { EndCallService } from '../../../../../modules/users/platform/calls/services/end-call.service';
+import { ToggleParticipantMuteService } from '../../../../../modules/users/platform/calls/services/toggle-participant-mute.service';
+import { ToggleRaiseHandService } from '../../../../../modules/users/platform/calls/services/toggle-raise-hand.service';
 
 @WebSocketGateway()
 export class CallsGateway {
   constructor(
     private readonly socketEmitter: SocketEmitterService,
-    private readonly callsService: CallsService,
+    private readonly startCallService: StartCallService,
+    private readonly acceptCallService: AcceptCallService,
+    private readonly rejectCallService: RejectCallService,
+    private readonly joinCallService: JoinCallService,
+    private readonly leaveCallService: LeaveCallService,
+    private readonly endCallService: EndCallService,
+    private readonly toggleParticipantMuteService: ToggleParticipantMuteService,
+    private readonly toggleRaiseHandService: ToggleRaiseHandService,
+    private readonly updateCallSettingsService: UpdateCallSettingsService,
   ) {}
 
   @SubscribeMessage(SocketEvents.WEBRTC_OFFER)
@@ -128,7 +144,7 @@ export class CallsGateway {
   ) {
     const authUser = client.data.user;
     try {
-      const { call, participant } = await this.callsService.startCall({
+      const { call, participant } = await this.startCallService.start({
         dto,
         authUser,
       });
@@ -171,7 +187,7 @@ export class CallsGateway {
   ) {
     const authUser = client.data.user;
     try {
-      const { call, participant } = await this.callsService.acceptCall({
+      const { call, participant } = await this.acceptCallService.accept({
         dto,
         authUser,
       });
@@ -202,7 +218,7 @@ export class CallsGateway {
   ) {
     const authUser = client.data.user;
     try {
-      const { call, systemMessage } = await this.callsService.rejectCall({
+      const { call, systemMessage } = await this.rejectCallService.reject({
         dto,
         authUser,
       });
@@ -240,7 +256,7 @@ export class CallsGateway {
   ) {
     const authUser = client.data.user;
     try {
-      const { call, participant } = await this.callsService.joinCall({
+      const { call, participant } = await this.joinCallService.join({
         dto,
         authUser,
       });
@@ -272,7 +288,7 @@ export class CallsGateway {
     const authUser = client.data.user;
     try {
       const { call, systemMessage, participant, participants } =
-        await this.callsService.leaveCall({
+        await this.leaveCallService.leave({
           dto,
           authUser,
         });
@@ -323,7 +339,7 @@ export class CallsGateway {
     const authUser = client.data.user;
     try {
       const { call, systemMessage, participants } =
-        await this.callsService.endCall({
+        await this.endCallService.end({
           dto,
           authUser,
         });
@@ -366,7 +382,7 @@ export class CallsGateway {
   ) {
     const authUser = client.data.user;
     try {
-      const result = await this.callsService.toggleParticipantMute({
+      const result = await this.toggleParticipantMuteService.toggle({
         dto,
         authUser,
       });
@@ -397,7 +413,7 @@ export class CallsGateway {
   ) {
     const authUser = client.data.user;
     try {
-      const { call, participant } = await this.callsService.toggleRaiseHand({
+      const { call, participant } = await this.toggleRaiseHandService.toggle({
         dto,
         authUser,
       });
@@ -437,7 +453,7 @@ export class CallsGateway {
   ) {
     const authUser = client.data.user;
     try {
-      const result = await this.callsService.updateCallSettings({
+      const result = await this.updateCallSettingsService.update({
         dto,
         authUser,
       });

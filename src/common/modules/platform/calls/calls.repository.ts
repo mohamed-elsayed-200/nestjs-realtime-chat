@@ -70,7 +70,7 @@ export class CallsRepository {
     return this.callModel.findOneAndDelete(query);
   }
 
-  public async toPersonInfo(user: any) {
+  public toPersonInfo(user: any) {
     if (!user) return undefined;
     return {
       id: user._id?.toString() ?? user.id,
@@ -81,7 +81,7 @@ export class CallsRepository {
     };
   }
 
-  public async toSpaceInfo(space: any) {
+  public toSpaceInfo(space: any) {
     if (!space) return undefined;
     return {
       id: space._id?.toString() ?? space.id,
@@ -93,7 +93,7 @@ export class CallsRepository {
     };
   }
 
-  public async toCallResponse(call: any) {
+  public toCallResponse(call: any) {
     if (!call) return call;
 
     return {
@@ -108,7 +108,7 @@ export class CallsRepository {
     };
   }
 
-  public async toParticipantResponse(participant: any) {
+  public toParticipantResponse(participant: any) {
     if (!participant) return participant;
 
     return {

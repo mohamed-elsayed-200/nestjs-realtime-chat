@@ -6,7 +6,7 @@ import { Types } from 'mongoose';
 export class ToggleBanService {
   constructor(private readonly bannedRepository: BannedRepository) {}
 
-  public async toggleBan({ userId, authUser }) {
+  public async toggle({ userId, authUser }) {
     const authUserObjectId = new Types.ObjectId(authUser?._id);
     const userObjectId = new Types.ObjectId(userId);
 

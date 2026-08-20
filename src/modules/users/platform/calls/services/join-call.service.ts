@@ -25,7 +25,7 @@ export class JoinCallService {
     private readonly membersRepository: MembersRepository,
   ) {}
 
-  public async joinCall({ dto, authUser }) {
+  public async join({ dto, authUser }) {
     if (!dto?.callId) {
       throw new BadRequestException('callId is required');
     }

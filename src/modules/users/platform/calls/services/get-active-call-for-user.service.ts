@@ -15,7 +15,7 @@ export class GetActiveCallService {
     private readonly participantsRepository: ParticipantsRepository,
   ) {}
 
-  public async getActiveCallForUser({ authUser }) {
+  public async get({ authUser }) {
     const authUserObjectId = new Types.ObjectId(authUser._id);
     const authUserId = authUser._id.toString();
 

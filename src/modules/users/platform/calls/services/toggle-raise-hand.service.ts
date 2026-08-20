@@ -15,7 +15,7 @@ export class ToggleRaiseHandService {
     private readonly participantsRepository: ParticipantsRepository,
   ) {}
 
-  public async toggleRaiseHand({ dto, authUser }) {
+  public async toggle({ dto, authUser }) {
     const { callId } = dto;
     const callObjectId = new Types.ObjectId(callId);
     const authUserObjectId = new Types.ObjectId(authUser._id);

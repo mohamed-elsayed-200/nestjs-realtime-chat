@@ -22,7 +22,7 @@ export class RejectCallService {
     private readonly messagesRepository: MessagesRepository,
   ) {}
 
-  public async rejectCall({ dto, authUser }) {
+  public async reject({ dto, authUser }) {
     const callObjectId = new Types.ObjectId(dto.callId);
     const authUserObjectId = new Types.ObjectId(authUser._id);
     const call = await this.callsRepository.findOne({

@@ -28,7 +28,7 @@ export class StartCallService {
     private readonly joinCallService: JoinCallService,
   ) {}
 
-  public async startCall({ dto, authUser }) {
+  public async start({ dto, authUser }) {
     const authUserObjectId = new Types.ObjectId(authUser._id);
     const spaceObjectId = new Types.ObjectId(dto?.space);
     const {
@@ -61,7 +61,7 @@ export class StartCallService {
       });
 
       if (existingCall) {
-        return this.joinCallService.joinCall({
+        return this.joinCallService.join({
           dto: { callId: existingCall._id.toString() },
           authUser,
         });

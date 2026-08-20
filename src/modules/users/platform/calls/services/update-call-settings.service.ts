@@ -12,13 +12,13 @@ import {
 } from '../../../../../common/types/enums';
 
 @Injectable()
-export class UpdateCallService {
+export class UpdateCallSettingsService {
   constructor(
     private readonly spacesRepository: SpacesRepository,
     private readonly membersRepository: MembersRepository,
   ) {}
 
-  public async updateCallSettings({ dto, authUser }) {
+  public async update({ dto, authUser }) {
     const { spaceId, settings, callId } = dto;
     const spaceObjectId = new Types.ObjectId(spaceId);
     const authUserObjectId = new Types.ObjectId(authUser._id);

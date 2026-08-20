@@ -1,3 +1,4 @@
+import { ToggleBanService } from './../../../platform/banned/services/toggle-ban.service';
 import {
   WebSocketGateway,
   SubscribeMessage,
@@ -7,13 +8,12 @@ import {
 import { Socket } from 'socket.io';
 import { SocketEmitterService } from '../../services/socket-emitter.service';
 import { SocketEvents } from '../../../../../common/types/enums';
-import { BannedService } from '../../../platform/banned/banned.service';
 import { ToggleBanDto } from './dto/toggle-ban.dto';
 
 @WebSocketGateway()
 export class BannedGateway {
   constructor(
-    private readonly bannedService: BannedService,
+    private readonly toggleBanService: ToggleBanService,
     private readonly socketEmitter: SocketEmitterService,
   ) {}
 
@@ -26,7 +26,7 @@ export class BannedGateway {
     const authUser = client.data.user;
 
     try {
-      const result = await this.bannedService.toggleBan({
+      const result = await this.toggleBanService.toggle({
         userId: target,
         authUser,
       });
