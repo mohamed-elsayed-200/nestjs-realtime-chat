@@ -1,5 +1,5 @@
+import { ToggleReactionCommentService } from './services/toggle-reaction-comment.service';
 import { Body, Controller, Post, UseGuards } from '@nestjs/common';
-import { ReactionsService } from './reactions.service';
 import { PermissionsGuard } from '../../../../common/guards/permissions-guard.guard';
 import { AuthGuard } from '../../../../common/guards/auth.guard';
 import { ResponseMeta } from '../../../../common/decorators/response.decorator';
@@ -13,7 +13,9 @@ import { ToggleReactionCommentDto } from './dto/toggle-reaction-comment.dto';
 @UseGuards(AuthGuard, PermissionsGuard, UserTypeGuard)
 @UserTypes(UserType.USER)
 export class ReactionsController {
-  constructor(private readonly reactionsService: ReactionsService) {}
+  constructor(
+    private readonly toggleReactionCommentService: ToggleReactionCommentService,
+  ) {}
 
   @Post('toggle-comment')
   @ResponseMeta({ message: 'reactions.toggled' })
@@ -21,6 +23,6 @@ export class ReactionsController {
     @GetUser() authUser: any,
     @Body() dto: ToggleReactionCommentDto,
   ) {
-    return this.reactionsService.toggleReactionComment({ dto, authUser });
+    return this.toggleReactionCommentService.toggle({ dto, authUser });
   }
 }

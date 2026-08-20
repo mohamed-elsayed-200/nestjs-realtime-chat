@@ -1,10 +1,11 @@
 import { Module } from '@nestjs/common';
-import { ReactionsService } from './reactions.service';
 import { ReactionsController } from './reactions.controller';
 import { BaseAuthModule } from '../../../../common/modules/auth/auth.module';
 import { BaseReactionModule } from '../../../../common/modules/platform/reactions/reactions.module';
 import { BaseMessageModule } from '../../../../common/modules/platform/messages/messages.module';
 import { BaseCommentsModule } from '../../../../common/modules/platform/comments/comments.module';
+import { ToggleReactionCommentService } from './services/toggle-reaction-comment.service';
+import { ToggleReactionMessageService } from './services/toggle-reaction-message.service';
 
 @Module({
   imports: [
@@ -14,7 +15,7 @@ import { BaseCommentsModule } from '../../../../common/modules/platform/comments
     BaseCommentsModule,
   ],
   controllers: [ReactionsController],
-  providers: [ReactionsService],
-  exports: [ReactionsService],
+  providers: [ToggleReactionMessageService, ToggleReactionCommentService],
+  exports: [ToggleReactionMessageService],
 })
 export class ReactionsModule {}
