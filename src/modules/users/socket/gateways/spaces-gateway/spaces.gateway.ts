@@ -6,7 +6,6 @@ import {
 } from '@nestjs/websockets';
 import { Socket } from 'socket.io';
 import { SocketEmitterService } from '../../services/socket-emitter.service';
-import { SpacesService } from '../../../platform/spaces/spaces.service';
 import { SocketEvents } from '../../../../../common/types/enums';
 import { RoomNames } from '../../../../../common/utils/room-names';
 import { JoinToSpaceDto } from './dto/join-to-space.dto';
@@ -16,12 +15,27 @@ import { ChangeWallpaperDto } from './dto/change-wallpaper.dto';
 import { UpdateSpaceDto } from './dto/update-space.dto';
 import { CreatePrivateSpaceDto } from './dto/create-private-space.dto';
 import { ClearHistoryDto } from './dto/clear-history.dto';
+import { ClearHistorySpaceService } from './../../../platform/spaces/services/clear-history-space.service';
+import { DeleteSpaceService } from './../../../platform/spaces/services/delete-space.service';
+import { LeaveFromSpaceService } from './../../../platform/spaces/services/leave-from-space.service';
+import { JoinToSpaceService } from './../../../platform/spaces/services/join-to-space.service';
+import { UpdateGlobalSpaceService } from './../../../platform/spaces/services/update-global-space.service';
+import { MarkSpaceAsReadService } from './../../../platform/spaces/services/mark-space-as-read.service';
+import { CreatePrivateSpaceService } from '../../../platform/spaces/services/create-private-space.service';
+import { ChangeWallpaperSpaceService } from '../../../platform/spaces/services/change-wallpaper-space.service';
 
 @WebSocketGateway()
 export class SpacesGateway {
   constructor(
-    private readonly spacesService: SpacesService,
     private readonly socketEmitter: SocketEmitterService,
+    private readonly markSpaceAsReadService: MarkSpaceAsReadService,
+    private readonly updateGlobalSpaceService: UpdateGlobalSpaceService,
+    private readonly createPrivateSpace: CreatePrivateSpaceService,
+    private readonly joinToSpaceService: JoinToSpaceService,
+    private readonly leaveFromSpaceService: LeaveFromSpaceService,
+    private readonly deleteSpaceService: DeleteSpaceService,
+    private readonly changeWallpaperSpaceService: ChangeWallpaperSpaceService,
+    private readonly clearHistorySpaceService: ClearHistorySpaceService,
   ) {}
 
   @SubscribeMessage(SocketEvents.SPACE_READ)
@@ -32,7 +46,7 @@ export class SpacesGateway {
     const authUser = client.data.user;
 
     try {
-      await this.spacesService.markSpaceAsRead({
+      await this.markSpaceAsReadService.mark({
         spaceId: dto.spaceId,
         authUser,
       });
@@ -59,7 +73,7 @@ export class SpacesGateway {
 
     try {
       const { space: updatedSpace, systemMessage } =
-        await this.spacesService.updateGlobalSpace({
+        await this.updateGlobalSpaceService.update({
           spaceId,
           dto: updateData,
           authUser,
@@ -93,7 +107,7 @@ export class SpacesGateway {
 
     try {
       const { forRequester, forOtherUser } =
-        await this.spacesService.createPrivateSpace({ authUser, dto });
+        await this.createPrivateSpace.create({ authUser, dto });
 
       const spaceRoom = RoomNames.space(forRequester.id);
       client.join(spaceRoom);
@@ -124,7 +138,7 @@ export class SpacesGateway {
     const authUser = client.data.user;
     const { spaceId } = dto;
     try {
-      const updatedSpace = await this.spacesService.joinToSpace({
+      const updatedSpace = await this.joinToSpaceService.join({
         spaceId,
         authUser,
       });
@@ -163,7 +177,7 @@ export class SpacesGateway {
     const { spaceId } = dto;
 
     try {
-      const updatedSpace = await this.spacesService.leaveFromSpace({
+      const updatedSpace = await this.leaveFromSpaceService.leave({
         spaceId,
         authUser,
       });
@@ -202,7 +216,7 @@ export class SpacesGateway {
     const { spaceId, ...payload } = dto;
 
     try {
-      await this.spacesService.deleteSpace({ spaceId, dto: payload, authUser });
+      await this.deleteSpaceService.delete({ spaceId, dto: payload, authUser });
 
       if (dto.everybody) {
         this.socketEmitter.emitToSpace(
@@ -235,7 +249,7 @@ export class SpacesGateway {
     const { spaceId, ...payload } = dto;
 
     try {
-      const updatedSpace = await this.spacesService.changeWallpaper({
+      const updatedSpace = await this.changeWallpaperSpaceService.change({
         spaceId,
         dto: payload,
         authUser,
@@ -268,7 +282,7 @@ export class SpacesGateway {
     const authUser = client.data.user;
 
     try {
-      const { everybody } = await this.spacesService.clearHistory({
+      const { everybody } = await this.clearHistorySpaceService.clear({
         dto,
         authUser,
       });

@@ -15,7 +15,8 @@ import { RoomNames } from '../../../../../common/utils/room-names';
 import { SocketEvents, SpaceTypes } from '../../../../../common/types/enums';
 import { UsersRepository } from '../../../../../common/modules/iam/users/users.repository';
 import { MembersRepository } from '../../../../../common/modules/platform/members/members.repository';
-import { SessionsService } from '../../../../../modules/users/platform/sessions/sessions.service';
+import { InactiveSessionService } from './../../../platform/sessions/services/inactive-session.service';
+import { GetSingleSessionService } from './../../../platform/sessions/services/get-single-session.service';
 
 const MAX_WATCH_USERS = 300;
 
@@ -33,7 +34,8 @@ export class PresenceGateway
     private readonly socketEmitter: SocketEmitterService,
     private readonly usersRepository: UsersRepository,
     private readonly membersRepository: MembersRepository,
-    private readonly sessionsService: SessionsService,
+    private readonly getSingleSessionService: GetSingleSessionService,
+    private readonly inactiveSessionService: InactiveSessionService,
   ) {}
 
   afterInit(server: Server) {
@@ -356,7 +358,7 @@ export class PresenceGateway
       return { success: false, error: 'Unauthorized' };
     }
 
-    const findSession = await this.sessionsService.getOne({ sessionId });
+    const findSession = await this.getSingleSessionService.get({ sessionId });
 
     this.server
       .to(RoomNames.user(userId))
@@ -393,7 +395,7 @@ export class PresenceGateway
     const currSessionId = client.data.sessionId;
 
     try {
-      await this.sessionsService.inactive({
+      await this.inactiveSessionService.inactive({
         authUser,
         currSessionId,
         targetSessionId: dto.targetSessionId,

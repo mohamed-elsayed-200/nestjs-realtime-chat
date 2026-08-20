@@ -5,15 +5,15 @@ import {
   ConnectedSocket,
 } from '@nestjs/websockets';
 import { Socket } from 'socket.io';
-import { SocketEmitterService } from '../../services/socket-emitter.service';
 import { SocketEvents } from '../../../../../common/types/enums';
-import { ViewsService } from '../../../platform/views/views.service';
 import { AddViewDto } from './dto/add-view.dto';
+import { SocketEmitterService } from '../../services/socket-emitter.service';
+import { ViewMessageService } from '../../../platform/views/services/view-message.service';
 
 @WebSocketGateway()
 export class ViewsGateway {
   constructor(
-    private readonly viewsService: ViewsService,
+    private readonly viewMessageService: ViewMessageService,
     private readonly socketEmitter: SocketEmitterService,
   ) {}
 
@@ -26,7 +26,7 @@ export class ViewsGateway {
     const authUser = client.data.user as string;
 
     try {
-      const message = await this.viewsService.viewMessage({
+      const message = await this.viewMessageService.view({
         message: target,
         authUser,
       });

@@ -14,15 +14,23 @@ import { TypingDto } from './dto/typing-dto';
 import { ForwardMessageDto } from './dto/forward-message.dto';
 import { PinMessageDto } from './dto/pin-message.dto';
 import { ReactionMessageDto } from './dto/reaction-message.dto';
-import { ReactionsService } from '../../../platform/reactions/reactions.service';
-import { MessagesService } from '../../../platform/messages/messages.service';
+import { TogglePinMessageService } from './../../../platform/messages/services/toggle-pin.service';
+import { ForwardMessageService } from './../../../platform/messages/services/forward-message.service';
+import { ToggleReactionMessageService } from './../../../platform/reactions/services/toggle-reaction-message.service';
+import { DeleteMessageService } from './../../../platform/messages/services/delete-message.service';
+import { UpdateMessageService } from './../../../platform/messages/services/update-message.service';
+import { CreateMessageService } from './../../../platform/messages/services/create-message.service';
 
 @WebSocketGateway()
 export class MessagesGateway {
   constructor(
-    private readonly messagesService: MessagesService,
-    private readonly reactionsService: ReactionsService,
     private readonly socketEmitter: SocketEmitterService,
+    private readonly createMessageService: CreateMessageService,
+    private readonly updateMessageService: UpdateMessageService,
+    private readonly deleteMessageService: DeleteMessageService,
+    private readonly toggleReactionMessageService: ToggleReactionMessageService,
+    private readonly forwardMessageService: ForwardMessageService,
+    private readonly togglePinMessageService: TogglePinMessageService,
   ) {}
 
   @SubscribeMessage(SocketEvents.MESSAGE_SEND)
@@ -32,7 +40,7 @@ export class MessagesGateway {
   ) {
     const authUser = client.data.user as string;
     try {
-      const message = await this.messagesService.create({
+      const message = await this.createMessageService.create({
         dto,
         authUser,
       });
@@ -61,7 +69,7 @@ export class MessagesGateway {
   ) {
     const authUser = client.data.user;
     try {
-      const message = await this.messagesService.update({
+      const message = await this.updateMessageService.update({
         dto,
         authUser,
       });
@@ -90,7 +98,7 @@ export class MessagesGateway {
     const userId = client.data.userId;
     const authUser = client.data.user;
     try {
-      const result = await this.messagesService.delete({
+      const result = await this.deleteMessageService.delete({
         dto,
         authUser,
       });
@@ -129,7 +137,7 @@ export class MessagesGateway {
   ) {
     const authUser = client.data.user;
     try {
-      const result = await this.reactionsService.toggleReactionMessage({
+      const result = await this.toggleReactionMessageService.toggle({
         dto,
         authUser,
       });
@@ -158,7 +166,7 @@ export class MessagesGateway {
   ) {
     const authUser = client.data.user;
     try {
-      const forwardedMessages = await this.messagesService.forward({
+      const forwardedMessages = await this.forwardMessageService.forward({
         dto,
         authUser,
       });
@@ -194,7 +202,7 @@ export class MessagesGateway {
   ) {
     const authUser = client.data.user as string;
     try {
-      const result = await this.messagesService.togglePin({
+      const result = await this.togglePinMessageService.toggle({
         dto,
         authUser,
       });

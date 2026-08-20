@@ -23,6 +23,7 @@ import { ToggleArchiveSpaceService } from './services/toggle-archive-space.servi
 import { TogglePinSpaceService } from './services/toggle-pin.service';
 import { ToggleMuteSpaceService } from './services/toggle-mute-space.service';
 import { UpdateGlobalSpaceService } from './services/update-global-space.service';
+import { CreatePrivateSpaceService } from './services/create-private-space.service';
 
 @Module({
   imports: [
@@ -52,16 +53,25 @@ import { UpdateGlobalSpaceService } from './services/update-global-space.service
     ToggleMuteSpaceService,
     TogglePinSpaceService,
     UpdateGlobalSpaceService,
+    CreatePrivateSpaceService,
   ],
   exports: [
-    GetSpacesService,
+    CreatePrivateSpaceService,
+    ChangeWallpaperSpaceService,
+    ClearHistorySpaceService,
+    CreateGlobalSpaceService,
+    DeleteSpaceService,
     GetSingleSpaceService,
+    GetSpacesService,
     GetSubspacesService,
+    JoinToSpaceService,
+    LeaveFromSpaceService,
+    MarkSpaceAsReadService,
     OpenLinkSpaceService,
-    TogglePinSpaceService,
     ToggleArchiveSpaceService,
     ToggleMuteSpaceService,
-    CreateGlobalSpaceService,
+    TogglePinSpaceService,
+    UpdateGlobalSpaceService,
   ],
 })
 export class SpacesModule {}
