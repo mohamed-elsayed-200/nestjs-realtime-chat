@@ -1,5 +1,5 @@
+import { GetMessagesService } from './service/get-messages.service';
 import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
-import { MessagesService } from './messages.service';
 import { AuthGuard } from '../../../../common/guards/auth.guard';
 import { ResponseMeta } from '../../../../common/decorators/response.decorator';
 import { ValidateObjectIdPipe } from '../../../../common/pipes/validate-objectId.pipe';
@@ -13,7 +13,7 @@ import { GetUser } from '../../../../common/decorators/get-user.decorator';
 @UseGuards(AuthGuard, UserTypeGuard)
 @UserTypes(UserType.USER)
 export class MessagesController {
-  constructor(private readonly messagesService: MessagesService) {}
+  constructor(private readonly getMessagesService: GetMessagesService) {}
   @Get('/:spaceId')
   @ResponseMeta({ message: 'messages.foundAll' })
   public async getAll(
@@ -21,6 +21,6 @@ export class MessagesController {
     @GetUser() authUser: any,
     @Query() query: QueryDto,
   ) {
-    return this.messagesService.getAll({ query, spaceId, authUser });
+    return this.getMessagesService.get({ query, spaceId, authUser });
   }
 }
