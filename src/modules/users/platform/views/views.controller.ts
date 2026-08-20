@@ -6,13 +6,13 @@ import { UserTypeGuard } from '../../../../common/guards/user-type.guard';
 import { UserType } from '../../../../common/types/enums';
 import { UserTypes } from '../../../../common/decorators/user-type.decorator';
 import { QueryDto } from '../../../../common/modules/dto/query.dto';
-import { ViewsService } from './views.service';
+import { GetViewsService } from './services/get-views.service';
 
 @Controller('/users/views')
 @UseGuards(AuthGuard, UserTypeGuard)
 @UserTypes(UserType.USER)
 export class ViewsController {
-  constructor(private readonly viewsService: ViewsService) {}
+  constructor(private readonly getViewsService: GetViewsService) {}
 
   @Get('/:target')
   @ResponseMeta({ message: 'views.foundAll' })
@@ -20,6 +20,6 @@ export class ViewsController {
     @Param('target', ValidateObjectIdPipe) target: string,
     @Query() query: QueryDto,
   ) {
-    return this.viewsService.getAll({ query, target });
+    return this.getViewsService.get({ query, target });
   }
 }
