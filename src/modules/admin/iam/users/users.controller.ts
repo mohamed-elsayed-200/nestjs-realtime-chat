@@ -15,21 +15,29 @@ import { UserTypeGuard } from '../../../../common/guards/user-type.guard';
 import { UserType } from '../../../../common/types/enums';
 import { ResponseMeta } from '../../../../common/decorators/response.decorator';
 import { ValidateObjectIdPipe } from '../../../../common/pipes/validate-objectId.pipe';
-import { UsersService } from './users.service';
 import { QueryDto } from '../../../../common/modules/dto/query.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { CreateUserDto } from './dto/create-user.dto';
 import { GetUser } from '../../../../common/decorators/get-user.decorator';
+import { UpdateUserService } from './service/update-user.service';
+import { GetUsersService } from './service/get-users.service';
+import { GetSingleUserService } from './service/get-single-user.service';
+import { CreateUserService } from './service/create-user.service';
 
 @Controller('/admin/users')
 @UseGuards(AuthGuard, PermissionsGuard, UserTypeGuard)
 @UserTypes(UserType.ADMIN, UserType.STAFF)
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly createUserService: CreateUserService,
+    private readonly getSingleUserService: GetSingleUserService,
+    private readonly getUsersService: GetUsersService,
+    private readonly updateUserService: UpdateUserService,
+  ) {}
   @Get()
   @ResponseMeta({ message: 'users.foundAll' })
   public async getAll(@Query() query: QueryDto) {
-    return this.usersService.getAll({ query });
+    return this.getUsersService.get({ query });
   }
 
   @Get('/:userId')
@@ -38,7 +46,7 @@ export class UsersController {
     @Param('userId', ValidateObjectIdPipe)
     userId: ValidateObjectIdPipe,
   ) {
-    return this.usersService.getOne({ userId });
+    return this.getSingleUserService.get({ userId });
   }
 
   @Post()
@@ -47,7 +55,7 @@ export class UsersController {
     @GetUser('_id') authAdminId: string,
     @Body() dto: CreateUserDto,
   ) {
-    return this.usersService.createUser({ authAdminId, dto });
+    return this.createUserService.create({ authAdminId, dto });
   }
 
   @Put('/:userId')
@@ -57,6 +65,6 @@ export class UsersController {
     userId: ValidateObjectIdPipe,
     @Body() dto: UpdateUserDto,
   ) {
-    return this.usersService.updateUser({ userId, dto });
+    return this.updateUserService.update({ userId, dto });
   }
 }
