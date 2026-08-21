@@ -60,10 +60,7 @@ export class AuthRepository {
     const user = await this.usersRepository.findOne({
       query: {
         email,
-        userType:
-          userType === UserType.STAFF
-            ? { $in: [UserType.STAFF, UserType.ADMIN] }
-            : userType,
+        userType,
       },
       select: '+password +email',
     });

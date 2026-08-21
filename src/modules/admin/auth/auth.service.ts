@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { AuthRepository } from '../../../common/modules/auth/auth.repository';
 import { UsersRepository } from '../../../common/modules/iam/users/users.repository';
@@ -24,7 +25,7 @@ export class AuthService {
       email,
       password,
       userAgent,
-      userType: UserType.ADMIN,
+      userType: { $in: [UserType.STAFF, UserType.ADMIN] },
     });
 
     if (userData?.status === UserStatus.NOT_VERIFIED || userData?.is2FA) {
@@ -34,10 +35,18 @@ export class AuthService {
       });
     } else {
       return {
+        token: userData?.token,
+        id: userData?._id,
         name: userData?.name,
         email: userData?.email,
         userType: userData?.userType,
         status: userData?.status,
+        bio: userData?.bio,
+        profileColor: userData?.profileColor,
+        is2FA: userData?.is2FA,
+        username: userData?.username,
+        avatar: userData?.avatar,
+        lastLoginAt: userData?.lastLoginAt,
       };
     }
   }
@@ -59,7 +68,13 @@ export class AuthService {
 
   public async forgotPassword({ email }) {
     const findUser = await this.usersRepository.findOne({
-      query: { email, userType: { $in: [UserType.STAFF, UserType.ADMIN] } },
+      query: {
+        email,
+        userType: { $in: [UserType.STAFF, UserType.ADMIN] },
+        status: {
+          $nin: [UserStatus.BLOCKED, UserStatus.DELETED],
+        },
+      },
     });
 
     if (!findUser) throw new NotFoundException('auth.accountNotFound');
@@ -83,6 +98,30 @@ export class AuthService {
       throw new BadRequestException('auth.failedOtpVerification');
 
     return null;
+  }
+
+  public async verifyToken({ ip, token }) {
+    const user = await this.authRepository.verifyToken({
+      ip,
+      token,
+    });
+    if (!user) throw new UnauthorizedException('auth.invalidToken');
+    return {
+      token: user?.token,
+      user: {
+        id: user?.id,
+        name: user?.name,
+        email: user?.email,
+        userType: user?.userType,
+        status: user?.status,
+        bio: user?.bio,
+        profileColor: user?.profileColor,
+        is2FA: user?.is2FA,
+        username: user?.username,
+        avatar: user?.avatar,
+        lastLoginAt: user?.lastLoginAt,
+      },
+    };
   }
 
   public async resetPassword({ newPassword, email }) {
