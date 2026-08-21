@@ -32,6 +32,13 @@ export enum SpaceMemberRole {
   MEMBER = 'member',
   OWNER = 'owner',
 }
+export enum AdminPermissionsPlatform {
+  // Member permissions
+  USERS_CREATE = 'users:create',
+  USERS_UPDATE = 'users:update',
+  USERS_DELETE = 'users:delete',
+  USERS_READ = 'users:read',
+}
 
 export enum SpaceMemberPermission {
   // Member permissions

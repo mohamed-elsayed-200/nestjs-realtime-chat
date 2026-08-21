@@ -1,3 +1,6 @@
+import { DeleteRoleService } from './services/delete-role.service';
+import { UpdateRolesService } from './services/update-role.service';
+import { CreateRoleService } from './services/create-role.service';
 import {
   Body,
   Controller,
@@ -10,7 +13,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { CreateRoleDto } from './dto/create-role.dto';
-import { RolesService } from './roles.service';
 import { Permissions } from '../../../../common/decorators/permissions.decorator';
 import { PermissionsGuard } from '../../../../common/guards/permissions-guard.guard';
 import { ResponseMeta } from '../../../../common/decorators/response.decorator';
@@ -21,31 +23,37 @@ import { UserType } from '../../../../common/types/enums';
 import { UserTypes } from '../../../../common/decorators/user-type.decorator';
 import { QueryDto } from '../../../../common/modules/dto/query.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
+import { GetRolesService } from './services/get-roles.service';
+import { GetSingleRolesService } from './services/get-single-role.service';
 
 @Controller('/admin/roles')
 @UseGuards(AuthGuard, PermissionsGuard, UserTypeGuard)
 @UserTypes(UserType.ADMIN, UserType.STAFF)
 export class RolesController {
-  constructor(private readonly rolesService: RolesService) {}
+  constructor(
+    private readonly getRolesService: GetRolesService,
+    private readonly getSingleRoleService: GetSingleRolesService,
+    private readonly createRoleService: CreateRoleService,
+    private readonly updateRolesService: UpdateRolesService,
+    private readonly deleteRoleService: DeleteRoleService,
+  ) {}
   @Get()
   @ResponseMeta({
     message: 'roles.foundAll',
-    statusCode: 200,
   })
   public async getAll(@Query() query: QueryDto) {
-    return this.rolesService.getAll({ query });
+    return this.getRolesService.get({ query });
   }
 
   @Get(':roleId')
   @ResponseMeta({
     message: 'roles.foundOne',
-    statusCode: 200,
   })
   public async getOne(
     @Param('roleId', ValidateObjectIdPipe)
     roleId: ValidateObjectIdPipe,
   ) {
-    return this.rolesService.getOne({ roleId });
+    return this.getSingleRoleService.get({ roleId });
   }
 
   @Post()
@@ -55,29 +63,27 @@ export class RolesController {
     statusCode: 201,
   })
   public async create(@Body() dto: CreateRoleDto) {
-    return this.rolesService.create({ dto });
+    return this.createRoleService.create({ dto });
   }
 
   @Put(':roleId')
   @Permissions('roles:edit')
   @ResponseMeta({
     message: 'roles.updated',
-    statusCode: 200,
   })
   public async edit(
     @Param('roleId', ValidateObjectIdPipe) roleId: string,
     @Body() dto: UpdateRoleDto,
   ) {
-    return this.rolesService.update({ roleId, dto });
+    return this.updateRolesService.update({ roleId, dto });
   }
 
   @Delete(':roleId')
   @Permissions('roles:delete')
   @ResponseMeta({
     message: 'roles.deleted',
-    statusCode: 200,
   })
   public async delete(@Param('roleId', ValidateObjectIdPipe) roleId: string) {
-    return this.rolesService.delete({ roleId });
+    return this.deleteRoleService.delete({ roleId });
   }
 }

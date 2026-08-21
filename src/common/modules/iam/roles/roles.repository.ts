@@ -30,14 +30,10 @@ export class RolesRepository {
   }
 
   public async createOne({ dto }) {
-    if (dto.permissions)
-      dto.permissions = dto.permissions?.map((p) => new Types.ObjectId(p));
     return this.roleModel.create(dto);
   }
 
   public async updateOne({ query, dto }) {
-    if (dto.permissions)
-      dto.permissions = dto.permissions?.map((p) => new Types.ObjectId(p));
     return this.roleModel.findOneAndUpdate(query, dto, { new: true });
   }
 

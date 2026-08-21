@@ -24,40 +24,36 @@ export class PermissionsGuard implements CanActivate {
     );
 
     const request = context.switchToHttp().getRequest();
-    const userId: any = request?.user?._id;
-    const userType: UserType = request?.user.userType;
+    const userId = request?.user?._id;
+    const userType: UserType = request?.user?.userType;
+
     if (!userId) throw new UnauthorizedException('auth.noPermissions');
 
     if (userType === UserType.ADMIN) {
       return true;
     }
 
-    const user: any = await this.usersRepository.findOne({
+    // Nothing required for this route → skip the DB round-trip entirely
+    if (!requiredPermissions?.length) {
+      return true;
+    }
+
+    const user = await this.usersRepository.findOne({
       query: { _id: userId },
-      populate: [
-        {
-          path: 'roles',
-          populate: {
-            path: 'permissions',
-            model: 'Permission',
-          },
-        },
-      ],
+      populate: [{ path: 'roles' }], // permissions is a plain string[] on Role, no nested populate needed
     });
 
     if (!user) throw new UnauthorizedException('auth.userNotFound');
 
-    const userPermissions =
-      user.roles?.flatMap((r) => r?.permissions?.map((p) => p.code)) || [];
+    const userPermissions: string[] =
+      user.roles?.flatMap((r: any) => r?.permissions ?? []) ?? [];
 
-    if (requiredPermissions?.length) {
-      const hasAllPermissions = requiredPermissions.every((perm) =>
-        userPermissions.includes(perm),
-      );
+    const hasAllPermissions = requiredPermissions.every((perm) =>
+      userPermissions.includes(perm),
+    );
 
-      if (!hasAllPermissions) {
-        throw new ForbiddenException('auth.noPermissions');
-      }
+    if (!hasAllPermissions) {
+      throw new ForbiddenException('auth.noPermissions');
     }
 
     return true;

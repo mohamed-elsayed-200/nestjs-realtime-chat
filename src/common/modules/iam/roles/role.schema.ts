@@ -1,6 +1,9 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import mongoose, { HydratedDocument } from 'mongoose';
-import { ActivationStatus } from '../../../../common/types/enums';
+import { HydratedDocument } from 'mongoose';
+import {
+  ActivationStatus,
+  AdminPermissionsPlatform,
+} from '../../../../common/types/enums';
 
 export type RoleDocument = HydratedDocument<Role>;
 
@@ -9,8 +12,12 @@ export class Role {
   @Prop({ required: true, trim: true })
   name: string;
 
-  @Prop({ type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Permission' }] })
-  permissions: mongoose.Types.ObjectId[];
+  @Prop({
+    type: [String],
+    enum: AdminPermissionsPlatform,
+    default: AdminPermissionsPlatform,
+  })
+  permissions: AdminPermissionsPlatform[];
 
   @Prop({
     enum: ActivationStatus,
