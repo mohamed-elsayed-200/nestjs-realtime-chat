@@ -1,8 +1,8 @@
 import {
   CanActivate,
   ExecutionContext,
-  ForbiddenException,
   Injectable,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { USER_TYPE_KEY } from '../decorators/user-type.decorator';
@@ -23,7 +23,7 @@ export class UserTypeGuard implements CanActivate {
     const userType = req?.user?.userType;
 
     if (!requiredTypes.includes(userType)) {
-      throw new ForbiddenException('auth.noPermissions');
+      throw new UnauthorizedException('auth.noPermissions');
     }
 
     return true;

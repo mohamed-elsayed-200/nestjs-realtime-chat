@@ -23,7 +23,7 @@ import { ActiveSessionService } from './services/active-session.service';
 import { GetSingleSessionService } from './services/get-single-session.service';
 import { GetSessionsService } from './services/get-sessions.service';
 
-@Controller('/admin/sessions')
+@Controller('/admins/sessions')
 @UseGuards(AuthGuard, PermissionsGuard, UserTypeGuard)
 @UserTypes(UserType.ADMIN, UserType.STAFF)
 export class SessionsController {

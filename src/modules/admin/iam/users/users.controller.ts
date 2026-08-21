@@ -24,7 +24,7 @@ import { GetUsersService } from './service/get-users.service';
 import { GetSingleUserService } from './service/get-single-user.service';
 import { CreateUserService } from './service/create-user.service';
 
-@Controller('/admin/users')
+@Controller('/admins/users')
 @UseGuards(AuthGuard, PermissionsGuard, UserTypeGuard)
 @UserTypes(UserType.ADMIN, UserType.STAFF)
 export class UsersController {

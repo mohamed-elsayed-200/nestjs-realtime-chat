@@ -26,7 +26,7 @@ import { UpdateRoleDto } from './dto/update-role.dto';
 import { GetRolesService } from './services/get-roles.service';
 import { GetSingleRolesService } from './services/get-single-role.service';
 
-@Controller('/admin/roles')
+@Controller('/admins/roles')
 @UseGuards(AuthGuard, PermissionsGuard, UserTypeGuard)
 @UserTypes(UserType.ADMIN, UserType.STAFF)
 export class RolesController {

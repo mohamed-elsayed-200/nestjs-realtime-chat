@@ -9,9 +9,9 @@ import { UserTypes } from '../../../common/decorators/user-type.decorator';
 import { GetUser } from '../../../common/decorators/get-user.decorator';
 import { ChangePasswordDto } from './dto/change-password.dto';
 
-@Controller('/admin/account')
+@Controller('/admins/account')
 @UseGuards(AuthGuard, UserTypeGuard)
-@UserTypes(UserType.ADMIN)
+@UserTypes(UserType.ADMIN, UserType.STAFF)
 export class AccountController {
   constructor(private readonly accountService: AccountService) {}
   @Get()

@@ -10,7 +10,7 @@ import getClientIp from '../../../common/utils/get-client-ip';
 import getClientUserAgent from '../../../common/utils/get-client-user-agent';
 import { SendOtpDto } from './dto/send-otp.dto';
 
-@Controller('/admin/auth')
+@Controller('/admins/auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 

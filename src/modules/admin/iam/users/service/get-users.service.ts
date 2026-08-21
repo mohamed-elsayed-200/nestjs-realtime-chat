@@ -9,7 +9,7 @@ export class GetUsersService {
       query,
       options: {
         allowedSearchFields: ['name', 'email'],
-        allowedFilterFields: ['status', 'type', 'role', 'permissions'],
+        allowedFilterFields: ['status', 'userType', 'role', 'permissions'],
         pipelines: [
           {
             $lookup: {
