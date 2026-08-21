@@ -8,7 +8,6 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { SessionsService } from './sessions.service';
 import { ResponseMeta } from '../../../../common/decorators/response.decorator';
 import { AuthGuard } from '../../../../common/guards/auth.guard';
 import { ValidateObjectIdPipe } from '../../../../common/pipes/validate-objectId.pipe';
@@ -18,37 +17,45 @@ import { UserTypeGuard } from '../../../../common/guards/user-type.guard';
 import { UserType } from '../../../../common/types/enums';
 import { UserTypes } from '../../../../common/decorators/user-type.decorator';
 import { QueryDto } from '../../../../common/modules/dto/query.dto';
+import { DeleteSessionService } from './services/delete-session.service';
+import { InactiveSessionService } from './services/inactive-session.service';
+import { ActiveSessionService } from './services/active-session.service';
+import { GetSingleSessionService } from './services/get-single-session.service';
+import { GetSessionsService } from './services/get-sessions.service';
 
 @Controller('/admin/sessions')
 @UseGuards(AuthGuard, PermissionsGuard, UserTypeGuard)
 @UserTypes(UserType.ADMIN, UserType.STAFF)
 export class SessionsController {
-  constructor(private readonly sessionsService: SessionsService) {}
+  constructor(
+    private readonly getSessionsService: GetSessionsService,
+    private readonly getSingleSessionService: GetSingleSessionService,
+    private readonly activeSessionService: ActiveSessionService,
+    private readonly inactiveSessionService: InactiveSessionService,
+    private readonly deleteSessionService: DeleteSessionService,
+  ) {}
   @Get()
   @ResponseMeta({
     message: 'sessions.foundAll',
-    statusCode: 200,
   })
   public async getAll(@Query() query: QueryDto) {
-    return this.sessionsService.getAll({ query });
+    return this.getSessionsService.get({ query });
   }
 
   @Get(':sessionId')
   @ResponseMeta({
     message: 'sessions.foundOne',
-    statusCode: 200,
   })
   public async getOne(
     @Param('sessionId', ValidateObjectIdPipe)
     sessionId: ValidateObjectIdPipe,
   ) {
-    return this.sessionsService.getOne({ sessionId });
+    return this.getSingleSessionService.get({ sessionId });
   }
 
   @Put('/:sessionId/active')
   @ResponseMeta({
     message: 'sessions.activated',
-    statusCode: 200,
   })
   public async active(
     @Param('sessionId', ValidateObjectIdPipe)
@@ -56,13 +63,12 @@ export class SessionsController {
     @Req() req: any,
   ) {
     const currSessionId = req?.sessionId;
-    return this.sessionsService.active({ sessionId, currSessionId });
+    return this.activeSessionService.active({ sessionId, currSessionId });
   }
 
   @Put('/:sessionId/inactive')
   @ResponseMeta({
     message: 'sessions.inactivated',
-    statusCode: 200,
   })
   public async inactive(
     @Param('sessionId', ValidateObjectIdPipe)
@@ -70,20 +76,19 @@ export class SessionsController {
     @Req() req: any,
   ) {
     const currSessionId = req?.sessionId;
-    return this.sessionsService.inactive({ sessionId, currSessionId });
+    return this.inactiveSessionService.inactive({ sessionId, currSessionId });
   }
 
   @Delete(':sessionId')
   @Permissions('sessions:delete')
   @ResponseMeta({
     message: 'sessions.deleted',
-    statusCode: 200,
   })
   public async delete(
     @Param('sessionId', ValidateObjectIdPipe) sessionId: string,
     @Req() req: any,
   ) {
     const currSessionId = req?.sessionId;
-    return this.sessionsService.delete({ sessionId, currSessionId });
+    return this.deleteSessionService.delete({ sessionId, currSessionId });
   }
 }
