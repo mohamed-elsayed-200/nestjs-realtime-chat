@@ -1,4 +1,3 @@
-import { Permission } from './../../../../common/modules/iam/permissions/permission.schema';
 import {
   Injectable,
   InternalServerErrorException,
