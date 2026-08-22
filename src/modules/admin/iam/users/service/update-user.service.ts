@@ -21,8 +21,6 @@ export class UpdateUserService {
   }
 
   private async validation({ dto, userId }) {
-    const userObjectId = new Types.ObjectId(userId);
-
     if (dto?.email) {
       const existingUser = await this.usersRepository.findOne({
         query: {
