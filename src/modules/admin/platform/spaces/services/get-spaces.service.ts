@@ -4,7 +4,7 @@ import { SpacesRepository } from '../../../../../common/modules/platform/spaces/
 import { QueryDto } from '../../../../../common/modules/dto/query.dto';
 
 @Injectable()
-export class GetSpacesListService {
+export class GetSpacesService {
   constructor(private readonly spacesRepository: SpacesRepository) {}
 
   async get({ query }) {
@@ -92,6 +92,36 @@ export class GetSpacesListService {
         });
       }
     } else {
+      // Resolve the owner from `createdBy`
+      pipelines.push(
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'createdBy',
+            foreignField: '_id',
+            as: 'ownerDoc',
+          },
+        },
+        {
+          $addFields: {
+            owner: {
+              $let: {
+                vars: { u: { $arrayElemAt: ['$ownerDoc', 0] } },
+                in: {
+                  _id: '$$u._id',
+                  name: '$$u.name',
+                  avatar: '$$u.avatar',
+                  profileColor: '$$u.profileColor',
+                  email: '$$u.email',
+                  username: '$$u.username',
+                },
+              },
+            },
+          },
+        },
+        { $project: { ownerDoc: 0 } },
+      );
+
       pipelines.push({
         $addFields: {
           chatName: '$name',
