@@ -76,7 +76,6 @@ export class UsersController {
   public async deleteUser(
     @Param('userId', ValidateObjectIdPipe)
     userId: ValidateObjectIdPipe,
-    @Body() dto: UpdateUserDto,
   ) {
     return this.deleteUserService.delete({ userId });
   }

@@ -11,6 +11,9 @@ export class MessagesRepository {
     @InjectModel(Message.name) private readonly messageModel: Model<Message>,
   ) {}
 
+  public async aggregate({ pipeline }) {
+    return this.messageModel.aggregate(pipeline);
+  }
   public async findAll({ query, options }) {
     return aggregateQuery({
       query,

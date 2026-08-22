@@ -4,6 +4,7 @@ import { RolesModule } from './iam/roles/roles.module';
 import { AuthModule } from './auth/auth.module';
 import { AccountModule } from './account/account.module';
 import { UsersModule } from './iam/users/users.module';
+import { MessagingModule } from './platform/messaging/messaging.module';
 
 @Module({
   imports: [
@@ -12,6 +13,7 @@ import { UsersModule } from './iam/users/users.module';
     RolesModule,
     SessionsModule,
     UsersModule,
+    MessagingModule,
   ],
 })
 export class AdminModule {}
