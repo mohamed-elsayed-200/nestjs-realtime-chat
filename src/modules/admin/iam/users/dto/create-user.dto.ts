@@ -1,6 +1,5 @@
 import {
   IsEmail,
-  IsNotEmpty,
   IsOptional,
   IsString,
   MinLength,
@@ -9,124 +8,71 @@ import {
   IsDateString,
   IsArray,
   IsMongoId,
-  IsNumber,
-  IsObject,
-  ValidateNested,
-  IsUrl,
+  MaxLength,
+  Matches,
+  IsNotEmpty,
 } from 'class-validator';
-import { Type } from 'class-transformer';
-import { UserType } from '../../../../../common/types/enums';
-class LocationDto {
-  @IsOptional()
-  @IsString({ message: 'user.validation.location.city.isString' })
-  city?: string;
-
-  @IsOptional()
-  @IsString({ message: 'user.validation.location.state.isString' })
-  state?: string;
-
-  @IsOptional()
-  @IsNumber({}, { message: 'user.validation.location.lat.isNumber' })
-  lat?: number;
-
-  @IsOptional()
-  @IsNumber({}, { message: 'user.validation.location.lng.isNumber' })
-  lng?: number;
-}
-
-class SocialLinksDto {
-  @IsOptional()
-  @IsUrl({}, { message: 'user.validation.social.website.isUrl' })
-  website?: string;
-
-  @IsOptional()
-  @IsUrl({}, { message: 'user.validation.social.linkedin.isUrl' })
-  linkedin?: string;
-
-  @IsOptional()
-  @IsUrl({}, { message: 'user.validation.social.github.isUrl' })
-  github?: string;
-
-  @IsOptional()
-  @IsUrl({}, { message: 'user.validation.social.twitter.isUrl' })
-  twitter?: string;
-
-  @IsOptional()
-  @IsUrl({}, { message: 'user.validation.social.facebook.isUrl' })
-  facebook?: string;
-}
+import { Transform } from 'class-transformer';
+import { UserStatus, UserType } from '../../../../../common/types/enums';
 
 export class CreateUserDto {
-  @IsString({ message: 'user.validation.name.isString' })
-  @IsNotEmpty({ message: 'user.validation.name.isNotEmpty' })
+  @IsString()
+  @MinLength(2, { message: 'Name must be at least 2 characters' })
+  @MaxLength(100, { message: 'Name must be under 100 characters' })
   name: string;
 
-  @IsEmail({}, { message: 'user.validation.email.invalid' })
-  @IsNotEmpty({ message: 'user.validation.email.isNotEmpty' })
+  @IsEmail({}, { message: 'Enter a valid email' })
+  @Transform(({ value }) => value?.toLowerCase?.()?.trim())
   email: string;
 
-  @IsOptional()
-  @IsString({ message: 'user.validation.username.isString' })
-  username?: string;
+  @IsString()
+  @MinLength(3, { message: 'Username must be at least 3 characters' })
+  @MaxLength(20, { message: 'Username must be under 20 characters' })
+  @Matches(/^[a-zA-Z0-9_]+$/, {
+    message: 'Username can only contain letters, numbers, and underscores',
+  })
+  username: string;
 
-  @IsOptional()
-  @IsDateString({}, { message: 'user.validation.dateOfBirth.isDate' })
-  dateOfBirth?: Date;
-
-  @IsNotEmpty({ message: 'user.validation.password.isNotEmpty' })
-  @MinLength(6, { message: 'user.validation.password.minLength' })
+  @IsString()
+  @MinLength(8, { message: 'Password must be at least 8 characters' })
+  @IsNotEmpty()
   password: string;
 
   @IsOptional()
-  @IsString({ message: 'user.validation.phone.isString' })
-  phone?: string;
+  @IsDateString()
+  dateOfBirth?: string;
 
   @IsOptional()
-  @IsString({ message: 'user.validation.avatar.isString' })
-  avatar?: string;
-
-  @IsOptional()
-  @IsString({ message: 'user.validation.cover.isString' })
-  cover?: string;
-
-  @IsOptional()
-  @IsString({ message: 'user.validation.profileColor.isString' })
-  profileColor?: string;
-
-  @IsOptional()
-  @IsEnum(UserType, { message: 'user.validation.userType.isEnum' })
-  userType?: UserType;
-
-  @IsOptional()
-  @IsArray({ message: 'user.validation.roles.isArray' })
-  @IsMongoId({ each: true, message: 'user.validation.roles.isMongoId' })
-  roles?: string[];
-
-  @IsOptional()
-  @IsString({ message: 'user.validation.bio.isString' })
+  @IsString()
+  @MaxLength(300, { message: 'Bio must be under 300 characters' })
   bio?: string;
 
   @IsOptional()
-  @IsString({ message: 'user.validation.headline.isString' })
-  headline?: string;
+  @IsString()
+  avatar?: string;
 
   @IsOptional()
-  @IsString({ message: 'user.validation.country.isString' })
-  country?: string;
+  @IsString()
+  cover?: string;
 
   @IsOptional()
-  @IsObject({ message: 'user.validation.location.isObject' })
-  @ValidateNested()
-  @Type(() => LocationDto)
-  location?: LocationDto;
+  @IsString()
+  profileColor?: string;
 
   @IsOptional()
-  @IsObject({ message: 'user.validation.socialLinks.isObject' })
-  @ValidateNested()
-  @Type(() => SocialLinksDto)
-  socialLinks?: SocialLinksDto;
+  @IsEnum(UserStatus)
+  status?: UserStatus;
 
   @IsOptional()
-  @IsBoolean({ message: 'user.validation.is2FA.isBoolean' })
+  @IsEnum(UserType)
+  userType?: UserType;
+
+  @IsOptional()
+  @IsBoolean()
   is2FA?: boolean;
+
+  @IsOptional()
+  @IsArray()
+  @IsMongoId({ each: true })
+  roles?: string[];
 }
