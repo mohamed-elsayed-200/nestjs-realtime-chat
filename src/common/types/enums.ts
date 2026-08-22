@@ -2,7 +2,7 @@ export enum UserStatus {
   ACTIVE = 'active',
   INACTIVE = 'inactive',
   NOT_VERIFIED = 'not-verified',
-  BLOCKED = 'blocked',
+  BANNED = 'banned',
   DELETED = 'deleted',
 }
 export enum UserType {

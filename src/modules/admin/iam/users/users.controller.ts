@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Post,
@@ -23,6 +24,7 @@ import { UpdateUserService } from './service/update-user.service';
 import { GetUsersService } from './service/get-users.service';
 import { GetSingleUserService } from './service/get-single-user.service';
 import { CreateUserService } from './service/create-user.service';
+import { DeleteUserService } from './service/delete-user.service';
 
 @Controller('/admins/users')
 @UseGuards(AuthGuard, PermissionsGuard, UserTypeGuard)
@@ -33,6 +35,7 @@ export class UsersController {
     private readonly getSingleUserService: GetSingleUserService,
     private readonly getUsersService: GetUsersService,
     private readonly updateUserService: UpdateUserService,
+    private readonly deleteUserService: DeleteUserService,
   ) {}
   @Get()
   @ResponseMeta({ message: 'users.foundAll' })
@@ -66,5 +69,15 @@ export class UsersController {
     @Body() dto: UpdateUserDto,
   ) {
     return this.updateUserService.update({ userId, dto });
+  }
+
+  @Delete('/:userId')
+  @ResponseMeta({ message: 'users.deleted' })
+  public async deleteUser(
+    @Param('userId', ValidateObjectIdPipe)
+    userId: ValidateObjectIdPipe,
+    @Body() dto: UpdateUserDto,
+  ) {
+    return this.deleteUserService.delete({ userId });
   }
 }

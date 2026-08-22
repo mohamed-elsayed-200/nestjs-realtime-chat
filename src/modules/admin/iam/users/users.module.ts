@@ -5,6 +5,7 @@ import { CreateUserService } from './service/create-user.service';
 import { GetSingleUserService } from './service/get-single-user.service';
 import { GetUsersService } from './service/get-users.service';
 import { UpdateUserService } from './service/update-user.service';
+import { DeleteUserService } from './service/delete-user.service';
 
 @Module({
   imports: [BaseAuthModule],
@@ -14,12 +15,14 @@ import { UpdateUserService } from './service/update-user.service';
     GetSingleUserService,
     GetUsersService,
     UpdateUserService,
+    DeleteUserService,
   ],
   exports: [
     CreateUserService,
     GetSingleUserService,
     GetUsersService,
     UpdateUserService,
+    DeleteUserService,
   ],
 })
 export class UsersModule {}

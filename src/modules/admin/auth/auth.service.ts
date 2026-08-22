@@ -72,7 +72,7 @@ export class AuthService {
         email,
         userType: { $in: [UserType.STAFF, UserType.ADMIN] },
         status: {
-          $nin: [UserStatus.BLOCKED, UserStatus.DELETED],
+          $nin: [UserStatus.BANNED, UserStatus.DELETED],
         },
       },
     });
