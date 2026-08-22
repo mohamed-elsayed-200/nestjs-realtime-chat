@@ -54,7 +54,14 @@ export class GetSpacesListService {
               },
             },
             { $unwind: '$userDoc' },
-            { $project: { _id: 0, name: '$userDoc.name' } },
+            {
+              $project: {
+                _id: 0,
+                name: '$userDoc.name',
+                avatar: '$userDoc.avatar',
+                profileColor: '$userDoc.profileColor',
+              },
+            },
           ],
           as: 'participants',
         },

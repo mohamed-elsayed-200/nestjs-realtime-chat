@@ -1,7 +1,7 @@
 import { IsOptional, IsString, IsInt, Min } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
 
-export class QueryGetMessagingSpacesDto {
+export class QueryGetSpacesDto {
   @IsOptional()
   @Type(() => Number)
   @IsInt()
