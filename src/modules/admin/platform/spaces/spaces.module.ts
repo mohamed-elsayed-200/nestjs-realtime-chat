@@ -5,9 +5,16 @@ import { BaseSpaceModule } from '../../../../common/modules/platform/spaces/spac
 import { GetSpacesService } from './services/get-spaces.service';
 import { DeleteSpaceService } from './services/delete-space.service';
 import { UpdateSpaceService } from './services/update-space.service';
+import { BaseMemberModule } from '../../../../common/modules/platform/members/members.module';
+import { BaseMessageModule } from '../../../../common/modules/platform/messages/messages.module';
 
 @Module({
-  imports: [BaseSpaceModule, BaseAuthModule],
+  imports: [
+    BaseSpaceModule,
+    BaseMemberModule,
+    BaseMessageModule,
+    BaseAuthModule,
+  ],
   controllers: [SpacesController],
   providers: [GetSpacesService, DeleteSpaceService, UpdateSpaceService],
 })

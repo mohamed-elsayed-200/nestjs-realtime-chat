@@ -1,9 +1,5 @@
 import { Types } from 'mongoose';
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { SpacesRepository } from '../../../../../common/modules/platform/spaces/spaces.repository';
 import { MembersRepository } from '../../../../../common/modules/platform/members/members.repository';
 import { SpaceTypes } from '../../../../../common/types/enums';
@@ -19,29 +15,22 @@ export class DeleteSpaceService {
 
   public async delete({ spaceId }) {
     const spaceObjectId = new Types.ObjectId(spaceId);
-    const findMember: any = await this.membersRepository.findOne({
+    const findSpace: any = await this.spacesRepository.findOne({
       query: {
-        space: spaceObjectId,
+        _id: spaceObjectId,
       },
-      populate: [
-        {
-          path: 'space',
-          model: 'Space',
-        },
-      ],
     });
 
-    if (!findMember) throw new NotFoundException('spaces.notFound');
+    if (!findSpace) throw new NotFoundException('spaces.notFound');
 
-    const space = findMember?.space;
-    const isChannel = space?.type === SpaceTypes.CHANNEL;
-    const isCommunity = space?.type === SpaceTypes.COMMUNITY;
-    const isGroup = space?.type === SpaceTypes.GROUP;
+    const isChannel = findSpace?.type === SpaceTypes.CHANNEL;
+    const isCommunity = findSpace?.type === SpaceTypes.COMMUNITY;
+    const isGroup = findSpace?.type === SpaceTypes.GROUP;
 
-    if (space?.parentSpace && (isChannel || isGroup)) {
+    if (findSpace?.parentSpace && (isChannel || isGroup)) {
       const decField = isChannel ? 'channelsCount' : 'groupsCount';
       await this.spacesRepository.updateOne({
-        query: { _id: space.parentSpace },
+        query: { _id: findSpace.parentSpace },
         dto: { $inc: { [decField]: -1 } },
       });
     }
