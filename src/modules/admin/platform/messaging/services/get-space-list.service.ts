@@ -12,9 +12,6 @@ export class GetSpacesListService {
     const isPrivate = spaceType === SpaceTypes.PRIVATE;
     const pipelines: any[] = [];
 
-    // Count messages per space
-    // Note: this lookup can get heavy at scale, consider denormalizing
-    // messagesCount on the Space document later if needed
     pipelines.push({
       $lookup: {
         from: 'messages',
@@ -27,7 +24,6 @@ export class GetSpacesListService {
       },
     });
 
-    // Resolve last activity from lastMessage, fallback to space.updatedAt
     pipelines.push({
       $lookup: {
         from: 'messages',
@@ -38,7 +34,6 @@ export class GetSpacesListService {
     });
 
     if (isPrivate) {
-      // Private spaces have no `name`, build a display name from both members
       pipelines.push({
         $lookup: {
           from: 'members',
@@ -84,15 +79,12 @@ export class GetSpacesListService {
         },
       });
 
-      // chatName only exists after the $addFields above, so we search here
-      // manually instead of relying on the generic allowedSearchFields
       if (otherQuery.search) {
         pipelines.push({
           $match: { chatName: { $regex: otherQuery.search, $options: 'i' } },
         });
       }
     } else {
-      // Group / Channel / Community already have `name` and `membersCount`
       pipelines.push({
         $addFields: {
           chatName: '$name',
@@ -115,37 +107,36 @@ export class GetSpacesListService {
       },
     });
 
-    const existingFilter =
-      otherQuery.filter && !Array.isArray(otherQuery.filter)
-        ? otherQuery.filter
-        : {};
+    // Normalize the incoming filter to always be array-format, then append
+    // the `type` filter (derived from spaceType) as one more item in it.
+    // This keeps status/other filters intact instead of being overwritten.
+    const incomingFilter = otherQuery.filter;
+    const normalizedFilter: any[] = Array.isArray(incomingFilter)
+      ? incomingFilter
+      : incomingFilter
+        ? Object.entries(incomingFilter).map(([field, value]) => ({
+            field,
+            operator: Array.isArray(value) ? 'in' : 'eq',
+            value,
+          }))
+        : [];
 
     const sanitizedQuery: QueryDto = {
       ...otherQuery,
-      // Skip the generic search entirely for private chats — we already
-      // handled it above against the computed chatName field
       search: isPrivate ? undefined : otherQuery.search,
-      filter: { ...existingFilter, type: spaceType },
+      filter: [
+        ...normalizedFilter,
+        { field: 'type', operator: 'eq', value: spaceType },
+      ],
     };
 
     return this.spacesRepository.findAll({
       query: sanitizedQuery,
       options: {
         pipelines,
-        allowedFilterFields: ['type', 'status'],
-        // For non-private types, `name` exists directly on the raw Space doc
-        // so the generic search can match it before the pipeline even runs
-        allowedSearchFields: isPrivate ? [] : ['name'],
         sort: { lastActivity: -1 },
-        includeFields: [
-          '_id',
-          'chatName',
-          'participantsCount',
-          'messagesCount',
-          'lastActivity',
-          'status',
-          'type',
-        ],
+        allowedFilterFields: ['type', 'status'],
+        allowedSearchFields: isPrivate ? [] : ['name'],
       },
     });
   }
