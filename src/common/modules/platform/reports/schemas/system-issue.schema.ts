@@ -55,6 +55,12 @@ export class SystemIssue {
 
   @Prop({ type: Number, default: 0 })
   reopenCount: number;
+
+  @Prop({ type: String, trim: true })
+  deviceInfo?: string;
+
+  @Prop({ type: String, trim: true })
+  appVersion?: string;
 }
 
 export const SystemIssueSchema = SchemaFactory.createForClass(SystemIssue);

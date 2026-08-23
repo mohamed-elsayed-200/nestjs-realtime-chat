@@ -7,6 +7,8 @@ import { UsersModule } from './iam/users/users.module';
 import { MessagingModule } from './platform/messaging/messaging.module';
 import { SpacesModule } from './platform/spaces/spaces.module';
 import { CallsModule } from './platform/calls/messaging.module';
+import { ContentReportsModule } from './platform/reports/content/content-reports.module';
+import { SystemIssuesModule } from './platform/reports/issues/system-issues.module';
 
 @Module({
   imports: [
@@ -18,6 +20,8 @@ import { CallsModule } from './platform/calls/messaging.module';
     MessagingModule,
     SpacesModule,
     CallsModule,
+    ContentReportsModule,
+    SystemIssuesModule,
   ],
 })
 export class AdminModule {}
