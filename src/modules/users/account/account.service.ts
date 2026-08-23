@@ -34,6 +34,7 @@ export class AccountService {
 
     const user = await this.usersRepository.findOne({
       query: { _id: authUserId },
+      select: '+password',
     });
     if (!user) throw new NotFoundException('account.failedUpdatedPassword');
 
