@@ -30,7 +30,13 @@ export class CallsRepository {
       },
     });
   }
+  public async count({ query }: { query: any }) {
+    return this.callModel.countDocuments(query);
+  }
 
+  public async aggregate({ pipeline }: { pipeline: any[] }) {
+    return this.callModel.aggregate(pipeline);
+  }
   public async findOne({ query, populate, select, sort }: FindOneProps) {
     const base = this.callModel.findOne(query);
     if (select) base.select(select);
