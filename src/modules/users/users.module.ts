@@ -14,6 +14,7 @@ import { ViewsModule } from './platform/views/views.module';
 import { CallsModule } from './platform/calls/calls.module';
 import { BannedModule } from './platform/banned/banned.module';
 import { SessionsModule } from './platform/sessions/sessions.module';
+import { ReportsModule } from './platform/reports/reports.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { SessionsModule } from './platform/sessions/sessions.module';
     CallsModule,
     BannedModule,
     SessionsModule,
+    ReportsModule,
   ],
 })
 export class UsersModule {}

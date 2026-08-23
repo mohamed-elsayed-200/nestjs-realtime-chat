@@ -371,3 +371,54 @@ export const BUSY_CALL_STATUSES = [
   CallStatus.RINGING,
   CallStatus.IN_PROGRESS,
 ];
+
+export enum ReportType {
+  USER = 'user',
+  MESSAGE = 'message',
+  GROUP = 'group',
+  CHANNEL = 'channel',
+  COMMUNITY = 'community',
+}
+
+export enum ReportStatus {
+  PENDING = 'pending',
+  REVIEWING = 'reviewing',
+  RESOLVED = 'resolved',
+  DISMISSED = 'dismissed',
+}
+
+export enum ReportReason {
+  SPAM = 'spam',
+  HARASSMENT = 'harassment',
+  SCAM = 'scam',
+  ABUSE = 'abuse',
+  INAPPROPRIATE_CONTENT = 'inappropriate_content',
+  IMPERSONATION = 'impersonation',
+  HATE_SPEECH = 'hate_speech',
+  VIOLENCE = 'violence',
+  OTHER = 'other',
+}
+export enum IssueCategory {
+  CALLS = 'calls',
+  MEDIA = 'media',
+  MESSAGING = 'messaging',
+  APPLICATION = 'application',
+  ACCOUNT = 'account',
+  NOTIFICATIONS = 'notifications',
+  PAYMENTS = 'payments',
+  OTHER = 'other',
+}
+
+export enum IssuePriority {
+  LOW = 'low',
+  MEDIUM = 'medium',
+  HIGH = 'high',
+  CRITICAL = 'critical',
+}
+
+export enum IssueStatus {
+  OPEN = 'open',
+  IN_PROGRESS = 'in_progress',
+  RESOLVED = 'resolved',
+  CLOSED = 'closed',
+}
