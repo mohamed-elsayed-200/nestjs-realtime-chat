@@ -24,7 +24,7 @@ import {
   UpdateReportStatusDto,
 } from './services/update-content-report-status.service';
 
-@Controller('/admins/content-reports')
+@Controller('/admins/report-contents')
 @UseGuards(AuthGuard, PermissionsGuard, UserTypeGuard)
 @UserTypes(UserType.ADMIN, UserType.STAFF)
 export class ContentReportsController {

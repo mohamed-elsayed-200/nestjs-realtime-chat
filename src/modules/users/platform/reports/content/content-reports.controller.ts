@@ -27,7 +27,7 @@ import { CancelContentReportService } from './services/cancel-content-report.ser
 import { CreateContentReportDto } from './dto/create-content-report.dto';
 import { UpdateContentReportDto } from './dto/update-content-report.dto';
 
-@Controller('/users/content-reports')
+@Controller('/users/report-contents')
 @UseGuards(AuthGuard, PermissionsGuard, UserTypeGuard)
 @UserTypes(UserType.USER)
 export class ContentReportsController {

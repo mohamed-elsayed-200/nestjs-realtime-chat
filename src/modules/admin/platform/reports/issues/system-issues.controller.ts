@@ -26,7 +26,7 @@ import {
 } from './services/update-system-issue-status.service';
 import { AssignSystemIssueService } from './services/assign-system-issue.service';
 
-@Controller('/admins/system-issues')
+@Controller('/admins/report-system-issues')
 @UseGuards(AuthGuard, PermissionsGuard, UserTypeGuard)
 @UserTypes(UserType.ADMIN, UserType.STAFF)
 export class SystemIssuesController {

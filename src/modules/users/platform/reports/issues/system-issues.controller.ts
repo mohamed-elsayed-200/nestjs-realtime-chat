@@ -24,7 +24,7 @@ import { GetMySystemIssuesService } from './services/get-my-system-issues.servic
 import { GetMySystemIssueDetailsService } from './services/get-my-system-issue-details.service';
 import { UpdateSystemIssueService } from './services/update-system-issue.service';
 
-@Controller('/users/system-issues')
+@Controller('/users/report-system-issues')
 @UseGuards(AuthGuard, PermissionsGuard, UserTypeGuard)
 @UserTypes(UserType.USER)
 export class SystemIssuesController {
@@ -35,7 +35,7 @@ export class SystemIssuesController {
     private readonly updateSystemIssueService: UpdateSystemIssueService,
   ) {}
 
-  @Post('issues')
+  @Post()
   @ResponseMeta({ message: 'issues.created', statusCode: 201 })
   public async createIssue(
     @Body() dto: CreateSystemIssueDto,
@@ -44,13 +44,13 @@ export class SystemIssuesController {
     return this.createSystemIssueService.create({ dto, authUser });
   }
 
-  @Get('issues')
+  @Get()
   @ResponseMeta({ message: 'issues.foundAll' })
   public async getMyIssues(@Query() query: QueryDto, @GetUser() authUser: any) {
     return this.getMySystemIssuesService.get({ query, authUser });
   }
 
-  @Get('issues/:issueId')
+  @Get('/:issueId')
   @ResponseMeta({ message: 'issues.foundOne' })
   public async getMyIssue(
     @Param('issueId', ValidateObjectIdPipe) issueId: string,
@@ -59,7 +59,7 @@ export class SystemIssuesController {
     return this.getMySystemIssueDetailsService.get({ issueId, authUser });
   }
 
-  @Put('issues/:issueId')
+  @Put('/:issueId')
   @ResponseMeta({ message: 'issues.updated' })
   public async updateIssue(
     @Param('issueId', ValidateObjectIdPipe) issueId: string,
