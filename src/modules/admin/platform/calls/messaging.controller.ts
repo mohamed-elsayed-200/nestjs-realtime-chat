@@ -7,7 +7,7 @@ import { UserTypes } from '../../../../common/decorators/user-type.decorator';
 import { PermissionsGuard } from '../../../../common/guards/permissions-guard.guard';
 import { GetCallsListService } from './services/get-calls-list.service';
 import { GetCallsStatsService } from './services/get-calls-stats.service';
-import { GetCallsQueryDto } from './dto/get-calls-query.dto';
+import { QueryDto } from '../../../../common/modules/dto/query.dto';
 
 @Controller('/admins/calls')
 @UseGuards(AuthGuard, UserTypeGuard)
@@ -21,7 +21,7 @@ export class CallsController {
 
   @Get()
   @ResponseMeta({ message: 'calls.findAll' })
-  public async getCalls(@Query() query: GetCallsQueryDto) {
+  public async getCalls(@Query() query: QueryDto) {
     return this.getCallsListService.get({ query });
   }
   @Get('stats')

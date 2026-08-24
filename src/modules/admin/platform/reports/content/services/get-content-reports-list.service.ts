@@ -1,9 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { ContentReportsRepository } from '../../../../../../common/modules/platform/reports/repositories/content-reports.repository';
-import {
-  GetContentReportsQueryDto,
-  ContentReportTab,
-} from '../dto/get-content-reports-query.dto';
 import { ReportType } from '../../../../../../common/types/enums';
 
 @Injectable()
@@ -12,14 +8,7 @@ export class GetContentReportsListService {
     private readonly contentReportsRepository: ContentReportsRepository,
   ) {}
 
-  public async get({ query }: { query: GetContentReportsQueryDto }) {
-    const { tab, status, ...restQuery } = query;
-    const existingFilter =
-      query.filter && !Array.isArray(query.filter) ? query.filter : {};
-
-    const typeFilter = this.mapTabToType(tab);
-    const statusFilter = status ? { status } : {};
-
+  public async get({ query }) {
     const pipelines: any[] = [
       // Populate reporter
       {
@@ -119,17 +108,8 @@ export class GetContentReportsListService {
       },
     ];
 
-    const sanitizedQuery = {
-      ...restQuery,
-      filter: {
-        ...existingFilter,
-        ...typeFilter,
-        ...statusFilter,
-      },
-    };
-
     return this.contentReportsRepository.findAll({
-      query: sanitizedQuery,
+      query,
       options: {
         pipelines,
         allowedFilterFields: ['status', 'reason', 'targetType', 'reporter'],
@@ -150,19 +130,5 @@ export class GetContentReportsListService {
         ],
       },
     });
-  }
-
-  private mapTabToType(
-    tab?: ContentReportTab,
-  ): Record<string, any> | undefined {
-    if (!tab || tab === ContentReportTab.ALL) return undefined;
-    const map: Record<string, ReportType> = {
-      [ContentReportTab.USER]: ReportType.USER,
-      [ContentReportTab.MESSAGE]: ReportType.MESSAGE,
-      [ContentReportTab.GROUP]: ReportType.GROUP,
-      [ContentReportTab.CHANNEL]: ReportType.CHANNEL,
-      [ContentReportTab.COMMUNITY]: ReportType.COMMUNITY,
-    };
-    return { targetType: map[tab] };
   }
 }

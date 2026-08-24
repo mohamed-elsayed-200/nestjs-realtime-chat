@@ -16,7 +16,6 @@ import { ValidateObjectIdPipe } from '../../../../../common/pipes/validate-objec
 import { UserTypes } from '../../../../../common/decorators/user-type.decorator';
 import { UserTypeGuard } from '../../../../../common/guards/user-type.guard';
 import { GetUser } from '../../../../../common/decorators/get-user.decorator';
-import { GetSystemIssuesQueryDto } from './dto/get-system-issues-query.dto';
 import { GetSystemIssuesStatsService } from './services/get-system-issues-stats.service';
 import { GetSystemIssuesListService } from './services/get-system-issues-list.service';
 import { GetSystemIssueDetailsService } from './services/get-system-issue-details.service';
@@ -25,6 +24,7 @@ import {
   UpdateIssueStatusDto,
 } from './services/update-system-issue-status.service';
 import { AssignSystemIssueService } from './services/assign-system-issue.service';
+import { QueryDto } from '../../../../../common/modules/dto/query.dto';
 
 @Controller('/admins/report-system-issues')
 @UseGuards(AuthGuard, PermissionsGuard, UserTypeGuard)
@@ -46,7 +46,7 @@ export class SystemIssuesController {
 
   @Get()
   @ResponseMeta({ message: 'issues.foundAll' })
-  public async getList(@Query() query: GetSystemIssuesQueryDto) {
+  public async getList(@Query() query: QueryDto) {
     return this.getSystemIssuesListService.get({ query });
   }
 

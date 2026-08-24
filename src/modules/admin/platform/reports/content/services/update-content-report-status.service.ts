@@ -16,15 +16,7 @@ export class UpdateContentReportStatusService {
     private readonly contentReportsRepository: ContentReportsRepository,
   ) {}
 
-  public async update({
-    reportId,
-    dto,
-    adminId,
-  }: {
-    reportId: string;
-    dto: UpdateReportStatusDto;
-    adminId: string;
-  }) {
+  public async update({ reportId, dto, adminId }) {
     const report = await this.contentReportsRepository.findOne({
       query: { _id: new Types.ObjectId(reportId) },
     });

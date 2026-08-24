@@ -417,7 +417,7 @@ export enum IssuePriority {
 
 export enum IssueStatus {
   OPEN = 'open',
-  IN_PROGRESS = 'in_progress',
+  IN_PROGRESS = 'in-progress',
   RESOLVED = 'resolved',
   CLOSED = 'closed',
 }

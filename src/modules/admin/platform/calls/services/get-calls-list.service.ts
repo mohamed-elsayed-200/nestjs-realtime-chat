@@ -1,8 +1,6 @@
-// get-calls-list.service.ts
 import { Injectable } from '@nestjs/common';
 import { CallStatus } from '../../../../../common/types/enums';
 import { CallsRepository } from '../../../../../common/modules/platform/calls/calls.repository';
-import { CallsTab } from '../dto/get-calls-query.dto';
 
 const ONGOING_STATUSES = [
   CallStatus.INITIATED,
@@ -10,23 +8,13 @@ const ONGOING_STATUSES = [
   CallStatus.IN_PROGRESS,
 ];
 
-const ENDED_STATUSES = [
-  CallStatus.COMPLETED,
-  CallStatus.MISSED,
-  CallStatus.REJECTED,
-  CallStatus.FAILED,
-];
-
 @Injectable()
 export class GetCallsListService {
   constructor(private readonly callsRepository: CallsRepository) {}
 
   async get({ query }) {
-    const { tab, ...otherQuery } = query;
     const pipelines: any[] = [];
 
-    // Resolve caller/receiver as single objects (not arrays), same pattern
-    // used for sender/received on private Spaces
     pipelines.push(
       {
         $lookup: {
@@ -73,8 +61,6 @@ export class GetCallsListService {
       { $project: { callerDoc: 0, receiverDoc: 0 } },
     );
 
-    // participantsCount is already maintained on the Call document itself,
-    // no lookup on the Participant collection needed for the list view
     pipelines.push({
       $addFields: {
         displayName: {
@@ -114,39 +100,8 @@ export class GetCallsListService {
       },
     });
 
-    const tabFilter: any[] = [];
-    if (tab === CallsTab.ACTIVE) {
-      tabFilter.push({
-        field: 'status',
-        operator: 'in',
-        value: ONGOING_STATUSES,
-      });
-    } else if (tab === CallsTab.HISTORY) {
-      tabFilter.push({
-        field: 'status',
-        operator: 'in',
-        value: ENDED_STATUSES,
-      });
-    } else if (tab === CallsTab.MEETINGS) {
-      tabFilter.push({ field: 'isConference', operator: 'eq', value: true });
-    }
-
-    const incomingFilter = otherQuery.filter;
-    const normalizedFilter: any[] = Array.isArray(incomingFilter)
-      ? incomingFilter
-      : incomingFilter
-        ? Object.entries(incomingFilter).map(([field, value]) => ({
-            field,
-            operator: Array.isArray(value) ? 'in' : 'eq',
-            value,
-          }))
-        : [];
-
     return this.callsRepository.findAll({
-      query: {
-        ...otherQuery,
-        filter: [...normalizedFilter, ...tabFilter],
-      },
+      query,
       options: {
         pipelines,
         sort: { createdAt: -1 },
