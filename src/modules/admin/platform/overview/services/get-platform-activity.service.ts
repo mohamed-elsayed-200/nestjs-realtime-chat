@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import dayjs from 'dayjs';
+import isoWeek from 'dayjs/plugin/isoWeek';
 import { MessagesRepository } from '../../../../../common/modules/platform/messages/messages.repository';
+
+// Extend Dayjs with isoWeek plugin
+dayjs.extend(isoWeek);
 
 export type ActivityRange = '7d' | '30d';
 
@@ -42,7 +46,7 @@ export class GetPlatformActivityService {
   }
 
   private async getWeeklyBuckets() {
-    const start = dayjs().subtract(3, 'week').startOf('week').toDate();
+    const start = dayjs().subtract(4, 'week').startOf('week').toDate();
 
     const result = await this.messagesRepository.aggregate({
       pipeline: [
@@ -57,9 +61,18 @@ export class GetPlatformActivityService {
       ],
     });
 
-    return result.map((r: any, i: number) => ({
-      day: `Week ${i + 1}`,
-      messages: r.messages,
-    }));
+    const map = new Map(result.map((r: any) => [r._id, r.messages]));
+
+    const weeks = Array.from({ length: 4 }).map((_, i) => {
+      const weekNumber = dayjs()
+        .subtract(3 - i, 'week')
+        .isoWeek();
+      return {
+        day: `Week ${i + 1}`,
+        messages: map.get(weekNumber) ?? 0,
+      };
+    });
+
+    return weeks;
   }
 }
