@@ -8,16 +8,38 @@ export class GetSessionsService {
     return this.sessionsRepository.findAllByPaginate({
       query,
       options: {
-        modelActions: {
-          populate: [
-            {
-              path: 'user',
-              model: 'User',
-              select: 'name email phone type',
+        allowedSearchFields: ['ip', 'user', 'userAgent'],
+        allowedFilterFields: ['status'],
+        pipelines: [
+          {
+            $lookup: {
+              from: 'users',
+              localField: 'user',
+              foreignField: '_id',
+              as: 'userDoc',
             },
-          ],
-        },
-        allowedSearchFields: ['name'],
+          },
+          {
+            $unwind: { path: '$userDoc', preserveNullAndEmptyArrays: true },
+          },
+          {
+            $project: {
+              user: {
+                name: '$userDoc.name',
+                profileColor: '$userDoc.profileColor',
+                avatar: '$userDoc.avatar',
+                email: '$userDoc.email',
+                username: '$userDoc.username',
+              },
+              ip: 1,
+              userAgent: 1,
+              location: 1,
+              status: 1,
+              expiresIn: 1,
+              lastUsedAt: 1,
+            },
+          },
+        ],
       },
     });
   }

@@ -78,6 +78,15 @@ export class GetUsersService {
           },
 
           {
+            $lookup: {
+              from: 'roles',
+              localField: 'roles',
+              foreignField: '_id',
+              as: 'roleDocs',
+            },
+          },
+
+          {
             $addFields: {
               spaceStatsDoc: { $arrayElemAt: ['$spaceStats', 0] },
               callStatsDoc: { $arrayElemAt: ['$callStats', 0] },
@@ -97,6 +106,26 @@ export class GetUsersService {
                 $ifNull: ['$spaceStatsDoc.communityCount', 0],
               },
               callsCount: { $ifNull: ['$callStatsDoc.total', 0] },
+
+              rolesDetails: {
+                $map: {
+                  input: '$roleDocs',
+                  as: 'r',
+                  in: {
+                    id: '$$r._id',
+                    name: '$$r.name',
+                    permissions: '$$r.permissions',
+                  },
+                },
+              },
+
+              permissions: {
+                $reduce: {
+                  input: '$roleDocs.permissions',
+                  initialValue: [],
+                  in: { $setUnion: ['$$value', '$$this'] },
+                },
+              },
             },
           },
 
@@ -107,6 +136,7 @@ export class GetUsersService {
               callStats: 0,
               spaceStatsDoc: 0,
               callStatsDoc: 0,
+              roleDocs: 0,
             },
           },
 
@@ -118,7 +148,8 @@ export class GetUsersService {
               avatar: 1,
               status: 1,
               userType: 1,
-              roles: 1,
+              roles: '$rolesDetails',
+              permissions: 1,
               is2FA: 1,
               lastLoginAt: 1,
               profileColor: 1,

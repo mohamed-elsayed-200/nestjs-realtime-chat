@@ -1,12 +1,14 @@
 import {
   IsString,
   IsNotEmpty,
-  IsMongoId,
   IsArray,
   IsOptional,
   IsEnum,
 } from 'class-validator';
-import { ActivationStatus } from '../../../../../common/types/enums';
+import {
+  ActivationStatus,
+  AdminPermissionsPlatform,
+} from '../../../../../common/types/enums';
 
 export class CreateRoleDto {
   @IsString({ message: 'roles.validation.name.isString' })
@@ -15,11 +17,11 @@ export class CreateRoleDto {
 
   @IsOptional()
   @IsArray({ message: 'roles.validation.permissions.isArray' })
-  @IsMongoId({
+  @IsEnum(AdminPermissionsPlatform, {
     each: true,
-    message: 'roles.validation.permissions.isMongoIdEach',
+    message: 'roles.validation.permissions.isEnumEach',
   })
-  permissions?: string[];
+  permissions?: AdminPermissionsPlatform[];
 
   @IsOptional()
   @IsEnum({}, { message: 'roles.validation.status.isEnum' })
