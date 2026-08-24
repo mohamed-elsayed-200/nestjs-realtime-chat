@@ -20,7 +20,9 @@ export class UsersRepository {
       },
     });
   }
-
+  public async count({ query }) {
+    return this.userModel.countDocuments(query);
+  }
   public async findMany({ query, sort, select }: FindManyProps) {
     if (query?.space) query.space = new Types.ObjectId(query.space);
     if (query?.user) query.user = new Types.ObjectId(query.user);
@@ -29,7 +31,15 @@ export class UsersRepository {
     if (select) base.select(select);
     return await base.lean().exec();
   }
-
+  public async findRecent({ query, limit }: { query: any; limit: number }) {
+    return this.userModel
+      .find(query)
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .select('name createdAt')
+      .lean()
+      .exec();
+  }
   public async findStatics({ pipelines }) {
     return this.userModel.aggregate(pipelines);
   }

@@ -6,9 +6,10 @@ import { AccountModule } from './account/account.module';
 import { UsersModule } from './iam/users/users.module';
 import { MessagingModule } from './platform/messaging/messaging.module';
 import { SpacesModule } from './platform/spaces/spaces.module';
-import { CallsModule } from './platform/calls/messaging.module';
+import { CallsModule } from './platform/calls/calls.module';
 import { ContentReportsModule } from './platform/reports/content/content-reports.module';
 import { SystemIssuesModule } from './platform/reports/issues/system-issues.module';
+import { OverviewModule } from './platform/overview/overview.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { SystemIssuesModule } from './platform/reports/issues/system-issues.modu
     CallsModule,
     ContentReportsModule,
     SystemIssuesModule,
+    OverviewModule,
   ],
 })
 export class AdminModule {}

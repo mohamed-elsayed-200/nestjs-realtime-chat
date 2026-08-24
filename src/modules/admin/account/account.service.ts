@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
+import { UserStatus } from '../../../common/types/enums';
 
 @Injectable()
 export class AccountService {
@@ -12,8 +13,8 @@ export class AccountService {
 
   public async findMyAccount({ authAdminId }) {
     const account = await this.usersRepository.findOne({
-      query: { _id: authAdminId },
-      select: '+email +phone',
+      query: { _id: authAdminId, status: UserStatus.ACTIVE },
+      select: '+email',
     });
     return account;
   }
@@ -23,6 +24,7 @@ export class AccountService {
       query: { _id: authAdminId },
       dto,
     });
+
     return user;
   }
 
@@ -31,6 +33,7 @@ export class AccountService {
 
     const user = await this.usersRepository.findOne({
       query: { _id: authAdminId },
+      select: '+password',
     });
     if (!user) throw new NotFoundException('account.failedUpdatedPassword');
 
@@ -42,5 +45,26 @@ export class AccountService {
       dto: { password: newPassword },
     });
     if (!updatePassword) throw new BadRequestException('common.failed');
+
+    return user;
+  }
+
+  public async verifyPasscode({ authAdminId, dto }) {
+    const { passcode } = dto;
+
+    const user = await this.usersRepository.findOne({
+      query: { _id: authAdminId },
+      select: '+passcodeLock',
+    });
+    if (!user) throw new NotFoundException('account.accountNotFound');
+
+    if (!user.isPasscodeLocked || !user.passcodeLock) {
+      throw new BadRequestException('account.passcodeNotEnabled');
+    }
+
+    const isMatch = await bcrypt.compare(passcode, user.passcodeLock);
+    if (!isMatch) throw new BadRequestException('account.invalidPasscode');
+
+    return { valid: true };
   }
 }

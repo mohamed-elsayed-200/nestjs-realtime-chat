@@ -23,7 +23,9 @@ export class MessagesRepository {
       },
     });
   }
-
+  public async count({ query }) {
+    return this.messageModel.countDocuments(query);
+  }
   async getMessageStatistics({ spaceId }) {
     return this.messageModel.aggregate([
       { $match: { space: spaceId } },

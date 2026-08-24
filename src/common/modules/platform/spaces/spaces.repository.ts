@@ -21,7 +21,15 @@ export class SpacesRepository {
       },
     });
   }
-
+  public async findRecent({ query, limit }: { query: any; limit: number }) {
+    return this.spaceModel
+      .find(query)
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .select('name createdAt')
+      .lean()
+      .exec();
+  }
   public async findOne({ query, populate, select }: FindOneProps) {
     const base = this.spaceModel.findOne(query);
     if (select) base.select(select);
