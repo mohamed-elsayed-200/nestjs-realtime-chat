@@ -32,11 +32,35 @@ export enum SpaceMemberRole {
   MEMBER = 'member',
   OWNER = 'owner',
 }
+
 export enum AdminPermissionsPlatform {
-  USERS_CREATE = 'users:create',
-  USERS_UPDATE = 'users:update',
+  ROLES_VIEW = 'roles:view',
+  ROLES_CREATE = 'roles:create',
+  ROLES_EDIT = 'roles:edit',
+  ROLES_DELETE = 'roles:delete',
+  USERS_VIEW = 'users:view',
+  USERS_EDIT = 'users:edit',
   USERS_DELETE = 'users:delete',
-  USERS_READ = 'users:read',
+  USERS_ACTIVATE = 'users:activate',
+  USERS_DEACTIVATE = 'users:deactivate',
+  BANNED_USERS_VIEW = 'banned-users:view',
+  BANNED_USERS_BAN = 'banned-users:ban',
+  BANNED_USERS_UNBAN = 'banned-users:unban',
+  CHANNELS_VIEW = 'channels:view',
+  CHANNELS_EDIT = 'channels:edit',
+  CHANNELS_DELETE = 'channels:delete',
+  CHANNELS_ACTIVATE = 'channels:activate',
+  CHANNELS_DEACTIVATE = 'channels:deactivate',
+  GROUPS_VIEW = 'groups:view',
+  GROUPS_EDIT = 'groups:edit',
+  GROUPS_DELETE = 'groups:delete',
+  GROUPS_ACTIVATE = 'groups:activate',
+  GROUPS_DEACTIVATE = 'groups:deactivate',
+  COMMUNITIES_VIEW = 'communities:view',
+  COMMUNITIES_EDIT = 'communities:edit',
+  COMMUNITIES_DELETE = 'communities:delete',
+  COMMUNITIES_ACTIVATE = 'communities:activate',
+  COMMUNITIES_DEACTIVATE = 'communities:deactivate',
 }
 
 export enum SpaceMemberPermission {
