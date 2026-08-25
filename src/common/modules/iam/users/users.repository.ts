@@ -49,7 +49,7 @@ export class UsersRepository {
     if (select) item.select(select);
     if (populate) item.populate(populate);
 
-    const result = await item.lean().exec();
+    const result = await item.exec();
     return result;
   }
 
