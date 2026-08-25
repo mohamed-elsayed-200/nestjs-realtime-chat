@@ -10,7 +10,7 @@ const getLocationFromIp = async (ip: string) => {
       lat: response?.data?.latitude || 0,
       lon: response?.data?.longitude || 0,
     };
-  } catch (e) {
+  } catch (e: any) {
     console.error('Error fetching location from IP:', e.response?.data?.error);
     return { country: 'Unknown', city: 'Unknown', lat: 0, lon: 0 };
   }

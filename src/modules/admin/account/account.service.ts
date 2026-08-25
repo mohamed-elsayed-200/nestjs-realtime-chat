@@ -5,17 +5,30 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
-import { UserStatus } from '../../../common/types/enums';
+import { ActivationStatus, UserStatus } from '../../../common/types/enums';
 
 @Injectable()
 export class AccountService {
   constructor(private readonly usersRepository: UsersRepository) {}
 
   public async findMyAccount({ authAdminId }) {
-    const account = await this.usersRepository.findOne({
+    const getAccount = await this.usersRepository.findOne({
       query: { _id: authAdminId, status: UserStatus.ACTIVE },
       select: '+email',
+      populate: [
+        {
+          path: 'roles',
+          model: 'Role',
+          select: 'name status permissions',
+        },
+      ],
     });
+    const account = {
+      ...getAccount,
+      roles: getAccount?.roles?.filter(
+        (rol: any) => rol?.status === ActivationStatus.ACTIVE,
+      ),
+    };
     return account;
   }
 

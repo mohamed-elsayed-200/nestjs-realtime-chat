@@ -105,7 +105,7 @@ export class GetCallsListService {
       options: {
         pipelines,
         sort: { createdAt: -1 },
-        allowedFilterFields: ['status', 'isConference', 'type'],
+        allowedFilterFields: ['status', 'scope', 'isConference', 'type'],
       },
     });
   }
