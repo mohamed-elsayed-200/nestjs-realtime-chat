@@ -1,6 +1,7 @@
 import { Types } from 'mongoose';
-import { MembersRepository } from '../../../../../common/modules/platform/members/members.repository';
 import { Injectable } from '@nestjs/common';
+import { MembersRepository } from '../../../../../common/modules/platform/members/members.repository';
+import { ActivationStatus } from '../../../../../common/types/enums';
 
 @Injectable()
 export class GetSpacesService {
@@ -31,7 +32,11 @@ export class GetSpacesService {
             },
           },
           { $unwind: '$space' },
-
+          {
+            $match: {
+              'space.status': ActivationStatus.ACTIVE,
+            },
+          },
           {
             $match: {
               $or: [
