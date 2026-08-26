@@ -58,8 +58,8 @@ export class GetActiveCallService {
           participant: myUpdatedParticipant
             ? this.callsRepository.toParticipantResponse(myUpdatedParticipant)
             : undefined,
-          participants: participants.map(
-            this.callsRepository.toParticipantResponse,
+          participants: participants.map((p) =>
+            this.callsRepository.toParticipantResponse(p),
           ),
         };
         break;
@@ -104,8 +104,8 @@ export class GetActiveCallService {
           participant: myParticipant
             ? this.callsRepository.toParticipantResponse(myParticipant)
             : undefined,
-          participants: participants.map(
-            this.callsRepository.toParticipantResponse,
+          participants: participants.map((p) =>
+            this.callsRepository.toParticipantResponse(p),
           ),
         };
       }

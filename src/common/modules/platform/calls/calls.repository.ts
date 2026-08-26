@@ -76,7 +76,7 @@ export class CallsRepository {
     return this.callModel.findOneAndDelete(query);
   }
 
-  public toPersonInfo(user: any) {
+  public toPersonInfo = (user: any) => {
     if (!user) return undefined;
     return {
       id: user._id?.toString() ?? user.id,
@@ -85,9 +85,9 @@ export class CallsRepository {
       profileColor: user.profileColor,
       bio: user.bio,
     };
-  }
+  };
 
-  public toSpaceInfo(space: any) {
+  public toSpaceInfo = (space: any) => {
     if (!space) return undefined;
     return {
       id: space._id?.toString() ?? space.id,
@@ -97,9 +97,9 @@ export class CallsRepository {
       type: space.type,
       settings: space.settings?.call,
     };
-  }
+  };
 
-  public toCallResponse(call: any) {
+  public toCallResponse = (call: any) => {
     if (!call) return call;
 
     return {
@@ -112,9 +112,9 @@ export class CallsRepository {
       receiverUser: this.toPersonInfo(call?.receiver),
       spaceInfo: this.toSpaceInfo(call?.space),
     };
-  }
+  };
 
-  public toParticipantResponse(participant: any) {
+  public toParticipantResponse = (participant: any) => {
     if (!participant) return participant;
 
     return {
@@ -129,5 +129,5 @@ export class CallsRepository {
       adminTag: participant.member?.adminTag,
       adminTagColor: participant.member?.adminTagColor,
     };
-  }
+  };
 }
