@@ -22,12 +22,22 @@ export class GetLiveCallsService {
         },
         { $unwind: { path: '$callerDoc', preserveNullAndEmptyArrays: true } },
         {
+          $lookup: {
+            from: 'spaces',
+            localField: 'space',
+            foreignField: '_id',
+            as: 'spaceDoc',
+          },
+        },
+        { $unwind: { path: '$spaceDoc', preserveNullAndEmptyArrays: true } },
+        {
           $project: {
             type: 1,
             isConference: 1,
             participantsCount: 1,
             startedAt: 1,
             callerName: { $ifNull: ['$callerDoc.name', 'Unknown'] },
+            spaceName: { $ifNull: ['$spaceDoc.name', null] },
           },
         },
       ],
@@ -36,6 +46,7 @@ export class GetLiveCallsService {
     return result.map((call: any) => ({
       id: call._id,
       label: call.isConference ? 'Meeting' : 'Call',
+      spaceName: call.spaceName,
       participants:
         call.participantsCount > 1
           ? `${call.callerName} + ${call.participantsCount - 1} participants`

@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
-import { ActivationStatus, UserStatus } from '../../../common/types/enums';
+import { UserStatus } from '../../../common/types/enums';
 
 @Injectable()
 export class AccountService {
@@ -23,13 +23,7 @@ export class AccountService {
         },
       ],
     });
-    const account = {
-      ...getAccount,
-      roles: getAccount?.roles?.filter(
-        (rol: any) => rol?.status === ActivationStatus.ACTIVE,
-      ),
-    };
-    return account;
+    return getAccount;
   }
 
   public async changeInfo({ authAdminId, dto }) {
