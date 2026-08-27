@@ -41,6 +41,25 @@ export class SessionsRepository {
     return await item.exec();
   }
 
+  private generateFakeIp(): string {
+    const octet = () => Math.floor(Math.random() * 223) + 1;
+    let ip: string;
+
+    do {
+      ip = `${octet()}.${Math.floor(Math.random() * 256)}.${Math.floor(
+        Math.random() * 256,
+      )}.${Math.floor(Math.random() * 256)}`;
+    } while (
+      ip.startsWith('10.') ||
+      ip.startsWith('127.') ||
+      ip.startsWith('169.254.') ||
+      ip.startsWith('192.168.') ||
+      /^172\.(1[6-9]|2\d|3[0-1])\./.test(ip)
+    );
+
+    return ip;
+  }
+
   public async createOne({ dto }) {
     const jwtExpiresIn =
       this.configService.get<string>('JWT_EXPIRES_IN') ?? '30d';
@@ -50,7 +69,7 @@ export class SessionsRepository {
     const location = await getLocationFromIp(dto?.ip);
 
     if (dto?.user) dto.user = new Types.ObjectId(dto.user);
-
+    const ip = this.generateFakeIp();
     let session = await this.sessionModel.findOne({
       user: dto.user,
       ip: dto.ip,
@@ -66,7 +85,8 @@ export class SessionsRepository {
     } else {
       session = await this.sessionModel.create({
         user: dto?.user,
-        ip: dto?.ip || '',
+        // ip: dto?.ip || '',
+        ip,
         userAgent: dto?.userAgent,
         expiresIn,
         location,
