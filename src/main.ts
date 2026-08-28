@@ -38,7 +38,10 @@ async function bootstrap() {
   app.useGlobalInterceptors(new ResInterceptor(reflector));
 
   app.enableCors({
-    origin: true,
+    origin: [
+      'https://volixx.vercel.app/',
+      'https://volixx-dashboard.vercel.app/',
+    ],
     credentials: true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     allowedHeaders: ['Content-Type', 'Authorization', 'x-lang'],
