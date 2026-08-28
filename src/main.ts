@@ -39,8 +39,8 @@ async function bootstrap() {
 
   app.enableCors({
     origin: [
-      'https://volixx.vercel.app/',
-      'https://volixx-dashboard.vercel.app/',
+      'https://volixx.vercel.app',
+      'https://volixx-dashboard.vercel.app',
     ],
     credentials: true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
