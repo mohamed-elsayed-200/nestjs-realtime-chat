@@ -58,10 +58,7 @@ export class AuthRepository {
 
   public async login({ ip, email, userAgent, password, userType }) {
     const user = await this.usersRepository.findOne({
-      query: {
-        email,
-        userType,
-      },
+      query: { email, userType },
       select: '+password +email',
     });
 
@@ -73,12 +70,10 @@ export class AuthRepository {
     if (!isPasswordMatch)
       throw new BadRequestException('auth.invalidCredentials');
 
-    // Check if user is active
     if (user.status !== UserStatus.ACTIVE) {
       throw new BadRequestException('auth.accountNotActivated');
     }
 
-    // Create session
     const session = await this.sessionsRepository.createOne({
       dto: {
         user: user._id,
@@ -92,22 +87,15 @@ export class AuthRepository {
       throw new InternalServerErrorException('auth.failedCreateSession');
     }
 
-    // Generate token
     const token = await this.tokenService.generateToken({
       userId: user._id,
       sessionId: session?._id,
     });
 
-    if (user.status === UserStatus.ACTIVE) {
-      await this.sessionsRepository.createOne({
-        dto: {
-          user: user._id,
-          token,
-          userAgent,
-          ip,
-        },
-      });
-    }
+    await this.sessionsRepository.updateOne({
+      query: { _id: session._id },
+      dto: { token },
+    });
 
     return { ...user?.toObject(), token };
   }
