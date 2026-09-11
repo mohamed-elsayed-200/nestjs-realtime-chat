@@ -1,1 +1,1 @@
-# LMS Platform
+# Chat Platform
